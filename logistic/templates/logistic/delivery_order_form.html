@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h4 class="mb-0">
+            {% if object.driver_name %}
+                Изменение данных по заявке #{{ object.id }}
+            {% else %}
+                Назначение водителя на заявку #{{ object.id }}
+            {% endif %}
+        </h4>
+    </div>
+    <div class="card-body">
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div class="alert alert-info">
+            <strong>Внимание!</strong> Вы можете изменить только данные водителя и статус.
+            Основные данные заявки (город, вес, объем) защищены от изменений.
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <!-- Отображение ошибок полей -->
+            {% if form.errors %}
+            <div class="alert alert-warning">
+                <strong>Пожалуйста, исправьте ошибки:</strong>
+                <ul>
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <li>{{ field }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">ФИО водителя *</label>
+                    <input type="text" name="driver_name" class="form-control {% if form.driver_name.errors %}is-invalid{% endif %}" 
+                           value="{{ form.driver_name.value|default:'' }}" required>
+                    {% if form.driver_name.errors %}
+                    <div class="invalid-feedback">
+                        {{ form.driver_name.errors.0 }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Телефон водителя</label>
+                    <input type="tel" name="driver_phone" class="form-control {% if form.driver_phone.errors %}is-invalid{% endif %}" 
+                           value="{{ form.driver_phone.value|default:'' }}">
+                    {% if form.driver_phone.errors %}
+                    <div class="invalid-feedback">
+                        {{ form.driver_phone.errors.0 }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Марка и номер ТС</label>
+                    <input type="text" name="vehicle" class="form-control {% if form.vehicle.errors %}is-invalid{% endif %}" 
+                           value="{{ form.vehicle.value|default:'' }}">
+                    {% if form.vehicle.errors %}
+                    <div class="invalid-feedback">
+                        {{ form.vehicle.errors.0 }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Статус заявки</label>
+                    <select name="status" class="form-select {% if form.status.errors %}is-invalid{% endif %}">
+                        {% for value, label in form.fields.status.choices %}
+                        <option value="{{ value }}" {% if form.status.value == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.status.errors %}
+                    <div class="invalid-feedback">
+                        {{ form.status.errors.0 }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-success">Сохранить изменения</button>
+                <a href="{% url 'delivery_order_detail' object.pk %}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

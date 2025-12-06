@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Заявка #{{ order.id }} - Доставка в {{ order.city }}</h4>
+            <span class="badge bg-{% if order.status == 'submitted' %}warning{% elif order.status == 'driver_assigned' %}info{% else %}success{% endif %}">
+                {{ order.get_status_display }}
+            </span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h5>Основная информация</h5>
+                <table class="table table-bordered">
+                    <tr><th>Дата доставки:</th><td>{{ order.date|date:"d.m.Y" }}</td></tr>
+                    <tr><th>Город назначения:</th><td>{{ order.city }}</td></tr>
+                    <tr><th>Склад отправки:</th><td>{{ order.warehouse }}</td></tr>
+                    <tr><th>Фулфилмент:</th><td>{{ order.fulfillment }}</td></tr>
+                    <tr><th>Количество мест:</th><td>{{ order.quantity }}</td></tr>
+                    <tr><th>Вес:</th><td>{{ order.weight }} кг</td></tr>
+                    <tr><th>Объем:</th><td>{{ order.volume }} м³</td></tr>
+                </table>
+            </div>
+            
+            <div class="col-md-6">
+                <h5>Информация о перевозке</h5>
+                <table class="table table-bordered">
+                    <tr>
+                        <th>Водитель:</th>
+                        <td>
+                            {% if order.driver_name %}
+                                {{ order.driver_name }}
+                            {% else %}
+                                <span class="text-danger">Не назначен</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr><th>Телефон:</th><td>{{ order.driver_phone|default:"-" }}</td></tr>
+                    <tr><th>Транспорт:</th><td>{{ order.vehicle|default:"-" }}</td></tr>
+                    <tr><th>Создано:</th><td>{{ order.created_at|date:"d.m.Y H:i" }}</td></tr>
+                </table>
+                
+            {% if order.status == 'shipped' %}
+            <div class="alert alert-danger">
+                <strong>Заявка отправлена!</strong> Редактирование недоступно.
+            </div>
+            {% elif order.status == 'driver_assigned' %}
+            <div class="alert alert-warning">
+                <strong>Водитель назначен.</strong> Можно изменить данные водителя или отправить заявку.
+            </div>
+            {% endif %}
+
+            {% if order.status != 'shipped' and not is_operator or is_admin or is_logistic %}
+            <div class="mt-4">
+                <a href="{% url 'delivery_order_update' order.pk %}" class="btn btn-primary">
+                    {% if order.driver_name %}Изменить данные водителя{% else %}Назначить водителя{% endif %}
+                </a>
+            </div>
+            {% endif %}
+
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <a href="{% url 'delivery_order_list' %}" class="btn btn-secondary">← Назад к списку</a>
+        <a href="{% url 'admin:logistic_deliveryorder_change' order.pk %}" class="btn btn-outline-dark">Редактировать в админке</a>
+    </div>
+</div>
+{% endblock %}
