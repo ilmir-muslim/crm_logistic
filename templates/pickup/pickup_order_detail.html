@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                Заявка на забор #{{ order.id }} - {{ order.client_name }}
+            </h4>
+            <span class="badge bg-{% if order.status == 'new' %}secondary{% elif order.status == 'confirmed' %}warning{% elif order.status == 'picked_up' %}success{% else %}danger{% endif %} fs-6">
+                {{ order.get_status_display }}
+            </span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <!-- Левая колонка - основная информация -->
+            <div class="col-md-6">
+                <h5 class="border-bottom pb-2 mb-3">Основная информация</h5>
+                <table class="table table-bordered">
+                    <tr>
+                        <th style="width: 40%">Дата забора:</th>
+                        <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Клиент:</th>
+                        <td><strong>{{ order.client_name }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Телефон:</th>
+                        <td>{{ order.client_phone|default:"Не указан" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Email:</th>
+                        <td>{{ order.client_email|default:"Не указан" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Адрес забора:</th>
+                        <td>{{ order.pickup_address }}</td>
+                    </tr>
+                </table>
+                
+                <h5 class="border-bottom pb-2 mb-3 mt-4">Характеристики груза</h5>
+                <table class="table table-bordered">
+                    <tr>
+                        <th style="width: 40%">Количество мест:</th>
+                        <td>{{ order.quantity }}</td>
+                    </tr>
+                    <tr>
+                        <th>Вес:</th>
+                        <td>{{ order.weight|default:"Не указан" }} кг</td>
+                    </tr>
+                    <tr>
+                        <th>Объем:</th>
+                        <td>{{ order.volume|default:"Не указан" }} м³</td>
+                    </tr>
+                    <tr>
+                        <th>Описание груза:</th>
+                        <td>{{ order.cargo_description|default:"Нет описания"|linebreaks }}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Правая колонка - дополнительная информация -->
+            <div class="col-md-6">
+                <h5 class="border-bottom pb-2 mb-3">Дополнительная информация</h5>
+                <table class="table table-bordered">
+                    <tr>
+                        <th style="width: 40%">Особые требования:</th>
+                        <td>{{ order.special_requirements|default:"Нет"|linebreaks }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ответственный оператор:</th>
+                        <td>
+                            {% if order.operator %}
+                                {{ order.operator.get_full_name|default:order.operator.username }}
+                            {% else %}
+                                <span class="text-danger">Не назначен</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Создано:</th>
+                        <td>{{ order.created_at|date:"d.m.Y H:i" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Обновлено:</th>
+                        <td>{{ order.updated_at|date:"d.m.Y H:i" }}</td>
+                    </tr>
+                </table>
+                
+                <!-- Блок связанной доставки -->
+                {% if order.delivery_order %}
+                <div class="alert alert-success mt-4">
+                    <h6><i class="bi bi-link-45deg"></i> Связанная заявка на доставку</h6>
+                    <p>
+                        На основе этой заявки создана 
+                        <a href="{% url 'delivery_order_detail' order.delivery_order.pk %}" class="alert-link">
+                            заявка на доставку #{{ order.delivery_order.id }}
+                        </a>
+                    </p>
+                    <div class="mt-2">
+                        <strong>Статус доставки:</strong>
+                        <span class="badge bg-{% if order.delivery_order.status == 'submitted' %}warning{% elif order.delivery_order.status == 'driver_assigned' %}info{% else %}success{% endif %} ms-2">
+                            {{ order.delivery_order.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+                {% elif order.is_convertible_to_delivery %}
+                <div class="alert alert-info mt-4">
+                    <h6><i class="bi bi-lightning-charge"></i> Преобразование в доставку</h6>
+                    <p>
+                        Эта заявка готова к преобразованию в заявку на доставку.
+                        После преобразования будет автоматически создана новая заявка на доставку.
+                    </p>
+                    <a href="{% url 'convert_to_delivery' order.pk %}" class="btn btn-success mt-2">
+                        <i class="bi bi-arrow-right-circle"></i> Создать доставку
+                    </a>
+                </div>
+                {% endif %}
+                
+                <!-- Внутренние заметки -->
+                {% if order.notes %}
+                <h5 class="border-bottom pb-2 mb-3 mt-4">Внутренние заметки</h5>
+                <div class="card bg-light">
+                    <div class="card-body">
+                        {{ order.notes|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="d-flex justify-content-between">
+            <div>
+                <a href="{% url 'pickup_order_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Назад к списку
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'pickup_order_update' order.pk %}" class="btn btn-primary me-2">
+                    <i class="bi bi-pencil"></i> Редактировать
+                </a>
+                <a href="{% url 'admin:pickup_pickuporder_change' order.pk %}" 
+                   class="btn btn-outline-dark">
+                    <i class="bi bi-gear"></i> В админку
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

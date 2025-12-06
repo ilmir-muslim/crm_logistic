@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h4 class="mb-0">
+            {% if object %}
+                Редактирование заявки на забор #{{ object.id }}
+            {% else %}
+                Создание новой заявки на забор
+            {% endif %}
+        </h4>
+    </div>
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="row">
+                <!-- Левая колонка -->
+                <div class="col-md-6">
+                    <h5 class="border-bottom pb-2 mb-3">Клиент и адрес</h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Дата забора *</label>
+                        <input type="date" name="pickup_date" 
+                               class="form-control {% if form.pickup_date.errors %}is-invalid{% endif %}" 
+                               value="{{ form.pickup_date.value|date:'Y-m-d' }}" required>
+                        {% if form.pickup_date.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.pickup_date.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Клиент/Компания *</label>
+                        <input type="text" name="client_name" 
+                               class="form-control {% if form.client_name.errors %}is-invalid{% endif %}" 
+                               value="{{ form.client_name.value|default:'' }}" required>
+                        {% if form.client_name.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.client_name.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Телефон клиента</label>
+                        <input type="tel" name="client_phone" 
+                               class="form-control {% if form.client_phone.errors %}is-invalid{% endif %}" 
+                               value="{{ form.client_phone.value|default:'' }}">
+                        {% if form.client_phone.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.client_phone.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Email клиента</label>
+                        <input type="email" name="client_email" 
+                               class="form-control {% if form.client_email.errors %}is-invalid{% endif %}" 
+                               value="{{ form.client_email.value|default:'' }}">
+                        {% if form.client_email.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.client_email.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Адрес забора *</label>
+                        <textarea name="pickup_address" rows="3" 
+                                  class="form-control {% if form.pickup_address.errors %}is-invalid{% endif %}" 
+                                  required>{{ form.pickup_address.value|default:'' }}</textarea>
+                        <small class="form-text text-muted">Город, улица, дом, помещение</small>
+                        {% if form.pickup_address.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.pickup_address.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Правая колонка -->
+                <div class="col-md-6">
+                    <h5 class="border-bottom pb-2 mb-3">Характеристики груза</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Количество мест *</label>
+                            <input type="number" name="quantity" min="1" 
+                                   class="form-control {% if form.quantity.errors %}is-invalid{% endif %}" 
+                                   value="{{ form.quantity.value|default:'1' }}" required>
+                            {% if form.quantity.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.quantity.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Вес (кг)</label>
+                            <input type="number" step="0.1" name="weight" min="0" 
+                                   class="form-control {% if form.weight.errors %}is-invalid{% endif %}" 
+                                   value="{{ form.weight.value|default:'' }}">
+                            {% if form.weight.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.weight.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Объем (м³)</label>
+                            <input type="number" step="0.01" name="volume" min="0" 
+                                   class="form-control {% if form.volume.errors %}is-invalid{% endif %}" 
+                                   value="{{ form.volume.value|default:'' }}">
+                            {% if form.volume.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.volume.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Описание груза</label>
+                        <textarea name="cargo_description" rows="3" 
+                                  class="form-control {% if form.cargo_description.errors %}is-invalid{% endif %}">{{ form.cargo_description.value|default:'' }}</textarea>
+                        {% if form.cargo_description.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.cargo_description.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Особые требования</label>
+                        <textarea name="special_requirements" rows="2" 
+                                  class="form-control {% if form.special_requirements.errors %}is-invalid{% endif %}">{{ form.special_requirements.value|default:'' }}</textarea>
+                        <small class="form-text text-muted">Хрупкий груз, температура, сроки и т.д.</small>
+                        {% if form.special_requirements.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.special_requirements.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Статус</label>
+                        <select name="status" 
+                                class="form-select {% if form.status.errors %}is-invalid{% endif %}">
+                            {% for value, label in form.fields.status.choices %}
+                            <option value="{{ value }}" 
+                                    {% if form.status.value == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.status.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.status.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if object and form.notes %}
+                    <div class="mb-3">
+                        <label class="form-label">Внутренние заметки</label>
+                        <textarea name="notes" rows="3" 
+                                  class="form-control {% if form.notes.errors %}is-invalid{% endif %}">{{ form.notes.value|default:'' }}</textarea>
+                        {% if form.notes.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.notes.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mt-4 pt-3 border-top">
+                <button type="submit" class="btn btn-success">
+                    {% if object %}Сохранить изменения{% else %}Создать заявку{% endif %}
+                </button>
+                <a href="{% if object %}{% url 'pickup_order_detail' object.pk %}{% else %}{% url 'pickup_order_list' %}{% endif %}" 
+                   class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

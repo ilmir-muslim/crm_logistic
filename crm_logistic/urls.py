@@ -4,7 +4,8 @@ from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("logistic.urls")),  # Основной путь пустой
+    path("", include("logistic.urls")),
+    path("pickup/", include("pickup.urls")),
     path(
         "accounts/login/",
         auth_views.LoginView.as_view(template_name="admin/login.html"),

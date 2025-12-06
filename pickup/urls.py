@@ -1,0 +1,21 @@
+from django.urls import path
+from . import views
+
+
+urlpatterns = [
+    path("", views.PickupOrderListView.as_view(), name="pickup_order_list"),
+    path("create/", views.PickupOrderCreateView.as_view(), name="pickup_order_create"),
+    path(
+        "<int:pk>/", views.PickupOrderDetailView.as_view(), name="pickup_order_detail"
+    ),
+    path(
+        "<int:pk>/edit/",
+        views.PickupOrderUpdateView.as_view(),
+        name="pickup_order_update",
+    ),
+    path(
+        "<int:pk>/convert/",
+        views.ConvertToDeliveryView.as_view(),
+        name="convert_to_delivery",
+    ),
+]

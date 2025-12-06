@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-warning">
+        <h4 class="mb-0 text-dark">
+            <i class="bi bi-arrow-right-circle"></i> 
+            Преобразование заявки в доставку
+        </h4>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <h5><i class="bi bi-info-circle"></i> Что будет создано?</h5>
+            <p>
+                На основе заявки на забор #{{ object.id }} будет автоматически создана 
+                новая заявка на доставку со следующими данными:
+            </p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h5>Данные из заявки на забор</h5>
+                <table class="table table-bordered">
+                    <tr><th>Клиент:</th><td>{{ object.client_name }}</td></tr>
+                    <tr><th>Адрес забора:</th><td>{{ object.pickup_address }}</td></tr>
+                    <tr><th>Дата:</th><td>{{ object.pickup_date|date:"d.m.Y" }}</td></tr>
+                    <tr><th>Количество мест:</th><td>{{ object.quantity }}</td></tr>
+                    <tr><th>Вес:</th><td>{{ object.weight|default:"Не указан" }} кг</td></tr>
+                    <tr><th>Объем:</th><td>{{ object.volume|default:"Не указан" }} м³</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h5>Будут установлены в доставке</h5>
+                <table class="table table-bordered">
+                    <tr><th>Город назначения:</th><td>{{ object.pickup_address|slice:":20" }}...</td></tr>
+                    <tr><th>Склад отправки:</th><td>Сборный груз</td></tr>
+                    <tr><th>Фулфилмент:</th><td>Фулфилмент Царицыно</td></tr>
+                    <tr><th>Статус:</th><td><span class="badge bg-warning">Заявка подана</span></td></tr>
+                    <tr><th>Оператор:</th><td>{{ user.get_full_name|default:user.username }}</td></tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="alert alert-warning mt-4">
+            <h6><i class="bi bi-exclamation-triangle"></i> Внимание!</h6>
+            <ul class="mb-0">
+                <li>После создания заявки на доставку, заявки будут связаны</li>
+                <li>Вы сможете отредактировать данные доставки после создания</li>
+                <li>Эта операция необратима (но можно удалить созданную доставку)</li>
+            </ul>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div class="mt-4">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="bi bi-check-circle"></i> Создать заявку на доставку
+                </button>
+                <a href="{% url 'pickup_order_detail' object.pk %}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Отмена
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
