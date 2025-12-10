@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ title }}</h1>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-item">
+            <div class="stat-label">Всего заявок</div>
+            <div class="stat-value">{{ stats.total }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Подано</div>
+            <div class="stat-value">{{ stats.submitted }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Водитель назначен</div>
+            <div class="stat-value">{{ stats.driver_assigned }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Отправлено</div>
+            <div class="stat-value">{{ stats.shipped }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Общий вес</div>
+            <div class="stat-value">{{ stats.total_weight|floatformat:0 }} кг</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Общий объем</div>
+            <div class="stat-value">{{ stats.total_volume|floatformat:1 }} м³</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Общее количество мест</div>
+            <div class="stat-value">{{ stats.total_quantity }}</div>
+        </div>
+    </div>
+
+    <h2>Детализация заявок</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>№</th>
+                <th>Номер</th>
+                <th>Город</th>
+                <th>Склад</th>
+                <th>Места</th>
+                <th>Вес, кг</th>
+                <th>Объем, м³</th>
+                <th>Статус</th>
+                <th>Водитель</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ order.tracking_number|default:"#"|add:order.id }}</td>
+                <td>{{ order.city }}</td>
+                <td>{{ order.warehouse }}</td>
+                <td>{{ order.quantity }}</td>
+                <td>{{ order.weight }}</td>
+                <td>{{ order.volume }}</td>
+                <td>{{ order.get_status_display }}</td>
+                <td>{{ order.driver_name|default:"—" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="text-center">Нет заявок за выбранную дату</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>Отчет сгенерирован {{ now|date:"d.m.Y H:i" }} | Всего позиций: {{ stats.total }}</p>
+    </div>
+</body>
+</html>

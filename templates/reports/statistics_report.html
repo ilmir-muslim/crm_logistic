@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Статистический отчет
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Период: {{ start_date|date:"d.m.Y" }} - {{ end_date|date:"d.m.Y" }} | 
+                        Тип: {% if report_type == 'delivery' %}Доставки{% else %}Заборы{% endif %}
+                    </p>
+                </div>
+                <div>
+                    <button onclick="window.print()" class="btn btn-outline-secondary">
+                        <i class="bi bi-printer"></i> Печать
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Параметры отчета</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Дата начала</label>
+                    <input type="date" name="start_date" class="form-control" 
+                           value="{{ form.start_date.value|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Дата окончания</label>
+                    <input type="date" name="end_date" class="form-control" 
+                           value="{{ form.end_date.value|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Тип отчета</label>
+                    <select name="report_type" class="form-select">
+                        <option value="delivery" {% if report_type == 'delivery' %}selected{% endif %}>Доставки</option>
+                        <option value="pickup" {% if report_type == 'pickup' %}selected{% endif %}>Заборы</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Обновить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if stats %}
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h6 class="card-title">Всего заявок</h6>
+                    <h2 class="mb-0">{{ stats.total_orders }}</h2>
+                </div>
+            </div>
+        </div>
+        
+        {% if report_type == 'delivery' %}
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h6 class="card-title">Общий вес</h6>
+                    <h2 class="mb-0">{{ stats.total_weight|floatformat:0 }} кг</h2>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h6 class="card-title">Общий объем</h6>
+                    <h2 class="mb-0">{{ stats.total_volume|floatformat:1 }} м³</h2>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h6 class="card-title">Всего мест</h6>
+                    <h2 class="mb-0">{{ stats.total_quantity }}</h2>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Распределение по статусам</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Статус</th>
+                                <th>Количество</th>
+                                <th>Процент</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in stats.by_status %}
+                            <tr>
+                                <td>
+                                    {% if report_type == 'delivery' %}
+                                        {% if item.status == 'submitted' %}
+                                            <span class="badge bg-warning">Подана</span>
+                                        {% elif item.status == 'driver_assigned' %}
+                                            <span class="badge bg-info">Водитель назначен</span>
+                                        {% elif item.status == 'shipped' %}
+                                            <span class="badge bg-success">Отправлено</span>
+                                        {% endif %}
+                                    {% else %}
+                                        {% if item.status == 'new' %}
+                                            <span class="badge bg-secondary">Новая</span>
+                                        {% elif item.status == 'confirmed' %}
+                                            <span class="badge bg-warning">Подтверждена</span>
+                                        {% elif item.status == 'picked_up' %}
+                                            <span class="badge bg-success">Забрана</span>
+                                        {% elif item.status == 'cancelled' %}
+                                            <span class="badge bg-danger">Отменена</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.count }}</td>
+                                <td>
+                                    {% widthratio item.count stats.total_orders 100 %}%
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        {% if report_type == 'delivery' %}
+                            Распределение по городам
+                        {% else %}
+                            Топ клиентов
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{% if report_type == 'delivery' %}Город{% else %}Клиент{% endif %}</th>
+                                <th>Количество</th>
+                                {% if report_type == 'delivery' %}
+                                <th>Вес (кг)</th>
+                                <th>Объем (м³)</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in stats.by_city|slice:":10" %}
+                            <tr>
+                                <td>{{ item.city|truncatechars:30 }}</td>
+                                <td>{{ item.count }}</td>
+                                {% if report_type == 'delivery' %}
+                                <td>{{ item.total_weight|floatformat:0 }}</td>
+                                <td>{{ item.total_volume|floatformat:1 }}</td>
+                                {% endif %}
+                            </tr>
+                            {% empty %}
+                            {% for item in stats.by_client|slice:":10" %}
+                            <tr>
+                                <td>{{ item.client_name|truncatechars:30 }}</td>
+                                <td>{{ item.count }}</td>
+                                <td>{{ item.total_weight|floatformat:0 }}</td>
+                                <td>{{ item.total_quantity }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Детализация заявок</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            {% if report_type == 'delivery' %}
+                            <th>Номер</th>
+                            <th>Дата</th>
+                            <th>Город</th>
+                            <th>Склад</th>
+                            <th>Места</th>
+                            <th>Вес</th>
+                            <th>Статус</th>
+                            <th>Водитель</th>
+                            {% else %}
+                            <th>Номер</th>
+                            <th>Дата забора</th>
+                            <th>Клиент</th>
+                            <th>Адрес</th>
+                            <th>Места</th>
+                            <th>Вес</th>
+                            <th>Статус</th>
+                            <th>Доставка</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders|slice:":50" %}
+                        <tr>
+                            {% if report_type == 'delivery' %}
+                            <td>
+                                <a href="{% url 'delivery_order_detail' order.pk %}" class="text-decoration-none">
+                                    {{ order.tracking_number|default:order.id }}
+                                </a>
+                            </td>
+                            <td>{{ order.date|date:"d.m.Y" }}</td>
+                            <td>{{ order.city }}</td>
+                            <td>{{ order.warehouse }}</td>
+                            <td>{{ order.quantity }}</td>
+                            <td>{{ order.weight }} кг</td>
+                            <td>
+                                <span class="badge bg-{% if order.status == 'submitted' %}warning{% elif order.status == 'driver_assigned' %}info{% else %}success{% endif %}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ order.driver_name|default:"—" }}</td>
+                            {% else %}
+                            <td>
+                                <a href="{% url 'pickup_order_detail' order.pk %}" class="text-decoration-none">
+                                    {{ order.tracking_number|default:order.id }}
+                                </a>
+                            </td>
+                            <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
+                            <td>{{ order.client_name|truncatechars:20 }}</td>
+                            <td>{{ order.pickup_address|truncatechars:30 }}</td>
+                            <td>{{ order.quantity }}</td>
+                            <td>{{ order.weight|default:"—" }} {% if order.weight %}кг{% endif %}</td>
+                            <td>
+                                <span class="badge bg-{% if order.status == 'new' %}secondary{% elif order.status == 'confirmed' %}warning{% elif order.status == 'picked_up' %}success{% else %}danger{% endif %}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if order.delivery_order %}
+                                    <span class="badge bg-success">Да</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Нет</span>
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                Нет заявок за выбранный период
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+@media print {
+    .navbar, .card-header button, footer {
+        display: none !important;
+    }
+    
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .card-header {
+        background-color: white !important;
+        color: black !important;
+        border-bottom: 2px solid #000 !important;
+    }
+}
+</style>
+{% endblock %}

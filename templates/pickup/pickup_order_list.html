@@ -33,6 +33,21 @@
                        value="{{ request.GET.client_name }}" placeholder="Поиск по клиенту">
             </div>
             <div class="col-md-3">
+                <label class="form-label">Адрес забора</label>
+                <input type="text" name="pickup_address" class="form-control" 
+                       value="{{ request.GET.pickup_address }}" placeholder="Поиск по адресу">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Телефон клиента</label>
+                <input type="text" name="client_phone" class="form-control" 
+                       value="{{ request.GET.client_phone }}" placeholder="Поиск по телефону">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Email клиента</label>
+                <input type="text" name="client_email" class="form-control" 
+                       value="{{ request.GET.client_email }}" placeholder="Поиск по email">
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">Статус</label>
                 <select name="status" class="form-select">
                     <option value="">Все</option>
@@ -57,12 +72,41 @@
         </form>
     </div>
 </div>
+<!-- Добавлен блок массовых действий -->
+<div class="card mb-3">
+    <div class="card-header bg-light">
+        <h6 class="mb-0">Массовые действия</h6>
+    </div>
+    <div class="card-body">
+        <form id="bulkActionsForm" method="get" action="{% url 'pickup_orders_bulk_pdf' %}">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllBtn">
+                        <i class="bi bi-check-square"></i> Выбрать все
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm ms-2" id="deselectAllBtn">
+                        <i class="bi bi-square"></i> Снять выбор
+                    </button>
+                    <span class="ms-3 text-muted" id="selectedCount">Выбрано: 0</span>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-danger" id="exportPdfBtn" disabled>
+                        <i class="bi bi-file-pdf"></i> Экспорт выбранного в PDF
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 
-<!-- Таблица заявок -->
+<!-- Таблица с чекбоксами -->
 <div class="table-responsive">
     <table class="table table-hover table-striped">
         <thead class="table-dark">
             <tr>
+                <th style="width: 40px;">
+                    <input type="checkbox" id="selectAllCheckbox" class="form-check-input">
+                </th>
                 <th>Дата забора</th>
                 <th>Клиент</th>
                 <th>Адрес</th>
@@ -77,6 +121,10 @@
         <tbody>
             {% for order in orders %}
             <tr>
+                <td>
+                    <input type="checkbox" name="order_ids" value="{{ order.id }}" 
+                           class="form-check-input order-checkbox">
+                </td>
                 <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
                 <td><strong>{{ order.client_name }}</strong></td>
                 <td>
@@ -119,6 +167,10 @@
                            class="btn btn-outline-info">Просмотр</a>
                         <a href="{% url 'pickup_order_update' order.pk %}" 
                            class="btn btn-outline-warning">Изменить</a>
+                        <a href="{% url 'pickup_order_pdf' order.pk %}" 
+                           class="btn btn-outline-danger">
+                            <i class="bi bi-file-pdf"></i>
+                        </a>
                         {% if order.is_convertible_to_delivery %}
                         <a href="{% url 'convert_to_delivery' order.pk %}" 
                            class="btn btn-outline-success">В доставку</a>
@@ -128,7 +180,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="9" class="text-center py-4">
+                <td colspan="10" class="text-center py-4">
                     <div class="text-muted">
                         Нет заявок на забор по заданным фильтрам
                     </div>
@@ -178,4 +230,72 @@
         Перейти к доставкам
     </a>
 </div>
+
+<!-- JavaScript для массового выбора -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const deselectAllBtn = document.getElementById('deselectAllBtn');
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    const selectedCount = document.getElementById('selectedCount');
+    const orderCheckboxes = document.querySelectorAll('.order-checkbox');
+    const bulkActionsForm = document.getElementById('bulkActionsForm');
+    
+    function updateSelectedCount() {
+        const selected = document.querySelectorAll('.order-checkbox:checked');
+        selectedCount.textContent = `Выбрано: ${selected.length}`;
+        exportPdfBtn.disabled = selected.length === 0;
+    }
+    
+    selectAllCheckbox.addEventListener('change', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateSelectedCount();
+    });
+    
+    selectAllBtn.addEventListener('click', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        selectAllCheckbox.checked = true;
+        updateSelectedCount();
+    });
+    
+    deselectAllBtn.addEventListener('click', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        selectAllCheckbox.checked = false;
+        updateSelectedCount();
+    });
+    
+    orderCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+    
+    bulkActionsForm.addEventListener('submit', function(e) {
+        const selectedCheckboxes = document.querySelectorAll('.order-checkbox:checked');
+        if (selectedCheckboxes.length === 0) {
+            e.preventDefault();
+            alert('Пожалуйста, выберите хотя бы одну заявку');
+            return;
+        }
+        
+        const oldInputs = this.querySelectorAll('input[name="order_ids"]');
+        oldInputs.forEach(input => input.remove());
+        
+        selectedCheckboxes.forEach(checkbox => {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'order_ids';
+            hiddenInput.value = checkbox.value;
+            this.appendChild(hiddenInput);
+        });
+    });
+    
+    updateSelectedCount();
+});
+</script>
 {% endblock %}

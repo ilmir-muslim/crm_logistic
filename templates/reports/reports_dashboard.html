@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-0">
+                <i class="bi bi-bar-chart"></i> Отчеты и аналитика
+            </h2>
+            <p class="text-muted mb-0">Генерация отчетов в различных форматах</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Ежедневный отчет</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="{% url 'generate_daily_report' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Дата отчета</label>
+                            <input type="date" name="date" class="form-control" 
+                                   value="{{ daily_form.date.value|date:'Y-m-d' }}" 
+                                   max="{% now 'Y-m-d' %}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Тип отчета</label>
+                            <select name="report_type" class="form-select">
+                                <option value="delivery" selected>По доставкам</option>
+                                <option value="pickup">По заборам</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Формат</label>
+                            <select name="format" class="form-select">
+                                <option value="pdf" selected>PDF</option>
+                                <option value="excel">Excel</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-download"></i> Сгенерировать отчет
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Статистика за период</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="{% url 'statistics_report' %}">
+                        {% csrf_token %}
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Дата начала</label>
+                                <input type="date" name="start_date" class="form-control" 
+                                       value="{{ range_form.start_date.value|date:'Y-m-d' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Дата окончания</label>
+                                <input type="date" name="end_date" class="form-control" 
+                                       value="{{ range_form.end_date.value|date:'Y-m-d' }}">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Тип отчета</label>
+                            <select name="report_type" class="form-select">
+                                <option value="delivery" selected>По доставкам</option>
+                                <option value="pickup">По заборам</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-graph-up"></i> Показать статистику
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Быстрые отчеты</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <a href="{% url 'daily_report_pdf' %}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-file-pdf"></i> Отчет за сегодня (PDF)
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'generate_daily_report' %}?date={% now 'Y-m-d' %}&report_type=delivery&format=excel" 
+                               class="btn btn-outline-success w-100">
+                                <i class="bi bi-file-excel"></i> Отчет за сегодня (Excel)
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'generate_daily_report' %}?date={% now 'Y-m-d' %}&report_type=pickup&format=pdf" 
+                               class="btn btn-outline-warning w-100">
+                                <i class="bi bi-file-pdf"></i> Заборы сегодня (PDF)
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'statistics_report' %}?start_date={% now 'Y-m-01' %}&end_date={% now 'Y-m-d' %}&report_type=delivery" 
+                               class="btn btn-outline-info w-100">
+                                <i class="bi bi-calendar-month"></i> Отчет за месяц
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

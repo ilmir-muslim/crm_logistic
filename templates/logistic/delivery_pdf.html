@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ title }}</h1>
+    </div>
+
+    <div class="company-info">
+        <p><strong>Компания:</strong> ФФ Царицыно</p>
+        <p><strong>Адрес:</strong> г. Москва, ул. Примерная, д. 1</p>
+        <p><strong>Телефон:</strong> +7 (495) 123-45-67</p>
+        <p><strong>ИНН:</strong> 1234567890</p>
+    </div>
+
+    <h2>Основная информация</h2>
+    <table>
+        <tr>
+            <th width="30%">Номер накладной:</th>
+            <td class="text-bold">{{ order.tracking_number|default:"#"|add:order.id }}</td>
+        </tr>
+        <tr>
+            <th>Дата доставки:</th>
+            <td>{{ order.date|date:"d.m.Y" }}</td>
+        </tr>
+        <tr>
+            <th>Город назначения:</th>
+            <td>{{ order.city }}</td>
+        </tr>
+        <tr>
+            <th>Склад отправки:</th>
+            <td>{{ order.warehouse }}</td>
+        </tr>
+        <tr>
+            <th>Фулфилмент оператор:</th>
+            <td>{{ order.fulfillment }}</td>
+        </tr>
+        <tr>
+            <th>Статус:</th>
+            <td class="text-bold">{{ order.get_status_display }}</td>
+        </tr>
+    </table>
+
+    <h2>Характеристики груза</h2>
+    <table>
+        <tr>
+            <th>Количество мест</th>
+            <th>Вес, кг</th>
+            <th>Объем, м³</th>
+        </tr>
+        <tr>
+            <td class="text-center">{{ order.quantity }}</td>
+            <td class="text-center">{{ order.weight }}</td>
+            <td class="text-center">{{ order.volume }}</td>
+        </tr>
+    </table>
+
+    {% if order.driver_name %}
+    <h2>Информация о перевозке</h2>
+    <table>
+        <tr>
+            <th width="30%">Водитель:</th>
+            <td>{{ order.driver_name }}</td>
+        </tr>
+        {% if order.driver_phone %}
+        <tr>
+            <th>Телефон водителя:</th>
+            <td>{{ order.driver_phone }}</td>
+        </tr>
+        {% endif %}
+        {% if order.vehicle %}
+        <tr>
+            <th>Марка и номер ТС:</th>
+            <td>{{ order.vehicle }}</td>
+        </tr>
+        {% endif %}
+    </table>
+    {% endif %}
+
+    {% if order.operator %}
+    <h2>Ответственный оператор</h2>
+    <table>
+        <tr>
+            <th width="30%">Оператор:</th>
+            <td>{{ order.operator.get_full_name|default:order.operator.username }}</td>
+        </tr>
+        <tr>
+            <th>Дата создания:</th>
+            <td>{{ order.created_at|date:"d.m.Y H:i" }}</td>
+        </tr>
+    </table>
+    {% endif %}
+
+    <div class="signature-block">
+        <div class="signature-row">
+            <div class="signature-item">
+                <p>Отправитель</p>
+                <div class="signature-line"></div>
+                <p>(ФИО, подпись)</p>
+            </div>
+            <div class="signature-item">
+                <p>М.П.</p>
+            </div>
+            <div class="signature-item">
+                <p>Получатель</p>
+                <div class="signature-line"></div>
+                <p>(ФИО, подпись)</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Документ сгенерирован автоматически системой CRM Логистика {{ now|date:"d.m.Y H:i" }}</p>
+    </div>
+</body>
+</html>

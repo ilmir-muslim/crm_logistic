@@ -4,18 +4,32 @@
 <div class="card">
     <div class="card-header">
         <div class="d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">
-                Заявка на забор #{{ order.id }} - {{ order.client_name }}
-            </h4>
-            <span class="badge bg-{% if order.status == 'new' %}secondary{% elif order.status == 'confirmed' %}warning{% elif order.status == 'picked_up' %}success{% else %}danger{% endif %} fs-6">
-                {{ order.get_status_display }}
-            </span>
+            <div>
+                <h4 class="mb-0">
+                    {% if order.tracking_number %}
+                        {{ order.tracking_number }}
+                    {% else %}
+                        Заявка на забор #{{ order.id }}
+                    {% endif %}
+                    - {{ order.client_name }}
+                </h4>
+                <small class="text-muted">Создано: {{ order.created_at|date:"d.m.Y H:i" }}</small>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-{% if order.status == 'new' %}secondary{% elif order.status == 'confirmed' %}warning{% elif order.status == 'picked_up' %}success{% else %}danger{% endif %} fs-6">
+                    {{ order.get_status_display }}
+                </span>
+                {% if order.qr_code %}
+                <a href="{{ order.qr_code.url }}" class="btn btn-sm btn-outline-primary ms-2" download>
+                    <i class="bi bi-qr-code"></i> QR-код
+                </a>
+                {% endif %}
+            </div>
         </div>
     </div>
     <div class="card-body">
         <div class="row">
-            <!-- Левая колонка - основная информация -->
-            <div class="col-md-6">
+            <div class="col-md-7">
                 <h5 class="border-bottom pb-2 mb-3">Основная информация</h5>
                 <table class="table table-bordered">
                     <tr>
@@ -58,40 +72,73 @@
                         <th>Описание груза:</th>
                         <td>{{ order.cargo_description|default:"Нет описания"|linebreaks }}</td>
                     </tr>
+                    <tr>
+                        <th>Особые требования:</th>
+                        <td>{{ order.special_requirements|default:"Нет"|linebreaks }}</td>
+                    </tr>
                 </table>
             </div>
             
-            <!-- Правая колонка - дополнительная информация -->
-            <div class="col-md-6">
-                <h5 class="border-bottom pb-2 mb-3">Дополнительная информация</h5>
-                <table class="table table-bordered">
-                    <tr>
-                        <th style="width: 40%">Особые требования:</th>
-                        <td>{{ order.special_requirements|default:"Нет"|linebreaks }}</td>
-                    </tr>
-                    <tr>
-                        <th>Ответственный оператор:</th>
-                        <td>
-                            {% if order.operator %}
-                                {{ order.operator.get_full_name|default:order.operator.username }}
-                            {% else %}
-                                <span class="text-danger">Не назначен</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Создано:</th>
-                        <td>{{ order.created_at|date:"d.m.Y H:i" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Обновлено:</th>
-                        <td>{{ order.updated_at|date:"d.m.Y H:i" }}</td>
-                    </tr>
-                </table>
+            <div class="col-md-5">
+                <!-- QR-код -->
+                {% if order.qr_code %}
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">QR-код заявки на забор</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="{{ order.qr_code.url }}" 
+                             alt="QR-код заявки {{ order.tracking_number }}" 
+                             class="img-fluid mb-3"
+                             style="max-width: 250px;">
+                        <p class="text-muted small">
+                            Содержит основную информацию о заявке
+                        </p>
+                        <div class="d-grid gap-2">
+                            <a href="{{ order.qr_code.url }}" 
+                               class="btn btn-outline-primary" 
+                               download="QR_{{ order.tracking_number }}.png">
+                                <i class="bi bi-download"></i> Скачать QR-код
+                            </a>
+                            
+                            <!-- Добавлена кнопка PDF -->
+                            <a href="{% url 'pickup_order_pdf' order.pk %}" 
+                               class="btn btn-danger">
+                                <i class="bi bi-file-pdf"></i> Скачать заявку (PDF)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Информация о статусе и операторе -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Информация о заявке</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm mb-0">
+                            <tr>
+                                <th>Ответственный оператор:</th>
+                                <td>
+                                    {% if order.operator %}
+                                        {{ order.operator.get_full_name|default:order.operator.username }}
+                                    {% else %}
+                                        <span class="text-danger">Не назначен</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Обновлено:</th>
+                                <td>{{ order.updated_at|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
                 
                 <!-- Блок связанной доставки -->
                 {% if order.delivery_order %}
-                <div class="alert alert-success mt-4">
+                <div class="alert alert-success">
                     <h6><i class="bi bi-link-45deg"></i> Связанная заявка на доставку</h6>
                     <p>
                         На основе этой заявки создана 
@@ -107,13 +154,13 @@
                     </div>
                 </div>
                 {% elif order.is_convertible_to_delivery %}
-                <div class="alert alert-info mt-4">
+                <div class="alert alert-info">
                     <h6><i class="bi bi-lightning-charge"></i> Преобразование в доставку</h6>
                     <p>
                         Эта заявка готова к преобразованию в заявку на доставку.
                         После преобразования будет автоматически создана новая заявка на доставку.
                     </p>
-                    <a href="{% url 'convert_to_delivery' order.pk %}" class="btn btn-success mt-2">
+                    <a href="{% url 'convert_to_delivery' order.pk %}" class="btn btn-success w-100">
                         <i class="bi bi-arrow-right-circle"></i> Создать доставку
                     </a>
                 </div>
@@ -121,8 +168,10 @@
                 
                 <!-- Внутренние заметки -->
                 {% if order.notes %}
-                <h5 class="border-bottom pb-2 mb-3 mt-4">Внутренние заметки</h5>
-                <div class="card bg-light">
+                <div class="card mt-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Внутренние заметки</h6>
+                    </div>
                     <div class="card-body">
                         {{ order.notes|linebreaks }}
                     </div>
@@ -146,6 +195,9 @@
                    class="btn btn-outline-dark">
                     <i class="bi bi-gear"></i> В админку
                 </a>
+                <button onclick="window.print()" class="btn btn-outline-info ms-2">
+                    <i class="bi bi-printer"></i> Печать
+                </button>
             </div>
         </div>
     </div>

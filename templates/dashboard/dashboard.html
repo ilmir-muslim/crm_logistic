@@ -1,0 +1,367 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i class="bi bi-speedometer2"></i> Дашборд CRM Логистика
+                </h2>
+                <div class="text-muted">
+                    <i class="bi bi-calendar-date"></i> {{ today|date:"d.m.Y" }}
+                </div>
+            </div>
+            <p class="text-muted mb-0">Обзорная панель управления заявками на доставку и забор груза</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Всего доставок</h6>
+                            <h2 class="mb-0">{{ delivery_stats.total }}</h2>
+                        </div>
+                        <i class="bi bi-truck fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Доставок сегодня</h6>
+                            <h2 class="mb-0">{{ delivery_stats.today }}</h2>
+                        </div>
+                        <i class="bi bi-calendar-check fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">В обработке</h6>
+                            <h2 class="mb-0">{{ delivery_stats.submitted }}</h2>
+                        </div>
+                        <i class="bi bi-clock fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Отправлено</h6>
+                            <h2 class="mb-0">{{ delivery_stats.shipped }}</h2>
+                        </div>
+                        <i class="bi bi-check-circle fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Всего заборов</h6>
+                            <h2 class="mb-0">{{ pickup_stats.total }}</h2>
+                        </div>
+                        <i class="bi bi-box-seam fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Новых заборов</h6>
+                            <h2 class="mb-0">{{ pickup_stats.new }}</h2>
+                        </div>
+                        <i class="bi bi-exclamation-circle fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1 text-muted">Общий вес/объем</h6>
+                            <h4 class="mb-0">
+                                {{ delivery_stats.total_weight|floatformat:0 }} кг / 
+                                {{ delivery_stats.total_volume|floatformat:1 }} м³
+                            </h4>
+                        </div>
+                        <i class="bi bi-bar-chart fs-1 text-muted"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Доставки за последние 7 дней</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="deliveryChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Статусы заборов</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="badge bg-secondary rounded-pill">Новая</span>
+                            <span class="fw-bold">{{ pickup_stats.new }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="badge bg-warning rounded-pill">Подтверждена</span>
+                            <span class="fw-bold">{{ pickup_stats.confirmed }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="badge bg-success rounded-pill">Забран</span>
+                            <span class="fw-bold">{{ pickup_stats.picked_up }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="badge bg-danger rounded-pill">Отменена</span>
+                            <span class="fw-bold">{{ pickup_stats.cancelled }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Последние заявки на доставку</h5>
+                    <a href="{% url 'delivery_order_list' %}" class="btn btn-sm btn-outline-primary">
+                        Все доставки
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>№</th>
+                                    <th>Город</th>
+                                    <th>Дата</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_deliveries %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'delivery_order_detail' order.pk %}" class="text-decoration-none">
+                                            {% if order.tracking_number %}
+                                                {{ order.tracking_number }}
+                                            {% else %}
+                                                #{{ order.id }}
+                                            {% endif %}
+                                        </a>
+                                    </td>
+                                    <td>{{ order.city }}</td>
+                                    <td>{{ order.date|date:"d.m.Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if order.status == 'submitted' %}warning{% elif order.status == 'driver_assigned' %}info{% else %}success{% endif %}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-3 text-muted">
+                                        Нет заявок на доставку
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Последние заявки на забор</h5>
+                    <a href="{% url 'pickup_order_list' %}" class="btn btn-sm btn-outline-primary">
+                        Все заборы
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>№</th>
+                                    <th>Клиент</th>
+                                    <th>Дата</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_pickups %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'pickup_order_detail' order.pk %}" class="text-decoration-none">
+                                            {% if order.tracking_number %}
+                                                {{ order.tracking_number }}
+                                            {% else %}
+                                                #{{ order.id }}
+                                            {% endif %}
+                                        </a>
+                                    </td>
+                                    <td>{{ order.client_name|truncatechars:20 }}</td>
+                                    <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if order.status == 'new' %}secondary{% elif order.status == 'confirmed' %}warning{% elif order.status == 'picked_up' %}success{% else %}danger{% endif %}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-3 text-muted">
+                                        Нет заявок на забор
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Быстрые действия</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <a href="{% url 'delivery_order_list' %}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-truck"></i> Все доставки
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'pickup_order_list' %}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-box-seam"></i> Все заборы
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'pickup_order_create' %}" class="btn btn-success w-100">
+                                <i class="bi bi-plus-circle"></i> Новая заявка на забор
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'admin:logistic_deliveryorder_add' %}" class="btn btn-primary w-100">
+                                <i class="bi bi-plus-circle"></i> Новая доставка
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Добавлена строка для отчетов -->
+                    <div class="row g-3 mt-3">
+                        <div class="col-md-6">
+                            <a href="{% url 'daily_report_pdf' %}" class="btn btn-danger w-100">
+                                <i class="bi bi-file-pdf"></i> Ежедневный отчет (PDF)
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{% url 'daily_report_pdf' %}?date={% now 'Y-m-d' %}" 
+                               class="btn btn-outline-danger w-100">
+                                <i class="bi bi-calendar-day"></i> Отчет за сегодня
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chartData = {{ delivery_chart_data|safe }};
+    
+    const labels = chartData.map(item => item.date);
+    const data = chartData.map(item => item.count);
+    
+    const ctx = document.getElementById('deliveryChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Количество доставок',
+                data: data,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+{% endblock %}

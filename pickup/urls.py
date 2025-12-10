@@ -1,7 +1,6 @@
 from django.urls import path
 from . import views
 
-
 urlpatterns = [
     path("", views.PickupOrderListView.as_view(), name="pickup_order_list"),
     path("create/", views.PickupOrderCreateView.as_view(), name="pickup_order_create"),
@@ -18,4 +17,6 @@ urlpatterns = [
         views.ConvertToDeliveryView.as_view(),
         name="convert_to_delivery",
     ),
+    path("<int:pk>/pdf/", views.pickup_order_pdf, name="pickup_order_pdf"),
+    path("bulk-pdf/", views.pickup_orders_bulk_pdf, name="pickup_orders_bulk_pdf"),
 ]

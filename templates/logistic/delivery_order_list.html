@@ -34,7 +34,13 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">Город</label>
-                <input type="text" name="city" class="form-control" value="{{ request.GET.city }}" placeholder="Все">
+                <input type="text" name="city" class="form-control" 
+                       value="{{ request.GET.city }}" placeholder="Поиск по городу">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Склад</label>
+                <input type="text" name="warehouse" class="form-control" 
+                       value="{{ request.GET.warehouse }}" placeholder="Все">
             </div>
             <div class="col-md-2">
                 <label class="form-label">Статус</label>
@@ -47,16 +53,48 @@
             </div>
             <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100">Фильтровать</button>
+                <a href="{% url 'delivery_order_list' %}" class="btn btn-outline-secondary ms-2">Сбросить</a>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Таблица заявок -->
+
+<!-- Добавлен блок массовых действий -->
+<div class="card mb-3">
+    <div class="card-header bg-light">
+        <h6 class="mb-0">Массовые действия</h6>
+    </div>
+    <div class="card-body">
+        <form id="bulkActionsForm" method="get" action="{% url 'delivery_orders_bulk_pdf' %}">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllBtn">
+                        <i class="bi bi-check-square"></i> Выбрать все
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm ms-2" id="deselectAllBtn">
+                        <i class="bi bi-square"></i> Снять выбор
+                    </button>
+                    <span class="ms-3 text-muted" id="selectedCount">Выбрано: 0</span>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-danger" id="exportPdfBtn" disabled>
+                        <i class="bi bi-file-pdf"></i> Экспорт выбранного в PDF
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Таблица с чекбоксами -->
 <div class="table-responsive">
     <table class="table table-hover table-striped">
         <thead class="table-dark">
             <tr>
+                <th style="width: 40px;">
+                    <input type="checkbox" id="selectAllCheckbox" class="form-check-input">
+                </th>
                 <th>Дата</th>
                 <th>Город</th>
                 <th>Склад</th>
@@ -70,6 +108,10 @@
         <tbody>
             {% for order in orders %}
             <tr>
+                <td>
+                    <input type="checkbox" name="order_ids" value="{{ order.id }}" 
+                           class="form-check-input order-checkbox">
+                </td>
                 <td>{{ order.date|date:"d.m.Y" }}</td>
                 <td><strong>{{ order.city }}</strong></td>
                 <td>{{ order.warehouse }}</td>
@@ -89,13 +131,21 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{% url 'delivery_order_detail' order.pk %}" class="btn btn-sm btn-outline-info">Просмотр</a>
-                    <a href="{% url 'delivery_order_update' order.pk %}" class="btn btn-sm btn-outline-warning">Назначить</a>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{% url 'delivery_order_detail' order.pk %}" 
+                           class="btn btn-outline-info">Просмотр</a>
+                        <a href="{% url 'delivery_order_update' order.pk %}" 
+                           class="btn btn-outline-warning">Назначить</a>
+                        <a href="{% url 'delivery_order_pdf' order.pk %}" 
+                           class="btn btn-outline-danger">
+                            <i class="bi bi-file-pdf"></i>
+                        </a>
+                    </div>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="8" class="text-center py-4">Нет заявок по заданным фильтрам</td>
+                <td colspan="9" class="text-center py-4">Нет заявок по заданным фильтрам</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -128,4 +178,72 @@
 <div class="mt-3">
     <a href="{% url 'admin:logistic_deliveryorder_add' %}" class="btn btn-success">+ Добавить новую заявку</a>
 </div>
+
+<!-- JavaScript для массового выбора -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const deselectAllBtn = document.getElementById('deselectAllBtn');
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    const selectedCount = document.getElementById('selectedCount');
+    const orderCheckboxes = document.querySelectorAll('.order-checkbox');
+    const bulkActionsForm = document.getElementById('bulkActionsForm');
+    
+    function updateSelectedCount() {
+        const selected = document.querySelectorAll('.order-checkbox:checked');
+        selectedCount.textContent = `Выбрано: ${selected.length}`;
+        exportPdfBtn.disabled = selected.length === 0;
+    }
+    
+    selectAllCheckbox.addEventListener('change', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateSelectedCount();
+    });
+    
+    selectAllBtn.addEventListener('click', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        selectAllCheckbox.checked = true;
+        updateSelectedCount();
+    });
+    
+    deselectAllBtn.addEventListener('click', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        selectAllCheckbox.checked = false;
+        updateSelectedCount();
+    });
+    
+    orderCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+    
+    bulkActionsForm.addEventListener('submit', function(e) {
+        const selectedCheckboxes = document.querySelectorAll('.order-checkbox:checked');
+        if (selectedCheckboxes.length === 0) {
+            e.preventDefault();
+            alert('Пожалуйста, выберите хотя бы одну заявку');
+            return;
+        }
+        
+        const oldInputs = this.querySelectorAll('input[name="order_ids"]');
+        oldInputs.forEach(input => input.remove());
+        
+        selectedCheckboxes.forEach(checkbox => {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'order_ids';
+            hiddenInput.value = checkbox.value;
+            this.appendChild(hiddenInput);
+        });
+    });
+    
+    updateSelectedCount();
+});
+</script>
 {% endblock %}

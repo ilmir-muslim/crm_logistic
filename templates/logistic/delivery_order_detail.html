@@ -4,69 +4,187 @@
 <div class="card">
     <div class="card-header">
         <div class="d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Заявка #{{ order.id }} - Доставка в {{ order.city }}</h4>
-            <span class="badge bg-{% if order.status == 'submitted' %}warning{% elif order.status == 'driver_assigned' %}info{% else %}success{% endif %}">
-                {{ order.get_status_display }}
-            </span>
+            <div>
+                <h4 class="mb-0">
+                    {% if order.tracking_number %}
+                        {{ order.tracking_number }}
+                    {% else %}
+                        Заявка #{{ order.id }}
+                    {% endif %}
+                    - Доставка в {{ order.city }}
+                </h4>
+                <small class="text-muted">Создано: {{ order.created_at|date:"d.m.Y H:i" }}</small>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-{% if order.status == 'submitted' %}warning{% elif order.status == 'driver_assigned' %}info{% else %}success{% endif %} fs-6">
+                    {{ order.get_status_display }}
+                </span>
+                {% if order.qr_code %}
+                <a href="{{ order.qr_code.url }}" class="btn btn-sm btn-outline-primary ms-2" download>
+                    <i class="bi bi-qr-code"></i> QR-код
+                </a>
+                {% endif %}
+            </div>
         </div>
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-md-6">
-                <h5>Основная информация</h5>
-                <table class="table table-bordered">
-                    <tr><th>Дата доставки:</th><td>{{ order.date|date:"d.m.Y" }}</td></tr>
-                    <tr><th>Город назначения:</th><td>{{ order.city }}</td></tr>
-                    <tr><th>Склад отправки:</th><td>{{ order.warehouse }}</td></tr>
-                    <tr><th>Фулфилмент:</th><td>{{ order.fulfillment }}</td></tr>
-                    <tr><th>Количество мест:</th><td>{{ order.quantity }}</td></tr>
-                    <tr><th>Вес:</th><td>{{ order.weight }} кг</td></tr>
-                    <tr><th>Объем:</th><td>{{ order.volume }} м³</td></tr>
-                </table>
-            </div>
-            
-            <div class="col-md-6">
-                <h5>Информация о перевозке</h5>
+            <div class="col-md-7">
+                <h5 class="border-bottom pb-2 mb-3">Основная информация</h5>
                 <table class="table table-bordered">
                     <tr>
-                        <th>Водитель:</th>
+                        <th style="width: 40%">Дата доставки:</th>
+                        <td>{{ order.date|date:"d.m.Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Город назначения:</th>
+                        <td><strong>{{ order.city }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Склад отправки:</th>
+                        <td>{{ order.warehouse }}</td>
+                    </tr>
+                    <tr>
+                        <th>Фулфилмент оператор:</th>
+                        <td>{{ order.fulfillment }}</td>
+                    </tr>
+                    <tr>
+                        <th>Количество мест:</th>
+                        <td>{{ order.quantity }}</td>
+                    </tr>
+                    <tr>
+                        <th>Вес:</th>
+                        <td>{{ order.weight }} кг</td>
+                    </tr>
+                    <tr>
+                        <th>Объем:</th>
+                        <td>{{ order.volume }} м³</td>
+                    </tr>
+                </table>
+                
+                <h5 class="border-bottom pb-2 mb-3 mt-4">Информация о перевозке</h5>
+                <table class="table table-bordered">
+                    <tr>
+                        <th style="width: 40%">Водитель:</th>
                         <td>
                             {% if order.driver_name %}
-                                {{ order.driver_name }}
+                                <strong>{{ order.driver_name }}</strong>
                             {% else %}
                                 <span class="text-danger">Не назначен</span>
                             {% endif %}
                         </td>
                     </tr>
-                    <tr><th>Телефон:</th><td>{{ order.driver_phone|default:"-" }}</td></tr>
-                    <tr><th>Транспорт:</th><td>{{ order.vehicle|default:"-" }}</td></tr>
-                    <tr><th>Создано:</th><td>{{ order.created_at|date:"d.m.Y H:i" }}</td></tr>
+                    <tr>
+                        <th>Телефон водителя:</th>
+                        <td>{{ order.driver_phone|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Марка и номер ТС:</th>
+                        <td>{{ order.vehicle|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ответственный оператор:</th>
+                        <td>
+                            {% if order.operator %}
+                                {{ order.operator.get_full_name|default:order.operator.username }}
+                            {% else %}
+                                <span class="text-muted">Не назначен</span>
+                            {% endif %}
+                        </td>
+                    </tr>
                 </table>
+            </div>
+            
+            <div class="col-md-5">
+                {% if order.qr_code %}
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">QR-код заявки</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="{{ order.qr_code.url }}" 
+                             alt="QR-код заявки {{ order.tracking_number }}" 
+                             class="img-fluid mb-3"
+                             style="max-width: 250px;">
+                        <p class="text-muted small">
+                            Отсканируйте для быстрого просмотра информации о заявке
+                        </p>
+                        <a href="{{ order.qr_code.url }}" 
+                           class="btn btn-outline-primary btn-sm" 
+                           download="QR_{{ order.tracking_number }}.png">
+                            <i class="bi bi-download"></i> Скачать QR-код
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
                 
-            {% if order.status == 'shipped' %}
-            <div class="alert alert-danger">
-                <strong>Заявка отправлена!</strong> Редактирование недоступно.
-            </div>
-            {% elif order.status == 'driver_assigned' %}
-            <div class="alert alert-warning">
-                <strong>Водитель назначен.</strong> Можно изменить данные водителя или отправить заявку.
-            </div>
-            {% endif %}
+                {% if order.status == 'shipped' %}
+                <div class="alert alert-danger">
+                    <h6><i class="bi bi-exclamation-triangle"></i> Заявка отправлена!</h6>
+                    <p class="mb-0">Редактирование недоступно.</p>
+                </div>
+                {% elif order.status == 'driver_assigned' %}
+                <div class="alert alert-warning">
+                    <h6><i class="bi bi-info-circle"></i> Водитель назначен</h6>
+                    <p class="mb-0">Можно изменить данные водителя или отправить заявку.</p>
+                </div>
+                {% endif %}
 
-            {% if order.status != 'shipped' and not is_operator or is_admin or is_logistic %}
-            <div class="mt-4">
-                <a href="{% url 'delivery_order_update' order.pk %}" class="btn btn-primary">
-                    {% if order.driver_name %}Изменить данные водителя{% else %}Назначить водителя{% endif %}
-                </a>
-            </div>
-            {% endif %}
-
+                {% if order.status != 'shipped' and not is_operator or is_admin or is_logistic %}
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Действия</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'delivery_order_update' order.pk %}" 
+                               class="btn btn-primary">
+                                <i class="bi bi-person-badge"></i>
+                                {% if order.driver_name %}
+                                    Изменить данные водителя
+                                {% else %}
+                                    Назначить водителя
+                                {% endif %}
+                            </a>
+                            
+                            <!-- Добавлена кнопка PDF -->
+                            <a href="{% url 'delivery_order_pdf' order.pk %}" 
+                               class="btn btn-danger">
+                                <i class="bi bi-file-pdf"></i> Скачать накладную (PDF)
+                            </a>
+                            
+                            {% if not order.qr_code %}
+                            <form method="post" action="{% url 'generate_qr_code' order.pk %}" class="d-grid">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-success">
+                                    <i class="bi bi-qr-code"></i> Сгенерировать QR-код
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
     <div class="card-footer">
-        <a href="{% url 'delivery_order_list' %}" class="btn btn-secondary">← Назад к списку</a>
-        <a href="{% url 'admin:logistic_deliveryorder_change' order.pk %}" class="btn btn-outline-dark">Редактировать в админке</a>
+        <div class="d-flex justify-content-between">
+            <div>
+                <a href="{% url 'delivery_order_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Назад к списку
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'admin:logistic_deliveryorder_change' order.pk %}" 
+                   class="btn btn-outline-dark">
+                    <i class="bi bi-gear"></i> В админку
+                </a>
+                <button onclick="window.print()" class="btn btn-outline-info ms-2">
+                    <i class="bi bi-printer"></i> Печать
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

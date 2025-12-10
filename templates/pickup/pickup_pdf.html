@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ title }}</h1>
+    </div>
+
+    <div class="company-info">
+        <p><strong>Компания:</strong> ФФ Царицыно</p>
+        <p><strong>Телефон:</strong> +7 (495) 123-45-67</p>
+        <p><strong>Email:</strong> logistic@fmc-tzaritsyna.ru</p>
+    </div>
+
+    <h2>Информация о заявке</h2>
+    <table>
+        <tr>
+            <th width="30%">Номер заявки:</th>
+            <td class="text-bold">{{ order.tracking_number|default:"#"|add:order.id }}</td>
+        </tr>
+        <tr>
+            <th>Дата забора:</th>
+            <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
+        </tr>
+        <tr>
+            <th>Статус:</th>
+            <td class="text-bold">{{ order.get_status_display }}</td>
+        </tr>
+        <tr>
+            <th>Дата создания:</th>
+            <td>{{ order.created_at|date:"d.m.Y H:i" }}</td>
+        </tr>
+    </table>
+
+    <h2>Информация о клиенте</h2>
+    <table>
+        <tr>
+            <th width="30%">Клиент/Компания:</th>
+            <td class="text-bold">{{ order.client_name }}</td>
+        </tr>
+        {% if order.client_phone %}
+        <tr>
+            <th>Телефон:</th>
+            <td>{{ order.client_phone }}</td>
+        </tr>
+        {% endif %}
+        {% if order.client_email %}
+        <tr>
+            <th>Email:</th>
+            <td>{{ order.client_email }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+            <th>Адрес забора:</th>
+            <td>{{ order.pickup_address }}</td>
+        </tr>
+    </table>
+
+    <h2>Характеристики груза</h2>
+    <table>
+        <tr>
+            <th width="30%">Количество мест:</th>
+            <td>{{ order.quantity }}</td>
+        </tr>
+        {% if order.weight %}
+        <tr>
+            <th>Вес:</th>
+            <td>{{ order.weight }} кг</td>
+        </tr>
+        {% endif %}
+        {% if order.volume %}
+        <tr>
+            <th>Объем:</th>
+            <td>{{ order.volume }} м³</td>
+        </tr>
+        {% endif %}
+        {% if order.cargo_description %}
+        <tr>
+            <th>Описание груза:</th>
+            <td>{{ order.cargo_description }}</td>
+        </tr>
+        {% endif %}
+        {% if order.special_requirements %}
+        <tr>
+            <th>Особые требования:</th>
+            <td>{{ order.special_requirements }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    {% if order.operator %}
+    <h2>Ответственный оператор</h2>
+    <table>
+        <tr>
+            <th width="30%">Оператор:</th>
+            <td>{{ order.operator.get_full_name|default:order.operator.username }}</td>
+        </tr>
+        <tr>
+            <th>Обновлено:</th>
+            <td>{{ order.updated_at|date:"d.m.Y H:i" }}</td>
+        </tr>
+    </table>
+    {% endif %}
+
+    {% if order.delivery_order %}
+    <h2>Связанная доставка</h2>
+    <table>
+        <tr>
+            <th width="30%">Номер доставки:</th>
+            <td class="text-bold">{{ order.delivery_order.tracking_number|default:"#"|add:order.delivery_order.id }}</td>
+        </tr>
+        <tr>
+            <th>Город назначения:</th>
+            <td>{{ order.delivery_order.city }}</td>
+        </tr>
+        <tr>
+            <th>Статус доставки:</th>
+            <td>{{ order.delivery_order.get_status_display }}</td>
+        </tr>
+    </table>
+    {% endif %}
+
+    {% if order.notes %}
+    <h2>Внутренние заметки</h2>
+    <div style="padding: 10px; background-color: #f8f9fa; border: 1px solid #dee2e6;">
+        {{ order.notes|linebreaks }}
+    </div>
+    {% endif %}
+
+    <div class="signature-block">
+        <div class="signature-row">
+            <div class="signature-item">
+                <p>Клиент</p>
+                <div class="signature-line"></div>
+                <p>(ФИО, подпись)</p>
+            </div>
+            <div class="signature-item">
+                <p>М.П.</p>
+            </div>
+            <div class="signature-item">
+                <p>Представитель компании</p>
+                <div class="signature-line"></div>
+                <p>(ФИО, подпись)</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Документ сгенерирован автоматически системой CRM Логистика {{ now|date:"d.m.Y H:i" }}</p>
+    </div>
+</body>
+</html>
