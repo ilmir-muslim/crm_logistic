@@ -3,3 +3,4 @@ db.sqlite3
 __pycache__
 /media/qr_codes/delivery/*
 /media/qr_codes/pickup/*
+.env

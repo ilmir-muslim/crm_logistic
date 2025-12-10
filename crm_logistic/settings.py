@@ -4,13 +4,16 @@ Django settings for crm_logistic project.
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
-SECRET_KEY = "django-insecure-d$6282pfucb8d3!v!v6*-#(b-lc-0v%!7u)vir(5$2(1unds%y"
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG = True
 
@@ -116,4 +119,4 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # URL сайта для QR-кодов
-SITE_URL = "http://127.0.0.1:8001"
+SITE_URL = "http://127.0.0.1:8000"
