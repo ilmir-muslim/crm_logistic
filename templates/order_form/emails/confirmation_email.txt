@@ -1,0 +1,23 @@
+НОВАЯ ЗАЯВКА НА ЗАБОР #{{ tracking_number }}
+
+ДЕТАЛИ ЗАЯВКИ:
+===============
+Компания: {{ order.client_company }}
+Контактное лицо: {{ order.client_name }}
+Телефон: {{ order.client_phone }}
+Email: {{ order.client_email }}
+Маркетплейс: {{ order.marketplace }}
+Дата поставки: {{ order.desired_delivery_date|date:"d.m.Y" }}
+Адрес забора: {{ order.pickup_address }}
+Адрес доставки: {{ order.delivery_address }}
+Количество мест: {{ order.quantity }}
+Вес: {{ order.weight }} кг
+Объем: {{ order.volume }} м³
+{% if order.order_1c_number %}№ заказа в 1С: {{ order.order_1c_number }}{% endif %}
+{% if order.cargo_description %}Комментарий: {{ order.cargo_description }}{% endif %}
+
+ССЫЛКА НА ЗАЯВКУ В АДМИНКЕ:
+{{ SITE_URL }}/admin/pickup/pickuporder/{{ order.id }}/change/
+
+---
+Это письмо отправлено автоматически. Не отвечайте на него.

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #198754 0%, #20c997 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="margin: 0;">ФФ Царицыно</h1>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">Подтверждение заявки</p>
+    </div>
+    
+    <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h2 style="color: #198754; margin-top: 0;">
+                    <i class="bi bi-check-circle-fill" style="margin-right: 10px;"></i>
+                    Заявка принята
+                </h2>
+                <p>Ваша заявка успешно зарегистрирована в системе</p>
+                
+                <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0; border: 2px dashed #0d6efd;">
+                    <p style="margin: 0; font-size: 14px; color: #666;">Номер заявки</p>
+                    <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #0d6efd;">
+                        {{ tracking_number }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #0d6efd;">
+            <h3 style="color: #0d6efd; margin-top: 0;">Что дальше?</h3>
+            <ul style="margin-bottom: 0;">
+                <li>Наш оператор свяжется с вами в течение 1 часа для уточнения деталей</li>
+                <li>Сохраните номер заявки для отслеживания статуса</li>
+                <li>По всем вопросам звоните: <strong>+7 (495) 123-45-67</strong></li>
+            </ul>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+            <p style="margin-bottom: 5px; font-size: 14px; color: #666;">
+                Это письмо сформировано автоматически. Пожалуйста, не отвечайте на него.
+            </p>
+            <p style="margin: 0; font-size: 12px; color: #999;">
+                © {% now "Y" %} ФФ Царицыно. Все права защищены.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

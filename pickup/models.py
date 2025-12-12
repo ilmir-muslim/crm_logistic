@@ -1,3 +1,4 @@
+# [file name]: pickup/models.py
 from django.db import models
 from django.urls import reverse
 from django.conf import settings
@@ -14,6 +15,16 @@ class PickupOrder(models.Model):
     Заявка на забор груза от клиента
     """
 
+    # Выбор маркетплейсов
+    MARKETPLACE_CHOICES = [
+        ("Wildberries", "Wildberries"),
+        ("Ozon", "Ozon"),
+        ("Яндекс.Маркет", "Яндекс.Маркет"),
+        ("SberMarket", "SberMarket"),
+        ("Собственный сайт", "Собственный сайт"),
+        ("Другое", "Другое"),
+    ]
+
     STATUS_CHOICES = [
         ("new", "Новая"),
         ("confirmed", "Подтверждена"),
@@ -22,34 +33,89 @@ class PickupOrder(models.Model):
     ]
 
     # Основные данные из ТЗ
-    pickup_date = models.DateField(verbose_name="Дата забора")
+    pickup_date = models.DateField(
+        verbose_name="Дата забора",
+        blank=True,
+        null=True,
+        help_text="Дата будет назначена оператором после подтверждения",
+    )
     pickup_address = models.CharField(
         max_length=500,
         verbose_name="Адрес забора",
         help_text="Город, улица, дом, помещение",
+        default="Не указан",
     )
-    client_name = models.CharField(max_length=200, verbose_name="Клиент/Компания")
+
+    # Информация о клиенте
+    client_name = models.CharField(
+        max_length=200,
+        verbose_name="Контактное лицо",
+        help_text="ФИО контактного лица",
+        default="Не указано",
+    )
+    client_company = models.CharField(
+        max_length=200,
+        verbose_name="Наименование компании",
+        help_text="Полное наименование компании/ИП",
+        default="Не указано",
+    )
     client_phone = models.CharField(
-        max_length=20, verbose_name="Телефон клиента", blank=True, null=True
+        max_length=20,
+        verbose_name="Телефон клиента",
+        help_text="Телефон для связи",
+        default="Не указан",
     )
     client_email = models.EmailField(
-        verbose_name="Email клиента", blank=True, null=True
+        verbose_name="Email клиента",
+        help_text="Email для отправки подтверждения",
+        default="noemail@example.com",
+    )
+
+    # Данные о заказе
+    marketplace = models.CharField(
+        max_length=50,
+        choices=MARKETPLACE_CHOICES,
+        verbose_name="Маркетплейс",
+        help_text="Площадка, с которой заказ",
+        default="Собственный сайт",
+    )
+    order_1c_number = models.CharField(
+        max_length=50,
+        verbose_name="№ заказа в 1С",
+        blank=True,
+        null=True,
+        help_text="Номер заказа в системе 1С",
+    )
+    desired_delivery_date = models.DateField(
+        verbose_name="Желаемая дата поставки",
+        help_text="Дата, когда клиент хочет получить заказ",
+        default=timezone.now,
+    )
+    delivery_address = models.TextField(
+        verbose_name="Адрес доставки",
+        help_text="Полный адрес доставки",
+        default="Не указан",
     )
 
     # Характеристики груза
-    quantity = models.IntegerField(verbose_name="Количество мест")
-    weight = models.FloatField(verbose_name="Вес (кг)", blank=True, null=True)
-    volume = models.FloatField(verbose_name="Объем (м³)", blank=True, null=True)
+    quantity = models.IntegerField(verbose_name="Количество мест", default=0)
+    weight = models.FloatField(verbose_name="Вес (кг)", default=0.0)
+    volume = models.FloatField(verbose_name="Объем (м³)", default=0.0)
 
     # Дополнительная информация
     cargo_description = models.TextField(
-        verbose_name="Описание груза", blank=True, null=True
+        verbose_name="Комментарий к заказу",
+        blank=True,
+        null=True,
+        help_text="Дополнительная информация о заказе",
+        default="",
     )
     special_requirements = models.TextField(
         verbose_name="Особые требования",
         blank=True,
         null=True,
         help_text="Хрупкий груз, температура, сроки и т.д.",
+        default="",
     )
 
     # Статус и ответственные
@@ -81,7 +147,9 @@ class PickupOrder(models.Model):
     # Системные поля
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
-    notes = models.TextField(verbose_name="Внутренние заметки", blank=True, null=True)
+    notes = models.TextField(
+        verbose_name="Внутренние заметки", blank=True, null=True, default=""
+    )
 
     # Новые поля для этапа 3
     tracking_number = models.CharField(
@@ -98,8 +166,8 @@ class PickupOrder(models.Model):
 
     def __str__(self):
         if self.tracking_number:
-            return f"{self.tracking_number} - {self.client_name} на {self.pickup_date}"
-        return f"Забор от {self.client_name} на {self.pickup_date}"
+            return f"{self.tracking_number} - {self.client_company} на {self.desired_delivery_date}"
+        return f"Забор от {self.client_company} на {self.desired_delivery_date}"
 
     def get_absolute_url(self):
         """Возвращает URL для просмотра деталей заявки"""
@@ -129,8 +197,8 @@ class PickupOrder(models.Model):
                 # Проверяем, изменились ли данные, которые влияют на QR
                 if any(
                     [
-                        old.pickup_date != self.pickup_date,
-                        old.client_name != self.client_name,
+                        old.desired_delivery_date != self.desired_delivery_date,
+                        old.client_company != self.client_company,
                         old.pickup_address != self.pickup_address,
                         old.quantity != self.quantity,
                         old.weight != self.weight,
@@ -185,12 +253,15 @@ class PickupOrder(models.Model):
         qr_data = f"""
 Забор груза #{self.id}
 Сквозной номер: {self.tracking_number}
-Клиент: {self.client_name}
-Дата забора: {self.pickup_date}
-Адрес: {self.pickup_address}
+Компания: {self.client_company}
+Контакное лицо: {self.client_name}
+Дата поставки: {self.desired_delivery_date}
+Адрес забора: {self.pickup_address}
+Адрес доставки: {self.delivery_address}
+Маркетплейс: {self.marketplace}
 Места: {self.quantity}
-Вес: {self.weight or 'Не указан'} кг
-Объем: {self.volume or 'Не указан'} м³
+Вес: {self.weight} кг
+Объем: {self.volume} м³
 Статус: {self.get_status_display()}
 Ссылка: {settings.SITE_URL}{self.get_absolute_url()}
         """.strip()
@@ -240,8 +311,8 @@ class PickupOrder(models.Model):
 
         # Создаём заявку на доставку
         delivery = DeliveryOrder.objects.create(
-            date=self.pickup_date,
-            city=self._extract_city_from_address(),
+            date=self.desired_delivery_date,
+            city=self._extract_city_from_delivery_address(),
             warehouse="Сборный груз",
             fulfillment="Фулфилмент Царицыно",
             quantity=self.quantity,
@@ -257,9 +328,7 @@ class PickupOrder(models.Model):
 
         return delivery
 
-    def _extract_city_from_address(self):
-        """Извлекает город из адреса (простая логика)"""
-        parts = self.pickup_address.split(",")
+    def _extract_city_from_delivery_address(self):
+        """Извлекает город из адреса доставки"""
+        parts = self.delivery_address.split(",")
         return parts[0].strip() if parts else "Не указан"
-
-

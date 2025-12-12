@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ФФ Царицыно - Заявка на отправку груза</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-blue: #0d6efd;
+            --success-green: #198754;
+            --warning-orange: #fd7e14;
+            --info-teal: #20c997;
+            --purple: #6f42c1;
+            --pink: #d63384;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .form-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, #4a90e2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+        }
+        
+        .header h1 {
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .company-name {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            letter-spacing: 1px;
+        }
+        
+        /* Стили для карточек */
+        .info-card {
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
+        }
+        
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .schedule-card {
+            border-left: 5px solid var(--info-teal);
+        }
+        
+        .boxes-card {
+            border-left: 5px solid var(--warning-orange);
+        }
+        
+        .delivery-card {
+            border-left: 5px solid var(--success-green);
+        }
+        
+        .client-card {
+            border-left: 5px solid var(--purple);
+        }
+        
+        .cargo-card {
+            border-left: 5px solid var(--pink);
+        }
+        
+        .privacy-card {
+            border-left: 5px solid var(--primary-blue);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-bottom: 2px solid rgba(0,0,0,0.05);
+            padding: 1.2rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-title {
+            color: #2c3e50;
+            font-weight: 600;
+            margin: 0;
+            font-size: 1.1rem;
+        }
+        
+        .card-icon {
+            font-size: 1.3rem;
+        }
+        
+        .schedule-card .card-icon {
+            color: var(--info-teal);
+        }
+        
+        .boxes-card .card-icon {
+            color: var(--warning-orange);
+        }
+        
+        .delivery-card .card-icon {
+            color: var(--success-green);
+        }
+        
+        .client-card .card-icon {
+            color: var(--purple);
+        }
+        
+        .cargo-card .card-icon {
+            color: var(--pink);
+        }
+        
+        .privacy-card .card-icon {
+            color: var(--primary-blue);
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        /* Таблицы */
+        .custom-table {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .custom-table th {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .custom-table td {
+            padding: 0.75rem;
+            border-color: #e9ecef;
+        }
+        
+        .custom-table tbody tr:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+        
+        /* Форма */
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        
+        .required::after {
+            content: " *";
+            color: #dc3545;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            padding: 0.6rem 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+        }
+        
+        .form-text {
+            color: #6c757d;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+        
+        /* Кнопки */
+        .btn-submit {
+            background: linear-gradient(135deg, var(--success-green) 0%, #20c997 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 2.5rem;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(25, 135, 84, 0.4);
+            background: linear-gradient(135deg, #157347 0%, #19a27a 100%);
+        }
+        
+        .btn-reset {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 2.5rem;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-reset:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+            background: linear-gradient(135deg, #545b62 0%, #3d4247 100%);
+        }
+        
+        /* Чекбокс */
+        .form-check-input:checked {
+            background-color: var(--success-green);
+            border-color: var(--success-green);
+        }
+        
+        .form-check-input:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        
+        /* Сообщения об ошибках */
+        .invalid-feedback {
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+        
+        /* Футер */
+        .footer {
+            background: #f8f9fa;
+            padding: 2rem;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .contact-info {
+            color: #495057;
+            font-size: 1rem;
+        }
+        
+        .contact-info strong {
+            color: var(--primary-blue);
+        }
+        
+        .copyright {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .form-container {
+                margin: 1rem;
+                border-radius: 10px;
+            }
+            
+            .header {
+                padding: 2rem 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            .btn-submit, .btn-reset {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }
+        
+        /* Анимация для обязательных полей */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .required-field {
+            animation: pulse 2s infinite;
+        }
+        
+        /* Стили для сообщений */
+        .messages-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            width: 90%;
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Контейнер для сообщений -->
+    <div class="messages-container">
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    {% if message.tags == 'success' %}
+                        <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                    {% elif message.tags == 'error' or message.tags == 'danger' %}
+                        <i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>
+                    {% elif message.tags == 'warning' %}
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                    {% elif message.tags == 'info' %}
+                        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                    {% endif %}
+                    <div>{{ message }}</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="form-container">
+        <!-- Шапка -->
+        <div class="header">
+            <div class="container">
+                <h1 class="mb-3">
+                    <i class="bi bi-truck"></i>
+                    Заявка на отправку груза
+                </h1>
+                <p class="company-name mb-0">
+                    ФФ Царицыно - профессиональная логистика для вашего бизнеса
+                </p>
+            </div>
+        </div>
+        
+        <div class="container py-4">
+            <!-- Блок сообщений внутри формы (для не-field ошибок) -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <div>
+                        {% for error in form.non_field_errors %}
+                        <p class="mb-0">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+            
+            <!-- Информационные карточки -->
+            <div class="row g-4 mb-4">
+                <div class="col-lg-6">
+                    <div class="info-card schedule-card h-100">
+                        <div class="card-header">
+                            <i class="bi bi-calendar-event card-icon"></i>
+                            <h5 class="card-title">График приема заявок</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">Прием заявок осуществляется до 18:00</p>
+                            <div class="table-responsive">
+                                <table class="table custom-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Город</th>
+                                            <th>Дни доставки</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Москва (Электросталь, Коледино, Подольск)</td>
+                                            <td><span class="badge bg-info">среда</span> <span class="badge bg-info">пятница</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Тула (Алексин)</td>
+                                            <td><span class="badge bg-warning">вторник</span> <span class="badge bg-warning">суббота</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Рязань (Пошевски)</td>
+                                            <td><span class="badge bg-success">пятница</span> <span class="badge bg-success">воскресенье</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Краснодар, Невинномысск</td>
+                                            <td><span class="badge bg-danger">суббота</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Санкт-Петербург</td>
+                                            <td><span class="badge bg-primary">суббота</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Екатеринбург</td>
+                                            <td><span class="badge bg-secondary">суббота</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="info-card boxes-card h-100">
+                        <div class="card-header">
+                            <i class="bi bi-box-seam card-icon"></i>
+                            <h5 class="card-title">Стандартные размеры коробок</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">Для расчета объема используйте наши стандартные размеры</p>
+                            <div class="table-responsive">
+                                <table class="table custom-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Тип коробки</th>
+                                            <th>Размеры (Д×Ш×В, см)</th>
+                                            <th>Объем (м³)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Коробка XL</strong></td>
+                                            <td>12 × 8 × 18</td>
+                                            <td><span class="badge bg-dark">1.7</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Коробка L</strong></td>
+                                            <td>6 × 8 × 5</td>
+                                            <td><span class="badge bg-dark">0.24</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Коробка M</strong></td>
+                                            <td>6 × 4 × 4</td>
+                                            <td><span class="badge bg-dark">0.10</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Коробка S</strong></td>
+                                            <td>4 × 3 × 4</td>
+                                            <td><span class="badge bg-dark">0.05</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-3 p-3 bg-light rounded">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle"></i> 
+                                    <strong>Совет:</strong> Для расчета общего объема умножьте количество коробок каждого типа на их объем
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Форма заявки -->
+            <form method="post" novalidate class="mb-4" id="orderForm">
+                {% csrf_token %}
+                
+                <!-- Раздел 1: Информация о доставке -->
+                <div class="info-card delivery-card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-geo-alt card-icon"></i>
+                        <h5 class="card-title">Информация о доставке</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.desired_delivery_date.id_for_label }}" class="form-label required">
+                                    Желаемая дата поставки
+                                </label>
+                                {{ form.desired_delivery_date }}
+                                {% if form.desired_delivery_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.desired_delivery_date.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Выберите дату доставки с учетом графика
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.marketplace.id_for_label }}" class="form-label required">
+                                    Маркетплейс
+                                </label>
+                                {{ form.marketplace }}
+                                {% if form.marketplace.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.marketplace.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Выберите площадку, с которой заказ
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="{{ form.pickup_address.id_for_label }}" class="form-label required">
+                                    Адрес забора груза
+                                </label>
+                                {{ form.pickup_address }}
+                                {% if form.pickup_address.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.pickup_address.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Город, улица, дом, этаж, наличие лифта
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="{{ form.delivery_address.id_for_label }}" class="form-label required">
+                                    Адрес доставки груза
+                                </label>
+                                {{ form.delivery_address }}
+                                {% if form.delivery_address.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.delivery_address.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Полный адрес доставки
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Раздел 2: Информация о клиенте -->
+                <div class="info-card client-card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-person-badge card-icon"></i>
+                        <h5 class="card-title"> Информация о клиенте</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.client_company.id_for_label }}" class="form-label required">
+                                    Наименование компании
+                                </label>
+                                {{ form.client_company }}
+                                {% if form.client_company.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_company.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Полное наименование компании или ИП
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.client_name.id_for_label }}" class="form-label required">
+                                    Контактное лицо
+                                </label>
+                                {{ form.client_name }}
+                                {% if form.client_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_name.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    ФИО ответственного лица
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.client_phone.id_for_label }}" class="form-label required">
+                                    Телефон для связи
+                                </label>
+                                {{ form.client_phone }}
+                                {% if form.client_phone.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_phone.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Номер для оперативной связи
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.client_email.id_for_label }}" class="form-label required">
+                                    Email
+                                </label>
+                                {{ form.client_email }}
+                                {% if form.client_email.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_email.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    На этот email придет подтверждение
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Раздел 3: Характеристики груза -->
+                <div class="info-card cargo-card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-box2 card-icon"></i>
+                        <h5 class="card-title">Характеристики груза</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="{{ form.quantity.id_for_label }}" class="form-label required">
+                                    Количество мест
+                                </label>
+                                {{ form.quantity }}
+                                {% if form.quantity.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.quantity.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Общее количество коробок
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.volume.id_for_label }}" class="form-label required">
+                                    Общий объем (м³)
+                                </label>
+                                {{ form.volume }}
+                                {% if form.volume.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.volume.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Используйте таблицу для расчета
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.weight.id_for_label }}" class="form-label required">
+                                    Общий вес (кг)
+                                </label>
+                                {{ form.weight }}
+                                {% if form.weight.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.weight.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Вес всех мест вместе
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="{{ form.order_1c_number.id_for_label }}" class="form-label">
+                                    № заказа в 1С
+                                </label>
+                                {{ form.order_1c_number }}
+                                {% if form.order_1c_number.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.order_1c_number.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Если заказ создан в вашей системе 1С
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="{{ form.cargo_description.id_for_label }}" class="form-label">
+                                    Комментарий к заказу
+                                </label>
+                                {{ form.cargo_description }}
+                                {% if form.cargo_description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.cargo_description.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Хрупкий груз, температурный режим и т.д.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Раздел 4: Согласие -->
+                <div class="info-card privacy-card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-shield-check card-icon"></i>
+                        <h5 class="card-title">Согласие на обработку данных</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check">
+                            {{ form.privacy_policy }}
+                            <label class="form-check-label ms-2" for="{{ form.privacy_policy.id_for_label }}">
+                                Я даю свое согласие на обработку моих персональных данных в соответствии с 
+                                <a href="#" class="text-decoration-none" target="_blank">политикой конфиденциальности</a>
+                            </label>
+                            {% if form.privacy_policy.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.privacy_policy.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Кнопки отправки -->
+                <div class="text-center py-4">
+                    <div class="d-grid gap-2 d-md-block">
+                        <button type="submit" class="btn btn-submit me-md-2" id="submitButton">
+                            <i class="bi bi-send-check me-2"></i> Отправить заявку
+                        </button>
+                        <button type="reset" class="btn btn-reset" id="resetButton">
+                            <i class="bi bi-arrow-clockwise me-2"></i> Очистить форму
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i> 
+                            Все поля, отмеченные <span class="text-danger">*</span>, обязательны для заполнения
+                        </small>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Футер -->
+        <div class="footer">
+            <div class="container">
+                <p class="contact-info mb-2">
+                    <i class="bi bi-telephone"></i>
+                    По вопросам заполнения формы звоните: 
+                    <strong>+7 (495) 123-45-67</strong>
+                </p>
+                <p class="contact-info mb-2">
+                    <i class="bi bi-clock"></i>
+                    Режим работы: Пн-Пт с 9:00 до 18:00
+                </p>
+                <p class="copyright mb-0">
+                    © {% now "Y" %} ФФ Царицыно. Все права защищены.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Устанавливаем минимальную дату (сегодня)
+            const dateField = document.querySelector('input[type="date"]');
+            if (dateField) {
+                const today = new Date().toISOString().split('T')[0];
+                dateField.min = today;
+                
+                // Устанавливаем дату по умолчанию (через 2 дня)
+                const defaultDate = new Date();
+                defaultDate.setDate(defaultDate.getDate() + 2);
+                const defaultDateStr = defaultDate.toISOString().split('T')[0];
+                dateField.value = defaultDateStr;
+            }
+            
+            // Добавляем валидацию формы
+            const form = document.getElementById('orderForm');
+            const submitButton = document.getElementById('submitButton');
+            
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    let isValid = true;
+                    const requiredFields = form.querySelectorAll('[required]');
+                    
+                    // Сначала сбрасываем все ошибки
+                    requiredFields.forEach(function(field) {
+                        field.classList.remove('is-invalid');
+                    });
+                    
+                    // Проверяем обязательные поля
+                    requiredFields.forEach(function(field) {
+                        const isCheckbox = field.type === 'checkbox';
+                        const isEmpty = isCheckbox ? !field.checked : !field.value.trim();
+                        
+                        if (isEmpty) {
+                            isValid = false;
+                            field.classList.add('is-invalid');
+                            
+                            // Добавляем анимацию к родительскому элементу
+                            const parentDiv = field.closest('.col-md-6, .col-md-4, .col-12');
+                            if (parentDiv) {
+                                parentDiv.classList.add('required-field');
+                                setTimeout(() => {
+                                    parentDiv.classList.remove('required-field');
+                                }, 2000);
+                            }
+                        }
+                    });
+                    
+                    if (!isValid) {
+                        e.preventDefault();
+                        
+                        // Прокручиваем к первой ошибке
+                        const firstError = form.querySelector('.is-invalid');
+                        if (firstError) {
+                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            firstError.focus();
+                        }
+                        
+                        // Показываем сообщение
+                        showAlertMessage('Пожалуйста, заполните все обязательные поля', 'danger');
+                    } else {
+                        // Отключаем кнопку отправки, чтобы предотвратить двойную отправку
+                        if (submitButton) {
+                            submitButton.disabled = true;
+                            submitButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Отправка...';
+                        }
+                    }
+                });
+                
+                // Сбрасываем ошибки при вводе
+                form.querySelectorAll('input, select, textarea').forEach(function(field) {
+                    field.addEventListener('input', function() {
+                        this.classList.remove('is-invalid');
+                    });
+                    
+                    field.addEventListener('change', function() {
+                        this.classList.remove('is-invalid');
+                    });
+                });
+                
+                // Кнопка очистки формы
+                const resetButton = document.getElementById('resetButton');
+                if (resetButton) {
+                    resetButton.addEventListener('click', function() {
+                        // Сбрасываем ошибки при очистке
+                        form.querySelectorAll('.is-invalid').forEach(function(field) {
+                            field.classList.remove('is-invalid');
+                        });
+                    });
+                }
+            }
+            
+            // Анимация для карточек при скролле
+            const observerOptions = {
+                threshold: 0.1
+            };
+            
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+            
+            // Применяем анимацию ко всем карточкам
+            document.querySelectorAll('.info-card').forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                observer.observe(card);
+            });
+            
+            // Подсчет объема на основе количества коробок (опционально)
+            const quantityField = document.getElementById('id_quantity');
+            const volumeField = document.getElementById('id_volume');
+            
+            if (quantityField && volumeField) {
+                quantityField.addEventListener('change', function() {
+                    // Если пользователь еще не вводил объем, предлагаем рассчитать
+                    if (!volumeField.value) {
+                        const avgVolume = 0.5; // средний объем одной коробки
+                        const suggestedVolume = (parseInt(this.value) || 1) * avgVolume;
+                        volumeField.placeholder = `Примерно ${suggestedVolume.toFixed(2)} м³`;
+                    }
+                });
+            }
+            
+            // Функция для показа сообщений
+            function showAlertMessage(message, type) {
+                // Проверяем, есть ли уже контейнер для сообщений
+                let messagesContainer = document.querySelector('.messages-container');
+                
+                // Создаем сообщение
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                alertDiv.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi ${
+                            type === 'success' ? 'bi-check-circle-fill' : 
+                            type === 'danger' ? 'bi-exclamation-circle-fill' : 
+                            type === 'warning' ? 'bi-exclamation-triangle-fill' : 
+                            'bi-info-circle-fill'
+                        } me-2 fs-5"></i>
+                        <div>${message}</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                // Добавляем сообщение в контейнер
+                messagesContainer.appendChild(alertDiv);
+                
+                // Удаляем сообщение через 5 секунд
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        const bsAlert = new bootstrap.Alert(alertDiv);
+                        bsAlert.close();
+                    }
+                }, 5000);
+            }
+            
+            // Автоматическое закрытие сообщений через 5 секунд
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+            
+            // Восстанавливаем кнопку отправки при возврате на страницу (если форма не отправилась)
+            window.addEventListener('pageshow', function(event) {
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = '<i class="bi bi-send-check me-2"></i> Отправить заявку';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

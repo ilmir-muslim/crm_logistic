@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Заявка принята - ФФ Царицыно</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .success-container {
+            max-width: 600px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .success-header {
+            background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        
+        .success-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .success-body {
+            padding: 2rem;
+        }
+        
+        .tracking-number {
+            font-family: monospace;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #198754;
+            background-color: #f8f9fa;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 2px dashed #198754;
+        }
+        
+        .info-card {
+            background-color: #e7f3ff;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-left: 4px solid #0d6efd;
+        }
+        
+        .action-buttons {
+            margin-top: 2rem;
+        }
+        
+        @media (max-width: 576px) {
+            .success-container {
+                margin: 1rem;
+            }
+            
+            .success-header {
+                padding: 2rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-header">
+            <div class="success-icon">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <h1>Заявка принята!</h1>
+            <p class="lead mb-0">Ваша заявка успешно отправлена</p>
+        </div>
+        
+        <div class="success-body">
+            <p class="text-center">
+                Благодарим вас за обращение в ФФ Царицыно!
+            </p>
+            
+            <div class="text-center mb-4">
+                <p class="mb-2">Номер вашей заявки:</p>
+                <div class="tracking-number">
+                    {% if tracking_number %}
+                        {{ tracking_number }}
+                    {% else %}
+                        #{{ order_id }}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="info-card">
+                <h5><i class="bi bi-info-circle"></i> Что дальше?</h5>
+                <ul class="mb-0">
+                    <li>На ваш email отправлено подтверждение заявки</li>
+                    <li>Наш оператор свяжется с вами в течение 1 часа для уточнения деталей</li>
+                    <li>Сохраните номер заявки для отслеживания статуса</li>
+                    <li>Вы можете связаться с нами по телефону: <strong>+7 (495) 123-45-67</strong></li>
+                </ul>
+            </div>
+            
+            <div class="action-buttons">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'client_order_form' %}" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i> Отправить еще одну заявку
+                    </a>
+                    <button onclick="window.print()" class="btn btn-outline-primary">
+                        <i class="bi bi-printer"></i> Распечатать страницу
+                    </button>
+                    <a href="https://fmc-tzaritsyna.ru" class="btn btn-outline-secondary">
+                        <i class="bi bi-house"></i> Вернуться на сайт
+                    </a>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4 pt-3 border-top">
+                <small class="text-muted">
+                    Время обработки заявки: {% now "H:i" %}
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Сохраняем номер заявки в буфер обмена при клике
+            const trackingNumber = document.querySelector('.tracking-number');
+            if (trackingNumber) {
+                trackingNumber.addEventListener('click', function() {
+                    const text = this.textContent.trim();
+                    navigator.clipboard.writeText(text).then(function() {
+                        const originalText = trackingNumber.textContent;
+                        trackingNumber.innerHTML = '<i class="bi bi-check"></i> Скопировано!';
+                        setTimeout(function() {
+                            trackingNumber.textContent = originalText;
+                        }, 2000);
+                    });
+                });
+                trackingNumber.style.cursor = 'pointer';
+                trackingNumber.title = 'Кликните чтобы скопировать';
+            }
+        });
+    </script>
+</body>
+</html>

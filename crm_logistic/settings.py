@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "logistic.apps.LogisticConfig",
     "users.apps.UsersConfig",
     "pickup.apps.PickupConfig",
+    "order_form.apps.OrderFormConfig",
 ]
 
 MIDDLEWARE = [
@@ -120,3 +121,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # URL сайта для QR-кодов
 SITE_URL = "http://127.0.0.1:8000"
+
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.yandex.ru"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "noreply@fmc-tzaritsyna.ru"
+EMAIL_HOST_PASSWORD = "ваш_пароль"  
+DEFAULT_FROM_EMAIL = "noreply@fmc-tzaritsyna.ru"
+OPERATOR_EMAIL = "operator@fmc-tzaritsyna.ru"

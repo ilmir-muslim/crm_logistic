@@ -1,3 +1,4 @@
+### BEGIN: logistic/models.py (обновленная версия)
 from django.db import models
 from django.urls import reverse
 from django.conf import settings
@@ -34,6 +35,13 @@ class DeliveryOrder(models.Model):
     vehicle = models.CharField(
         max_length=100, blank=True, null=True, verbose_name="Марка и номер ТС"
     )
+    driver_pass_info = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name="Данные пропуска",
+        help_text="Номер пропуска, серия, срок действия и т.д.",
+    )
     operator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -53,6 +61,8 @@ class DeliveryOrder(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        verbose_name = "Заявка на доставку"
+        verbose_name_plural = "Заявки на доставку"
 
     def __str__(self):
         if self.tracking_number:
@@ -79,17 +89,20 @@ class DeliveryOrder(models.Model):
             try:
                 old = DeliveryOrder.objects.get(pk=self.pk)
                 # Проверяем, изменились ли данные, которые влияют на QR
-                if any(
-                    [
-                        old.date != self.date,
-                        old.city != self.city,
-                        old.quantity != self.quantity,
-                        old.weight != self.weight,
-                        old.volume != self.volume,
-                        old.status != self.status,
-                        old.driver_name != self.driver_name,
-                    ]
-                ):
+                qr_relevant_fields = [
+                    old.date != self.date,
+                    old.city != self.city,
+                    old.quantity != self.quantity,
+                    old.weight != self.weight,
+                    old.volume != self.volume,
+                    old.status != self.status,
+                    old.driver_name != self.driver_name,
+                    old.driver_phone != self.driver_phone,
+                    old.vehicle != self.vehicle,
+                    old.driver_pass_info != self.driver_pass_info,
+                ]
+
+                if any(qr_relevant_fields):
                     # Удаляем старый QR-код
                     if self.qr_code and os.path.exists(self.qr_code.path):
                         os.remove(self.qr_code.path)
@@ -144,6 +157,9 @@ class DeliveryOrder(models.Model):
 Объем: {self.volume} м³
 Статус: {self.get_status_display()}
 Водитель: {self.driver_name or 'Не назначен'}
+Телефон: {self.driver_phone or 'Не указан'}
+ТС: {self.vehicle or 'Не указано'}
+Пропуск: {self.driver_pass_info or 'Не требуется'}
 Ссылка: {settings.SITE_URL}{self.get_absolute_url()}
         """.strip()
 
@@ -183,4 +199,18 @@ class DeliveryOrder(models.Model):
         except Exception as e:
             print(f"Ошибка при создании QR-кода для заявки #{self.id}: {e}")
 
+    def is_editable(self):
+        """Проверяет, можно ли редактировать заявку"""
+        return self.status != "shipped"
 
+    def get_status_color(self):
+        """Возвращает цвет статуса для отображения"""
+        colors = {
+            "submitted": "warning",
+            "driver_assigned": "info",
+            "shipped": "success",
+        }
+        return colors.get(self.status, "secondary")
+
+
+### END: logistic/models.py

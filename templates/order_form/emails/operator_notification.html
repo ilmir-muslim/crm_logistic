@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>Новая заявка на забор #{{ tracking_number }}</h2>
+    
+    <h3>Детали заявки:</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Компания:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ order.client_company }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Контактное лицо:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ order.client_name }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Телефон:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ order.client_phone }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Email:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ order.client_email }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Маркетплейс:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ order.marketplace }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Дата поставки:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ order.desired_delivery_date|date:"d.m.Y" }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Адрес забора:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ order.pickup_address }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Адрес доставки:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ order.delivery_address }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Количество мест:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ order.quantity }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Вес:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ order.weight }} кг</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Объем:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ order.volume }} м³</td>
+        </tr>
+        {% if order.order_1c_number %}
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">№ заказа в 1С:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ order.order_1c_number }}</td>
+        </tr>
+        {% endif %}
+        {% if order.cargo_description %}
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Комментарий:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ order.cargo_description }}</td>
+        </tr>
+        {% endif %}
+    </table>
+    
+    <br>
+    <p><strong>Ссылка на заявку в админке:</strong></p>
+    <p><a href="{{ SITE_URL }}/admin/pickup/pickuporder/{{ order.id }}/change/">
+        Перейти к заявке
+    </a></p>
+    
+    <hr>
+    <p style="color: #666; font-size: 12px;">
+        Это письмо отправлено автоматически. Не отвечайте на него.
+    </p>
+</body>
+</html>
