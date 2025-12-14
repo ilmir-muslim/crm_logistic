@@ -133,11 +133,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 SITE_URL = os.getenv("SITE_URL")
 
-CSRF_COOKIE_SECURE = True  # Для HTTPS
-SESSION_COOKIE_SECURE = True  # Для HTTPS
-CSRF_TRUSTED_ORIGINS = [
-    "https://crm.gulnar8f.beget.tech",
-]
 
 # Настройки email (для Beget)
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
