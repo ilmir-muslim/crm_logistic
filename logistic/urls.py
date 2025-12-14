@@ -16,4 +16,11 @@ urlpatterns = [
     path("<int:pk>/pdf/", views.delivery_order_pdf, name="delivery_order_pdf"),
     path("daily-report/pdf/", views.daily_report_pdf, name="daily_report_pdf"),
     path("bulk-pdf/", views.delivery_orders_bulk_pdf, name="delivery_orders_bulk_pdf"),
+    path("email-settings/", views.email_settings_view, name="email_settings"),
+  
+    path(
+        "test-email-connection/",
+        views.test_email_connection,
+        name="test_email_connection",
+    ),
 ]

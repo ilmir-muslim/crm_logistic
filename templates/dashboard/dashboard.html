@@ -315,53 +315,443 @@
                             </a>
                         </div>
                     </div>
+                    
+                    <!-- Добавлена кнопка для настройки email -->
+                    <div class="row g-3 mt-3">
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-outline-info w-100" 
+                                    data-bs-toggle="modal" data-bs-target="#emailSettingsModal">
+                                <i class="bi bi-envelope"></i> Настроить Email
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{% url 'reports_dashboard' %}" class="btn btn-outline-warning w-100">
+                                <i class="bi bi-bar-chart"></i> Отчеты и аналитика
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Модальное окно для настройки email (первая версия - можно удалить) -->
+<div class="modal fade" id="emailSettingsModal" tabindex="-1" 
+     aria-labelledby="emailSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="emailSettingsModalLabel">
+                    <i class="bi bi-envelope-gear"></i> Настройка Email-уведомлений
+                </h5>
+                <button type="button" class="btn-close btn-close-white" 
+                        data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickEmailForm" method="post" action="{% url 'email_settings' %}">
+                    {% csrf_token %}
+                    
+                    <!-- Основные настройки -->
+                    <div class="mb-3">
+                        <label class="form-label">Почтовый сервер (SMTP) *</label>
+                        <select name="email_host" class="form-select" id="emailHostSelect" required>
+                            <option value="">Выберите сервис...</option>
+                            <option value="smtp.yandex.ru">Yandex</option>
+                            <option value="smtp.gmail.com">Gmail</option>
+                            <option value="smtp.mail.ru">Mail.ru</option>
+                            <option value="custom">Другой сервер...</option>
+                        </select>
+                        <div id="customHostInput" class="mt-2" style="display:none;">
+                            <input type="text" name="custom_email_host" class="form-control" 
+                                   placeholder="smtp.ваш-сервер.ru">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Email для входа *</label>
+                            <input type="email" class="form-control" name="email_host_user" 
+                                   placeholder="noreply@fmc-tzaritsyna.ru" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Пароль приложения *</label>
+                            <input type="password" class="form-control" name="email_host_password" 
+                                   placeholder="Пароль приложения" required>
+                            <small class="form-text text-muted">
+                                Не пароль от почвы, а <a href="#" data-bs-toggle="modal" 
+                                data-bs-target="#passwordHelpModal">пароль приложения</a>
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <!-- Дополнительные поля -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Email отправителя *</label>
+                            <input type="email" class="form-control" name="default_from_email" 
+                                   placeholder="noreply@fmc-tzaritsyna.ru" required>
+                            <small class="form-text text-muted">Этот email увидят клиенты</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email оператора *</label>
+                            <input type="email" class="form-control" name="operator_email" 
+                                   placeholder="operator@fmc-tzaritsyna.ru" required>
+                            <small class="form-text text-muted">Для уведомлений о новых заявках</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Настройки безопасности -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Порт *</label>
+                            <input type="number" class="form-control" name="email_port" value="587" required>
+                            <small class="form-text text-muted">Стандартный порт для безопасной отправки</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Безопасность *</label>
+                            <select name="email_use_tls" class="form-select" id="securitySelect">
+                                <option value="1" selected>TLS (рекомендуется, порт 587)</option>
+                                <option value="0">Без шифрования (только для тестирования)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Чекбоксы для опций -->
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="send_test_email" id="sendTest" checked>
+                        <label class="form-check-label" for="sendTest">
+                            Отправить тестовое письмо после сохранения
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="enable_operator_notifications" id="enableNotifications" checked>
+                        <label class="form-check-label" for="enableNotifications">
+                            Включить уведомления оператора о новых заявках
+                        </label>
+                    </div>
+                    
+                    <div class="alert alert-info mt-4">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Рекомендация для Yandex/Gmail:</strong> Используйте <strong>пароли приложений</strong>, 
+                        а не обычные пароли от аккаунта. Безопасность включена автоматически.
+                    </div>
+                    
+                    <!-- Скрытые поля для обработки -->
+                    <input type="hidden" name="email_use_ssl" value="0">
+                    <input type="hidden" name="send_test" value="1">
+                </form>
+                
+                <!-- Кнопка тестирования без сохранения -->
+                <div class="mt-3">
+                    <button type="button" class="btn btn-outline-success" id="testConnectionBtn">
+                        <i class="bi bi-plug"></i> Протестировать подключение
+                    </button>
+                    <small class="text-muted ms-2">Проверит настройки без сохранения</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Отмена
+                </button>
+                <button type="submit" form="quickEmailForm" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Сохранить настройки
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для настройки email (ОБНОВЛЕННАЯ ВЕРСИЯ С АВТОЗАПОЛНЕНИЕМ) -->
+<div class="modal fade" id="emailSettingsModal2" tabindex="-1" 
+     aria-labelledby="emailSettingsModalLabel2" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="emailSettingsModalLabel2">
+                    <i class="bi bi-envelope-gear"></i> Настройка Email-уведомлений
+                </h5>
+                <button type="button" class="btn-close btn-close-white" 
+                        data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickEmailForm2" method="post" action="{% url 'email_settings' %}">
+                    {% csrf_token %}
+                    
+                    <!-- Основные настройки -->
+                    <div class="mb-3">
+                        <label class="form-label">Почтовый сервер (SMTP) *</label>
+                        <select name="email_host" class="form-select" id="emailHostSelect" required>
+                            <option value="">Выберите сервис...</option>
+                            <option value="smtp.yandex.ru" {% if email_settings.email_host == 'smtp.yandex.ru' %}selected{% endif %}>Yandex</option>
+                            <option value="smtp.gmail.com" {% if email_settings.email_host == 'smtp.gmail.com' %}selected{% endif %}>Gmail</option>
+                            <option value="smtp.mail.ru" {% if email_settings.email_host == 'smtp.mail.ru' %}selected{% endif %}>Mail.ru</option>
+                            <option value="custom"  {% if email_settings.email_host and email_settings.email_host != 'smtp.yandex.ru' and email_settings.email_host != 'smtp.gmail.com' and email_settings.email_host != 'smtp.mail.ru' %}selected{% endif %}>Другой сервер...</option>
+                        </select>
+                        <div id="customHostInput" class="mt-2" style="display: {% if email_settings.email_host and email_settings.email_host != 'smtp.yandex.ru' and email_settings.email_host != 'smtp.gmail.com' and email_settings.email_host != 'smtp.mail.ru' %}block{% else %}none{% endif %};">
+                            <input type="text" name="custom_email_host" class="form-control" 
+                                   placeholder="smtp.ваш-сервер.ru" 
+                                   value="{% if email_settings.email_host and email_settings.email_host != 'smtp.yandex.ru' and email_settings.email_host != 'smtp.gmail.com' and email_settings.email_host != 'smtp.mail.ru' %}{{ email_settings.email_host }}{% endif %}">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Email для входа *</label>
+                            <input type="email" class="form-control" name="email_host_user" 
+                                   placeholder="noreply@fmc-tzaritsyna.ru" required
+                                   value="{{ email_settings.email_host_user|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Пароль приложения</label>
+                            <input type="password" class="form-control" name="email_host_password" 
+                                   placeholder="{% if email_settings.email_host_password %}********{% else %}Пароль приложения{% endif %}">
+                            <small class="form-text text-muted">
+                                Оставьте пустым, чтобы не менять текущий пароль
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <!-- Дополнительные поля -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Email отправителя *</label>
+                            <input type="email" class="form-control" name="default_from_email" 
+                                   placeholder="noreply@fmc-tzaritsyna.ru" required
+                                   value="{{ email_settings.default_from_email|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email оператора *</label>
+                            <input type="email" class="form-control" name="operator_email" 
+                                   placeholder="operator@fmc-tzaritsyna.ru" required
+                                   value="{{ email_settings.operator_email|default:'' }}">
+                        </div>
+                    </div>
+                    
+                    <!-- Настройки безопасности -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Порт *</label>
+                            <input type="number" class="form-control" name="email_port" 
+                                   value="{{ email_settings.email_port|default:'587' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Безопасность *</label>
+                            <select name="email_use_tls" class="form-select" id="securitySelect">
+                                <option value="1" {% if email_settings.email_use_tls|default:1 %}selected{% endif %}>TLS (рекомендуется, порт 587)</option>
+                                <option value="0" {% if not email_settings.email_use_tls|default:1 %}selected{% endif %}>Без шифрования (только для тестирования)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Чекбоксы для опций -->
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="send_test_email" id="sendTest" 
+                               {% if email_settings.send_test_email|default:1 %}checked{% endif %}>
+                        <label class="form-check-label" for="sendTest">
+                            Отправить тестовое письмо после сохранения
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="enable_operator_notifications" id="enableNotifications" 
+                               {% if email_settings.enable_operator_notifications|default:1 %}checked{% endif %}>
+                        <label class="form-check-label" for="enableNotifications">
+                            Включить уведомления оператора о новых заявках
+                        </label>
+                    </div>
+                    
+                    <div class="alert alert-info mt-4">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Рекомендация для Yandex/Gmail:</strong> Используйте <strong>пароли приложений</strong>, 
+                        а не обычные пароли от аккаунта. Безопасность включена автоматически.
+                    </div>
+                    
+                    <!-- Скрытые поля для обработки -->
+                    <input type="hidden" name="email_use_ssl" value="0">
+                    <input type="hidden" name="send_test" value="1">
+                </form>
+                
+                <!-- Кнопка тестирования без сохранения -->
+                <div class="mt-3">
+                    <button type="button" class="btn btn-outline-success" id="testConnectionBtn2">
+                        <i class="bi bi-plug"></i> Протестировать подключение
+                    </button>
+                    <small class="text-muted ms-2">Проверит настройки без сохранения</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Отмена
+                </button>
+                <button type="submit" form="quickEmailForm2" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Сохранить настройки
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно помощи по паролю приложения -->
+<div class="modal fade" id="passwordHelpModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="bi bi-key"></i> Что такое пароль приложения?</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Это специальный пароль для сторонних приложений, который:</p>
+                <ul>
+                    <li>Отличается от пароля вашей почты</li>
+                    <li>Можно создать несколько для разных сервисов</li>
+                    <li>Легко отозвать без смены основного пароля</li>
+                </ul>
+                <p><strong>Где взять:</strong></p>
+                <ul>
+                    <li><strong>Yandex:</strong> ID → Безопасность → Пароли приложений</li>
+                    <li><strong>Gmail:</strong> Аккаунт → Безопасность → 2FA → Пароли приложений</li>
+                    <li><strong>Mail.ru:</strong> Настройки → Безопасность → Пароли для приложений</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript для улучшения UX модального окна -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const chartData = {{ delivery_chart_data|safe }};
+    // Переключение кастомного хоста
+    const emailHostSelect = document.getElementById('emailHostSelect');
+    const customHostInput = document.getElementById('customHostInput');
     
-    const labels = chartData.map(item => item.date);
-    const data = chartData.map(item => item.count);
+    if (emailHostSelect && customHostInput) {
+        // Автоматически показываем кастомное поле при загрузке
+        if (emailHostSelect.value === 'custom') {
+            customHostInput.style.display = 'block';
+        }
+        
+        emailHostSelect.addEventListener('change', function() {
+            customHostInput.style.display = this.value === 'custom' ? 'block' : 'none';
+        });
+        
+        // Автозаполнение при выборе сервиса
+        emailHostSelect.addEventListener('change', function() {
+            const portField = document.querySelector('input[name="email_port"]');
+            const securitySelect = document.getElementById('securitySelect');
+            
+            switch(this.value) {
+                case 'smtp.yandex.ru':
+                case 'smtp.gmail.com':
+                case 'smtp.mail.ru':
+                    if (portField) portField.value = '587';
+                    if (securitySelect) securitySelect.value = '1';
+                    break;
+                case 'custom':
+                    if (portField) portField.value = '587';
+                    break;
+            }
+        });
+    }
     
-    const ctx = document.getElementById('deliveryChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Количество доставок',
-                data: data,
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                tension: 0.1,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
-                    }
+    // Кнопка тестирования
+    const testConnectionBtn = document.getElementById('testConnectionBtn2');
+    if (testConnectionBtn) {
+        testConnectionBtn.addEventListener('click', function() {
+            const form = document.getElementById('quickEmailForm2');
+            const testBtn = this;
+            const originalText = testBtn.innerHTML;
+            
+            // Собираем данные формы
+            const formData = new FormData(form);
+            formData.append('test_only', '1');
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
+            // Определяем хост (для кастомного сервера)
+            const selectedHost = document.getElementById('emailHostSelect').value;
+            if (selectedHost === 'custom') {
+                const customHost = document.querySelector('input[name="custom_email_host"]').value;
+                if (customHost) {
+                    formData.set('email_host', customHost);
                 }
             }
+            
+            // Блокируем кнопку
+            testBtn.disabled = true;
+            testBtn.innerHTML = '<i class="bi bi-hourglass"></i> Тестируем...';
+            
+            // Отправляем AJAX запрос
+            fetch('{% url "test_email_connection" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Ошибка сети');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showAlert('✅ Подключение успешно! Настройки рабочие.', 'success');
+                } else {
+                    showAlert(`❌ Ошибка: ${data.error || 'Неизвестная ошибка'}`, 'danger');
+                }
+            })
+            .catch(error => {
+                showAlert('❌ Ошибка сети при тестировании', 'danger');
+                console.error('Test connection error:', error);
+            })
+            .finally(() => {
+                testBtn.disabled = false;
+                testBtn.innerHTML = originalText;
+            });
+        });
+    }
+    
+    // Функция показа уведомлений
+    function showAlert(message, type) {
+        // Удаляем старые алерты
+        const oldAlert = document.querySelector('.test-alert');
+        if (oldAlert) oldAlert.remove();
+        
+        // Создаем новый алерт
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show test-alert mt-3`;
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Вставляем в модальное окно
+        const modalBody = document.querySelector('#emailSettingsModal2 .modal-body');
+        if (modalBody) {
+            modalBody.prepend(alert);
+            
+            // Автоматически скрываем через 5 секунд
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            }, 5000);
         }
-    });
+    }
 });
 </script>
 
+<!-- Обновленный скрипт для работы с двумя модальными окнами -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обновляем кнопку настройки email, чтобы открывать второе модальное окно
+    const emailSettingsBtn = document.querySelector('[data-bs-target="#emailSettingsModal"]');
+    if (emailSettingsBtn) {
+        emailSettingsBtn.setAttribute('data-bs-target', '#emailSettingsModal2');
+    }
+});
+</script>
 {% endblock %}

@@ -1,0 +1,102 @@
+<div class="modal-body">
+    <form id="quickEmailForm" method="post" action="{% url 'email_settings' %}">
+        {% csrf_token %}
+        
+        <!-- Основные настройки -->
+        <div class="mb-3">
+            <label class="form-label">Почтовый сервер (SMTP) *</label>
+            <select name="email_host" class="form-select" id="emailHostSelect" required>
+                <option value="">Выберите сервис...</option>
+                <option value="smtp.yandex.ru">Yandex</option>
+                <option value="smtp.gmail.com">Gmail</option>
+                <option value="smtp.mail.ru">Mail.ru</option>
+                <option value="custom">Другой сервер...</option>
+            </select>
+            <div id="customHostInput" class="mt-2" style="display:none;">
+                <input type="text" name="custom_email_host" class="form-control" 
+                       placeholder="smtp.ваш-сервер.ru">
+            </div>
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Email для входа *</label>
+                <input type="email" class="form-control" name="email_host_user" 
+                       placeholder="noreply@fmc-tzaritsyna.ru" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Пароль приложения *</label>
+                <input type="password" class="form-control" name="email_host_password" 
+                       placeholder="Пароль приложения" required>
+                <small class="form-text text-muted">
+                    Не пароль от почты, а <a href="#" data-bs-toggle="modal" data-bs-target="#passwordHelpModal">пароль приложения</a>
+                </small>
+            </div>
+        </div>
+        
+        <!-- Дополнительные поля -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Email отправителя *</label>
+                <input type="email" class="form-control" name="default_from_email" 
+                       placeholder="noreply@fmc-tzaritsyna.ru" required>
+                <small class="form-text text-muted">Этот email увидят клиенты</small>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Email оператора *</label>
+                <input type="email" class="form-control" name="operator_email" 
+                       placeholder="operator@fmc-tzaritsyna.ru" required>
+                <small class="form-text text-muted">Для уведомлений о новых заявках</small>
+            </div>
+        </div>
+        
+        <!-- Настройки безопасности -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Порт *</label>
+                <input type="number" class="form-control" name="email_port" value="587" required>
+                <small class="form-text text-muted">Стандартный порт для безопасной отправки</small>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Безопасность *</label>
+                <select name="email_use_tls" class="form-select" id="securitySelect">
+                    <option value="1" selected>TLS (рекомендуется, порт 587)</option>
+                    <option value="0">Без шифрования (только для тестирования)</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Чекбоксы для опций -->
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="send_test_email" id="sendTest" checked>
+            <label class="form-check-label" for="sendTest">
+                Отправить тестовое письмо после сохранения
+            </label>
+        </div>
+        
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="enable_operator_notifications" id="enableNotifications" checked>
+            <label class="form-check-label" for="enableNotifications">
+                Включить уведомления оператора о новых заявках
+            </label>
+        </div>
+        
+        <div class="alert alert-info mt-4">
+            <i class="bi bi-info-circle"></i>
+            <strong>Рекомендация для Yandex/Gmail:</strong> Используйте <strong>пароли приложений</strong>, 
+            а не обычные пароли от аккаунта. Безопасность включена автоматически.
+        </div>
+        
+        <!-- Скрытые поля для обработки -->
+        <input type="hidden" name="email_use_ssl" value="0">
+        <input type="hidden" name="send_test" value="1">
+    </form>
+    
+    <!-- Кнопка тестирования без сохранения -->
+    <div class="mt-3">
+        <button type="button" class="btn btn-outline-success" id="testConnectionBtn">
+            <i class="bi bi-plug"></i> Протестировать подключение
+        </button>
+        <small class="text-muted ms-2">Проверит настройки без сохранения</small>
+    </div>
+</div>

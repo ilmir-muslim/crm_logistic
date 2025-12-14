@@ -1,5 +1,9 @@
+import json
+from pathlib import Path
 from django.views.generic import ListView, DetailView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.conf import settings as django_settings
+from django.core.mail import send_mail, get_connection
 from django.urls import reverse
 from django.contrib import messages
 from django.shortcuts import render, get_object_or_404, redirect
@@ -7,17 +11,16 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import date, datetime, timedelta
 from django.db.models import Count, Sum, Avg, Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse 
 import pandas as pd
 from io import BytesIO
 import zipfile
-
 
 from .models import DeliveryOrder
 from .filters import DeliveryOrderFilter
 from pickup.models import PickupOrder
 from .pdf_utils import create_delivery_order_pdf, create_daily_report_pdf
-from .forms import DailyReportForm, DateRangeReportForm
+from .forms import DailyReportForm, DateRangeReportForm, EmailSettingsForm
 
 
 class DeliveryOrderListView(LoginRequiredMixin, ListView):
@@ -191,6 +194,11 @@ def dashboard(request):
         :5
     ]
 
+    # ЗАГРУЖАЕМ ТЕКУЩИЕ НАСТРОЙКИ EMAIL ДЛЯ АВТОЗАПОЛНЕНИЯ
+    email_settings = load_email_settings()
+    if email_settings is None:
+        email_settings = {}
+
     context = {
         "delivery_stats": delivery_stats,
         "pickup_stats": pickup_stats,
@@ -198,6 +206,7 @@ def dashboard(request):
         "recent_deliveries": recent_deliveries,
         "recent_pickups": recent_pickups,
         "today": today,
+        "email_settings": email_settings,  
     }
 
     if hasattr(request.user, "profile"):
@@ -271,7 +280,6 @@ def delivery_orders_bulk_pdf(request):
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for order in orders:
-            # ИСПРАВЛЕНО: используем create_delivery_order_pdf из нового модуля
             pdf = create_delivery_order_pdf(order)
             if pdf:
                 filename = f"delivery_{order.tracking_number or order.id}.pdf"
@@ -481,3 +489,188 @@ def statistics_report(request):
     return render(
         request, "reports/statistics_report.html", {"form": DateRangeReportForm()}
     )
+
+
+@login_required
+def email_settings_view(request):
+    """Представление для настройки параметров email"""
+
+    # Загружаем текущие настройки для автозаполнения
+    current_settings = load_email_settings() or {}
+
+    # Инициализация формы с текущими настройками
+    initial_data = {
+        "email_host": current_settings.get("email_host", ""),
+        "email_port": current_settings.get("email_port", 587),
+        "email_host_user": current_settings.get("email_host_user", ""),
+        "email_host_password": "",  # Пароль не показываем в форме
+        "default_from_email": current_settings.get("default_from_email", ""),
+        "operator_email": current_settings.get("operator_email", ""),
+    }
+
+    if request.method == "POST":
+        # Обрабатываем данные формы
+        host = request.POST.get("email_host")
+        if host == "custom":
+            host = request.POST.get("custom_email_host", "")
+
+        # Обрабатываем пароль: если поле пустое, оставляем старый пароль
+        new_password = request.POST.get("email_host_password", "")
+        if not new_password and current_settings.get("email_host_password"):
+            password = current_settings["email_host_password"]
+        else:
+            password = new_password
+
+        try:
+            # Формируем настройки
+            settings_data = {
+                "email_backend": "django.core.mail.backends.smtp.EmailBackend",
+                "email_host": host,
+                "email_port": int(request.POST.get("email_port", 587)),
+                "email_use_tls": request.POST.get("email_use_tls") == "1",
+                "email_use_ssl": False,
+                "email_host_user": request.POST.get("email_host_user", ""),
+                "email_host_password": password,
+                "default_from_email": request.POST.get("default_from_email", ""),
+                "operator_email": request.POST.get("operator_email", ""),
+                "enable_operator_notifications": request.POST.get(
+                    "enable_operator_notifications"
+                )
+                == "on",
+            }
+
+            # Сохраняем в JSON файл
+            settings_file = Path(django_settings.BASE_DIR) / "email_settings.json"
+            with open(settings_file, "w", encoding="utf-8") as f:
+                json.dump(settings_data, f, ensure_ascii=False, indent=4)
+
+            # Тестовая отправка
+            if request.POST.get("send_test"):
+                test_email = request.POST.get("email_host_user")
+                try:
+                    send_test_email(settings_data, test_email)
+                    messages.success(
+                        request, "Настройки сохранены. Тестовое письмо отправлено!"
+                    )
+                except Exception as e:
+                    messages.warning(
+                        request,
+                        f"Настройки сохранены, но тестовое письмо не отправлено: {str(e)[:100]}...",
+                    )
+            else:
+                messages.success(request, "Настройки email успешно сохранены!")
+
+            return redirect("dashboard")
+
+        except Exception as e:
+            messages.error(request, f"Ошибка: {str(e)[:100]}...")
+    else:
+        # Для GET-запроса создаем форму с текущими настройками
+        form = EmailSettingsForm(initial=initial_data)
+
+    context = {
+        "form": form,
+        "title": "Настройки Email",
+    }
+
+    if hasattr(request.user, "profile"):
+        context["user_role"] = request.user.profile.get_role_display()
+        context["is_operator"] = request.user.profile.is_operator
+        context["is_logistic"] = request.user.profile.is_logistic
+        context["is_admin"] = request.user.profile.is_admin
+
+    return render(request, "logistic/email_settings.html", context)
+
+
+@login_required
+def test_email_connection(request):
+    """AJAX-тестирование подключения к SMTP без сохранения настроек"""
+    if (
+        request.method == "POST"
+        and request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    ):
+        try:
+            # Определяем хост
+            host = request.POST.get("email_host")
+            if host == "custom":
+                host = request.POST.get("custom_email_host", "")
+
+            # Получаем остальные параметры
+            port = int(request.POST.get("email_port", 587))
+            username = request.POST.get("email_host_user", "")
+            password = request.POST.get("email_host_password", "")
+            use_tls = request.POST.get("email_use_tls") == "1"
+
+            # Проверяем обязательные поля
+            if not host or not username:
+                return JsonResponse(
+                    {"success": False, "error": "Заполните обязательные поля"}
+                )
+
+            # Тестируем подключение
+            connection = get_connection(
+                backend="django.core.mail.backends.smtp.EmailBackend",
+                host=host,
+                port=port,
+                username=username,
+                password=password,
+                use_tls=use_tls,
+                use_ssl=False,
+                timeout=10,
+            )
+
+            connection.open()
+            connection.close()
+
+            return JsonResponse({"success": True, "message": "Подключение успешно"})
+
+        except Exception as e:
+            error_msg = str(e)
+            # Упрощаем сообщение об ошибке для пользователя
+            if "Connection refused" in error_msg:
+                error_msg = "Сервер недоступен. Проверьте хост и порт."
+            elif "authentication failed" in error_msg.lower():
+                error_msg = "Ошибка авторизации. Проверьте логин и пароль."
+            elif "STARTTLS" in error_msg:
+                error_msg = (
+                    "Сервер не поддерживает шифрование. Попробуйте отключить TLS."
+                )
+
+            return JsonResponse({"success": False, "error": error_msg})
+
+    return JsonResponse({"success": False, "error": "Некорректный запрос"})
+
+
+def send_test_email(settings_data, to_email):
+    """Отправка тестового письма"""
+    connection = get_connection(
+        backend=settings_data["email_backend"],
+        host=settings_data["email_host"],
+        port=settings_data["email_port"],
+        username=settings_data["email_host_user"],
+        password=settings_data["email_host_password"],
+        use_tls=settings_data["email_use_tls"],
+        use_ssl=settings_data["email_use_ssl"],
+    )
+
+    send_mail(
+        subject="✅ Тест: Настройки email работают!",
+        message="Поздравляем! Настройки email в CRM Логистика успешно сохранены и работают.\n\n"
+        "Теперь вы будете получать уведомления о новых заявках.",
+        from_email=settings_data["default_from_email"],
+        recipient_list=[to_email],
+        connection=connection,
+        fail_silently=False,
+    )
+
+
+def load_email_settings():
+    """Функция для загрузки настроек email из файла"""
+    try:
+        settings_file = Path(django_settings.BASE_DIR) / "email_settings.json"
+        if settings_file.exists():
+            with open(settings_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except:
+        pass
+    return None

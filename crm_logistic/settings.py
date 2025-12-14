@@ -15,9 +15,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-DEBUG = True
+DEBUG = os.getenv("DEBUG")
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["crm.gulnar8f.beget.tech", "localhost", "127.0.0.1"]
 
 
 # Application definition
@@ -72,8 +72,16 @@ WSGI_APPLICATION = "crm_logistic.wsgi.application"
 # Database
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": os.getenv("MYSQL_DATABASE", "crm_logistic"),
+        "USER": os.getenv("MYSQL_USER", "crm_logistic_user"),
+        "PASSWORD": os.getenv("MYSQL_PASSWORD", ""),
+        "HOST": os.getenv("MYSQL_HOST", "localhost"),
+        "PORT": os.getenv("MYSQL_PORT", "3306"),
+        "OPTIONS": {
+            "charset": "utf8mb4",
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
 
@@ -106,28 +114,42 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    os.path.join(BASE_DIR, "static"),  
 ]
-STATIC_ROOT = BASE_DIR / "staticfiles"  # Для сбора статики
+
+if not os.path.exists(os.path.join(BASE_DIR, "static")):
+    os.makedirs(os.path.join(BASE_DIR, "static"))
+    
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 # Media files
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # URL сайта для QR-кодов
-SITE_URL = "http://127.0.0.1:8000"
+
+SITE_URL = os.getenv("SITE_URL")
+
+# Настройки безопасности для продакшена
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_SSL_REDIRECT = False  # Beget сам перенаправляет HTTPS
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+X_FRAME_OPTIONS = "DENY"
 
 
+# Настройки email (для Beget)
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.yandex.ru"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "noreply@fmc-tzaritsyna.ru"
-EMAIL_HOST_PASSWORD = "ваш_пароль"  
-DEFAULT_FROM_EMAIL = "noreply@fmc-tzaritsyna.ru"
-OPERATOR_EMAIL = "operator@fmc-tzaritsyna.ru"
+EMAIL_HOST = "localhost"  # Beget использует локальный sendmail
+EMAIL_PORT = 25
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = False
+EMAIL_HOST_USER = ""
+EMAIL_HOST_PASSWORD = ""
+DEFAULT_FROM_EMAIL = "noreply@crm.gulnar8f.beget.tech"
