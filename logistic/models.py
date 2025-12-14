@@ -1,4 +1,5 @@
 ### BEGIN: logistic/models.py (обновленная версия)
+from pathlib import Path
 from django.db import models
 from django.urls import reverse
 from django.conf import settings
@@ -178,7 +179,7 @@ class DeliveryOrder(models.Model):
             img = qr.make_image(fill_color="black", back_color="white")
 
             # Создаем папку, если её нет
-            qr_dir = settings.MEDIA_ROOT / "qr_codes" / "delivery"
+            qr_dir = Path(settings.MEDIA_ROOT) / "qr_codes" / "delivery"
             qr_dir.mkdir(parents=True, exist_ok=True)
 
             # Сохраняем в BytesIO

@@ -1,4 +1,3 @@
-### BEGIN: create_all_test_data.py
 #!/usr/bin/env python
 """
 Скрипт для создания всех тестовых данных одним вызовом
@@ -14,6 +13,8 @@ sys.path.append(project_root)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "crm_logistic.settings")
 django.setup()
+
+# Теперь Django будет использовать правильную базу данных из settings.py
 
 print("=" * 60)
 print("СОЗДАНИЕ ВСЕХ ТЕСТОВЫХ ДАННЫХ CRM ЛОГИСТИКА")
@@ -188,6 +189,10 @@ for i in range(25):
         or User.objects.first()
     )
 
+    # Исправляем: вес и объем не могут быть None
+    weight_value = (i % 200) + 50.0 if i % 3 != 0 else 0.0
+    volume_value = (i % 5) + 0.5 if i % 4 != 0 else 0.0
+
     order = PickupOrder.objects.create(
         pickup_date=date.today() + timedelta(days=i % 10),
         pickup_address=addresses[i % len(addresses)],
@@ -195,8 +200,8 @@ for i in range(25):
         client_phone=f"+7916{3000000 + i*1000}",
         client_email=f"client{i}@example.com",
         quantity=(i % 8) + 1,
-        weight=(i % 200) + 50.0 if i % 3 != 0 else None,
-        volume=(i % 5) + 0.5 if i % 4 != 0 else None,
+        weight=weight_value,  # Не может быть None
+        volume=volume_value,  # Не может быть None
         cargo_description=f"Тестовый груз #{i+1}",
         special_requirements="Хрупкий груз" if i % 4 == 0 else "",
         status=["new", "confirmed", "picked_up", "cancelled"][i % 4],
@@ -260,5 +265,3 @@ print("  Операторы: operator1, operator2, operator3 / operator123")
 
 print("\n✅ Все тестовые данные успешно созданы!")
 print("=" * 60)
-
-### END: create_all_test_data.py

@@ -5,6 +5,7 @@ Django settings for crm_logistic project.
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
 
 
@@ -15,9 +16,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-DEBUG = os.getenv("DEBUG")
 
-ALLOWED_HOSTS = ["crm.gulnar8f.beget.tech", 'www.crm.gulnar8f.beget.tech',"localhost", "127.0.0.1"]
+# Функция для преобразования строки в булево значение
+def str_to_bool(value):
+    """Преобразует строку в булево значение"""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        value = value.lower().strip()
+        return value in ("true", "1", "yes", "on", "y", "t")
+    return False
+
+
+# Определяем среду выполнения
+IS_PRODUCTION = str_to_bool(os.getenv("DJANGO_PRODUCTION", "False"))
+
+if IS_PRODUCTION:
+    # Продакшен настройки
+    DEBUG = False
+    ALLOWED_HOSTS = ["crm.gulnar8f.beget.tech", "www.crm.gulnar8f.beget.tech"]
+    print("⚙️  Загружены ПРОДАКШЕН настройки")
+else:
+    # Разработка настройки
+    DEBUG = True
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
+    print("🔧 Загружены РАЗРАБОТОЧНЫЕ настройки")
 
 
 # Application definition
@@ -69,21 +92,33 @@ TEMPLATES = [
 WSGI_APPLICATION = "crm_logistic.wsgi.application"
 
 
-# Database
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": os.getenv("MYSQL_DATABASE", "crm_logistic"),
-        "USER": os.getenv("MYSQL_USER", "crm_logistic_user"),
-        "PASSWORD": os.getenv("MYSQL_PASSWORD", ""),
-        "HOST": os.getenv("MYSQL_HOST", "localhost"),
-        "PORT": os.getenv("MYSQL_PORT", "3306"),
-        "OPTIONS": {
-            "charset": "utf8mb4",
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+# Database configuration based on environment
+if IS_PRODUCTION:
+    # MySQL для продакшена
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.getenv("MYSQL_DATABASE", "crm_logistic"),
+            "USER": os.getenv("MYSQL_USER", "crm_logistic_user"),
+            "PASSWORD": os.getenv("MYSQL_PASSWORD", ""),
+            "HOST": os.getenv("MYSQL_HOST", "localhost"),
+            "PORT": os.getenv("MYSQL_PORT", "3306"),
+            "OPTIONS": {
+                "charset": "utf8mb4",
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+        }
     }
-}
+    print(f"📊 База данных: MySQL ({os.getenv('MYSQL_DATABASE')})")
+else:
+    # SQLite для разработки
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+    print(f"📊 База данных: SQLite ({BASE_DIR / 'db.sqlite3'})")
 
 
 # Password validation
@@ -129,17 +164,54 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# URL сайта для QR-кодов
+# URL сайта для QR-кодов и ссылок
+if IS_PRODUCTION:
+    SITE_URL = "https://crm.gulnar8f.beget.tech"
+else:
+    SITE_URL = "http://localhost:8000"
 
-SITE_URL = os.getenv("SITE_URL")
-
+print(f"🌐 SITE_URL: {SITE_URL}")
 
 # Настройки email (для Beget)
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "localhost"  # Beget использует локальный sendmail
-EMAIL_PORT = 25
-EMAIL_USE_TLS = False
-EMAIL_USE_SSL = False
-EMAIL_HOST_USER = ""
-EMAIL_HOST_PASSWORD = ""
-DEFAULT_FROM_EMAIL = "noreply@crm.gulnar8f.beget.tech"
+if IS_PRODUCTION:
+    # Продакшен настройки email
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = "localhost"  # Beget использует локальный sendmail
+    EMAIL_PORT = 25
+    EMAIL_USE_TLS = False
+    EMAIL_USE_SSL = False
+    EMAIL_HOST_USER = ""
+    EMAIL_HOST_PASSWORD = ""
+    DEFAULT_FROM_EMAIL = "noreply@crm.gulnar8f.beget.tech"
+    print("📧 Email: SMTP (продакшен)")
+else:
+    # Разработка настройки email (консоль для отладки)
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    print("📧 Email: Console (разработка)")
+
+# Дополнительные настройки для разработки
+if DEBUG:
+    # Показываем SQL запросы в консоли для отладки
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "handlers": {
+            "console": {
+                "level": "DEBUG",
+                "class": "logging.StreamHandler",
+            },
+        },
+        "loggers": {
+            "django.db.backends": {
+                "level": "DEBUG",
+                "handlers": ["console"],
+            },
+        },
+    }
+
+# Проверяем наличие важных переменных
+if IS_PRODUCTION:
+    required_vars = ["SECRET_KEY", "MYSQL_DATABASE", "MYSQL_USER", "MYSQL_PASSWORD"]
+    missing = [var for var in required_vars if not os.getenv(var)]
+    if missing:
+        print(f"⚠️  ВНИМАНИЕ: Отсутствуют переменные окружения: {missing}")
