@@ -17,7 +17,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG = os.getenv("DEBUG")
 
-ALLOWED_HOSTS = ["crm.gulnar8f.beget.tech", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["crm.gulnar8f.beget.tech", 'www.crm.gulnar8f.beget.tech',"localhost", "127.0.0.1"]
 
 
 # Application definition
@@ -138,7 +138,16 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_SSL_REDIRECT = False  # Beget сам перенаправляет HTTPS
 SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = True
+CSRF_TRUSTED_ORIGINS = [
+    "https://crm.gulnar8f.beget.tech",
+    "https://www.crm.gulnar8f.beget.tech",
+]
+CSRF_COOKIE_DOMAIN = ".gulnar8f.beget.tech"
+SESSION_COOKIE_DOMAIN = ".gulnar8f.beget.tech"
+
 X_FRAME_OPTIONS = "DENY"
 
 
