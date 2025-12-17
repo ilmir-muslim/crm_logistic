@@ -158,11 +158,7 @@ if not os.path.exists(os.path.join(BASE_DIR, "static")):
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 # Media files
-if IS_PRODUCTION:
-    MEDIA_URL = "/crm_logistic/media/"
-else:
-    MEDIA_URL = "/media/"
-
+MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Default primary key field type
