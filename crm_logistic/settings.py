@@ -164,11 +164,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# URL сайта для QR-кодов и ссылок
-if IS_PRODUCTION:
-    SITE_URL = "https://crm.gulnar8f.beget.tech"
-else:
-    SITE_URL = "http://localhost:8000"
+SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
 
 print(f"🌐 SITE_URL: {SITE_URL}")
 
