@@ -1,3 +1,4 @@
+### BEGIN: pickup/admin.py
 from django.contrib import admin
 from .models import PickupOrder
 
@@ -5,22 +6,39 @@ from .models import PickupOrder
 @admin.register(PickupOrder)
 class PickupOrderAdmin(admin.ModelAdmin):
     list_display = [
+        "tracking_number",
         "pickup_date",
-        "client_name",
+        "pickup_time",
         "pickup_address",
+        "contact_person",
+        "client_name",
+        "desired_delivery_date",
         "status",
-        "quantity",
+        "invoice_number",
+        "receiving_operator",
+        "receiving_warehouse",
         "operator",
+        "quantity",
         "created_at",
     ]
-    list_filter = ["status", "pickup_date", "operator", "created_at"]
+    list_filter = [
+        "status",
+        "pickup_date",
+        "operator",
+        "receiving_operator",
+        "created_at",
+    ]
     search_fields = [
+        "tracking_number",
         "client_name",
+        "contact_person",
         "pickup_address",
         "client_phone",
+        "invoice_number",
+        "receiving_warehouse",
         "cargo_description",
     ]
-    list_per_page = 20
+    list_per_page = 50
     date_hierarchy = "pickup_date"
 
     fieldsets = (
@@ -28,11 +46,42 @@ class PickupOrderAdmin(admin.ModelAdmin):
             "Основная информация",
             {
                 "fields": (
+                    "tracking_number",
                     "pickup_date",
+                    "pickup_time",
+                    "pickup_address",
+                    "contact_person",
+                )
+            },
+        ),
+        (
+            "Информация о клиенте",
+            {
+                "fields": (
                     "client_name",
+                    "client_company",
                     "client_phone",
                     "client_email",
-                    "pickup_address",
+                    "marketplace",
+                )
+            },
+        ),
+        (
+            "Детали доставки",
+            {
+                "fields": (
+                    "desired_delivery_date",
+                    "delivery_address",
+                    "invoice_number",
+                )
+            },
+        ),
+        (
+            "Приемка груза",
+            {
+                "fields": (
+                    "receiving_operator",
+                    "receiving_warehouse",
                 )
             },
         ),
@@ -52,6 +101,13 @@ class PickupOrderAdmin(admin.ModelAdmin):
             "Статус и ответственные",
             {"fields": ("status", "operator", "delivery_order", "notes")},
         ),
+        (
+            "Системная информация",
+            {
+                "fields": ("created_at", "updated_at", "qr_code"),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
-    readonly_fields = ["created_at", "updated_at"]
+    readonly_fields = ["tracking_number", "created_at", "updated_at", "qr_code"]

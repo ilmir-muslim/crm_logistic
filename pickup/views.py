@@ -1,17 +1,22 @@
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse
-from django.shortcuts import redirect, get_object_or_404
-from django.contrib import messages
-from django.db import transaction
-from django.http import HttpResponse
-from datetime import datetime
+import json
 import zipfile
 from io import BytesIO
+from datetime import datetime
+from django.db import transaction
+from django.urls import reverse
+from django.shortcuts import redirect, get_object_or_404
+from django.http import HttpResponse, JsonResponse
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.decorators.http import require_POST
 
 
 from .models import PickupOrder
 from .filters import PickupOrderFilter
+from .forms import PickupOrderForm
 from .pdf_utils import create_pickup_order_pdf
 
 
@@ -30,7 +35,7 @@ class PickupOrderListView(LoginRequiredMixin, ListView):
             if user_profile.is_operator:
                 queryset = queryset.filter(operator=self.request.user)
 
-        # Применяем фильтр
+        # Применяем фильтр - ИСПРАВЛЕНО: было DeliveryOrderFilter
         self.filterset = PickupOrderFilter(self.request.GET, queryset=queryset)
         return self.filterset.qs
 
@@ -40,19 +45,12 @@ class PickupOrderListView(LoginRequiredMixin, ListView):
             self.request.GET, queryset=self.get_queryset()
         )
 
-        if hasattr(self.request.user, "profile"):
-            context["user_role"] = self.request.user.profile.get_role_display()
-            context["is_operator"] = self.request.user.profile.is_operator
-            context["is_logistic"] = self.request.user.profile.is_logistic
-            context["is_admin"] = self.request.user.profile.is_admin
+        # Статистика
+        queryset = self.get_queryset()
+        context["total_orders"] = queryset.count()
+        context["ready_orders"] = queryset.filter(status="ready").count()
+        context["payment_orders"] = queryset.filter(status="payment").count()
 
-        return context
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["filter"] = PickupOrderFilter(
-            self.request.GET, queryset=self.get_queryset()
-        )
 
         if hasattr(self.request.user, "profile"):
             context["user_role"] = self.request.user.profile.get_role_display()
@@ -93,19 +91,7 @@ class PickupOrderDetailView(LoginRequiredMixin, DetailView):
 class PickupOrderCreateView(LoginRequiredMixin, CreateView):
     model = PickupOrder
     template_name = "pickup/pickup_order_form.html"
-    fields = [
-        "pickup_date",
-        "pickup_address",
-        "client_name",
-        "client_phone",
-        "client_email",
-        "quantity",
-        "weight",
-        "volume",
-        "cargo_description",
-        "special_requirements",
-        "status",
-    ]
+    form_class = PickupOrderForm
 
     def form_valid(self, form):
         form.instance.operator = self.request.user
@@ -120,20 +106,7 @@ class PickupOrderCreateView(LoginRequiredMixin, CreateView):
 class PickupOrderUpdateView(LoginRequiredMixin, UpdateView):
     model = PickupOrder
     template_name = "pickup/pickup_order_form.html"
-    fields = [
-        "pickup_date",
-        "pickup_address",
-        "client_name",
-        "client_phone",
-        "client_email",
-        "quantity",
-        "weight",
-        "volume",
-        "cargo_description",
-        "special_requirements",
-        "status",
-        "notes",
-    ]
+    form_class = PickupOrderForm
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -201,6 +174,90 @@ class ConvertToDeliveryView(LoginRequiredMixin, DetailView):
             return redirect("pickup_order_detail", pk=self.object.pk)
 
 
+@require_POST
+@login_required
+def update_pickup_order_field(request, pk):
+    """Обновление одного поля заявки на забор"""
+    try:
+        order = PickupOrder.objects.get(pk=pk)
+    except PickupOrder.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Заявка не найдена"})
+
+    # Проверка прав
+    if not (
+        request.user.is_superuser
+        or request.user.groups.filter(name="Логисты").exists()
+        or request.user == order.operator
+    ):
+        return JsonResponse({"success": False, "error": "Нет прав на редактирование"})
+
+    data = json.loads(request.body)
+    field = data.get("field")
+    value = data.get("value")
+
+    allowed_fields = [
+        "invoice_number",
+        "pickup_date",
+        "pickup_time",
+        "pickup_address",
+        "contact_person",
+        "client_name",
+        "desired_delivery_date",
+        "quantity",
+        "status",
+        "operator",  
+    ]
+
+    if field not in allowed_fields:
+        return JsonResponse(
+            {"success": False, "error": "Поле не доступно для редактирования"}
+        )
+
+    try:
+        # Преобразование типов
+        if field == "quantity":
+            value = int(value)
+        elif field == "pickup_date" and value:
+            value = datetime.strptime(value, "%Y-%m-%d").date()
+        elif field == "pickup_time" and value:
+            value = datetime.strptime(value, "%H:%M").time()
+        elif field == "desired_delivery_date" and value:
+            value = datetime.strptime(value, "%Y-%m-%d").date()
+        elif field == "operator":
+            # Обработка поля operator (ForeignKey)
+            if value:
+                # Получаем объект User по ID
+                from django.contrib.auth.models import User
+
+                try:
+                    value = User.objects.get(id=value)
+                except User.DoesNotExist:
+                    return JsonResponse(
+                        {"success": False, "error": "Пользователь не найден"}
+                    )
+            else:
+                value = None  # Если значение пустое, устанавливаем None
+
+        setattr(order, field, value)
+        order.save()
+
+        if field == "status":
+            display_value = order.get_status_display()
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "operator":
+            # Для оператора возвращаем имя для отображения
+            display_value = ""
+            if order.operator:
+                display_value = (
+                    order.operator.get_full_name() or order.operator.username
+                )
+            return JsonResponse({"success": True, "display_value": display_value})
+
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+
+
 def pickup_order_pdf(request, pk):
     order = get_object_or_404(PickupOrder, pk=pk)
 
@@ -245,3 +302,26 @@ def pickup_orders_bulk_pdf(request):
     response = HttpResponse(zip_buffer, content_type="application/zip")
     response["Content-Disposition"] = 'attachment; filename="pickup_orders.zip"'
     return response
+
+
+@login_required
+def get_operators(request):
+    """API для получения списка операторов"""
+    operators = User.objects.filter(
+        is_active=True, profile__role__in=["operator", "logistic", "admin"]
+    ).order_by("first_name", "last_name", "username")
+
+    operators_list = []
+    for operator in operators:
+        operators_list.append(
+            {
+                "id": operator.id,
+                "username": operator.username,
+                "first_name": operator.first_name,
+                "last_name": operator.last_name,
+                "full_name": f"{operator.first_name} {operator.last_name}".strip()
+                or operator.username,
+            }
+        )
+
+    return JsonResponse(operators_list, safe=False)

@@ -11,10 +11,12 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import date, datetime, timedelta
 from django.db.models import Count, Sum, Avg, Q
-from django.http import HttpResponse, JsonResponse 
+from django.http import HttpResponse, JsonResponse
 import pandas as pd
 from io import BytesIO
 import zipfile
+
+from django.views.decorators.http import require_POST
 
 from .models import DeliveryOrder
 from .filters import DeliveryOrderFilter
@@ -114,6 +116,77 @@ class DeliveryOrderUpdateView(LoginRequiredMixin, UpdateView):
         return response
 
 
+@require_POST
+@login_required
+def update_delivery_order_field(request, pk):
+    """Обновление одного поля заявки на доставку"""
+    try:
+        order = DeliveryOrder.objects.get(pk=pk)
+    except DeliveryOrder.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Заявка не найдена"})
+
+    # Проверка прав
+    if not (
+        request.user.is_superuser
+        or request.user.groups.filter(name="Логисты").exists()
+        or request.user == order.operator
+    ):
+        return JsonResponse({"success": False, "error": "Нет прав на редактирование"})
+
+    data = json.loads(request.body)
+    field = data.get("field")
+    value = data.get("value")
+
+    # Разрешенные поля для редактирования
+    allowed_fields = [
+        "city",
+        "warehouse",
+        "quantity",
+        "weight",
+        "volume",
+        "status",
+        "driver_name",
+        "driver_phone",
+        "date",  # Добавлено для редактирования даты
+    ]
+
+    if field not in allowed_fields:
+        return JsonResponse(
+            {"success": False, "error": "Поле не доступно для редактирования"}
+        )
+
+    try:
+        # Преобразование типов
+        if field in ["quantity"]:
+            value = int(value)
+        elif field in ["weight", "volume"]:
+            value = float(value) if value else None
+        elif field == "date":
+            # Преобразуем строку даты
+            from datetime import datetime
+
+            try:
+                value = datetime.strptime(value, "%Y-%m-%d").date()
+            except ValueError:
+                return JsonResponse({"success": False, "error": "Неверный формат даты"})
+
+        setattr(order, field, value)
+        order.save()
+
+        # Для статуса возвращаем отображаемое значение
+        if field == "status":
+            display_value = order.get_status_display()
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "date":
+            # Для даты возвращаем отформатированное значение
+            display_value = order.date.strftime("%d.%m.%Y")
+            return JsonResponse({"success": True, "display_value": display_value})
+
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+
+
 @login_required
 def dashboard(request):
     today = date.today()
@@ -206,7 +279,7 @@ def dashboard(request):
         "recent_deliveries": recent_deliveries,
         "recent_pickups": recent_pickups,
         "today": today,
-        "email_settings": email_settings,  
+        "email_settings": email_settings,
     }
 
     if hasattr(request.user, "profile"):

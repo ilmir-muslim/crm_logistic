@@ -12,8 +12,6 @@
             --success-green: #198754;
             --warning-orange: #fd7e14;
             --info-teal: #20c997;
-            --purple: #6f42c1;
-            --pink: #d63384;
         }
         
         body {
@@ -23,7 +21,7 @@
         }
         
         .form-container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 2rem auto;
             padding: 0;
             background: white;
@@ -75,8 +73,12 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
         
-        .schedule-card {
-            border-left: 5px solid var(--info-teal);
+        .city-selection-card {
+            border-left: 5px solid var(--primary-blue);
+        }
+        
+        .city-info-card {
+            border-left: 5px solid #6f42c1;
         }
         
         .boxes-card {
@@ -88,15 +90,15 @@
         }
         
         .client-card {
-            border-left: 5px solid var(--purple);
+            border-left: 5px solid #6f42c1;
         }
         
         .cargo-card {
-            border-left: 5px solid var(--pink);
+            border-left: 5px solid #d63384;
         }
         
         .privacy-card {
-            border-left: 5px solid var(--primary-blue);
+            border-left: 5px solid var(--info-teal);
         }
         
         .card-header {
@@ -119,8 +121,12 @@
             font-size: 1.3rem;
         }
         
-        .schedule-card .card-icon {
-            color: var(--info-teal);
+        .city-selection-card .card-icon {
+            color: var(--primary-blue);
+        }
+        
+        .city-info-card .card-icon {
+            color: #6f42c1;
         }
         
         .boxes-card .card-icon {
@@ -132,19 +138,78 @@
         }
         
         .client-card .card-icon {
-            color: var(--purple);
+            color: #6f42c1;
         }
         
         .cargo-card .card-icon {
-            color: var(--pink);
+            color: #d63384;
         }
         
         .privacy-card .card-icon {
-            color: var(--primary-blue);
+            color: var(--info-teal);
         }
         
         .card-body {
             padding: 1.5rem;
+        }
+        
+        /* Кнопки выбора города */
+        .city-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .city-btn {
+            padding: 1.5rem;
+            border: 3px solid transparent;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .city-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .city-btn.active {
+            border-color: var(--primary-blue);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .city-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-blue);
+        }
+        
+        .city-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .city-desc {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        /* Стили для информации о складах */
+        .warehouse-info {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .warehouse-info:hover {
+            border-color: var(--primary-blue);
+            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.1);
         }
         
         /* Таблицы */
@@ -293,21 +358,28 @@
                 padding: 1rem;
             }
             
+            .city-buttons {
+                grid-template-columns: 1fr;
+            }
+            
             .btn-submit, .btn-reset {
                 width: 100%;
                 margin-bottom: 0.5rem;
             }
         }
         
-        /* Анимация для обязательных полей */
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+        /* Анимация */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
-        .required-field {
-            animation: pulse 2s infinite;
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        .hidden {
+            display: none !important;
         }
         
         /* Стили для сообщений */
@@ -319,6 +391,38 @@
             z-index: 9999;
             width: 90%;
             max-width: 600px;
+        }
+        
+        /* Статусы складов */
+        .warehouse-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-right: 8px;
+        }
+        
+        .status-open {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-closed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        /* Пульсация для выделения */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(13, 110, 253, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+        }
+        
+        .pulse {
+            animation: pulse 1.5s infinite;
         }
     </style>
 </head>
@@ -363,7 +467,7 @@
         </div>
         
         <div class="container py-4">
-            <!-- Блок сообщений внутри формы (для не-field ошибок) -->
+            <!-- Блок сообщений -->
             {% if form.non_field_errors %}
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <div class="d-flex align-items-center">
@@ -378,104 +482,98 @@
             </div>
             {% endif %}
             
-            <!-- Информационные карточки -->
-            <div class="row g-4 mb-4">
-                <div class="col-lg-6">
-                    <div class="info-card schedule-card h-100">
-                        <div class="card-header">
-                            <i class="bi bi-calendar-event card-icon"></i>
-                            <h5 class="card-title">График приема заявок</h5>
-                        </div>
-                        <div class="card-body">
-                            <p class="text-muted mb-3">Прием заявок осуществляется до 18:00</p>
-                            <div class="table-responsive">
-                                <table class="table custom-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Город</th>
-                                            <th>Дни доставки</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>Москва (Электросталь, Коледино, Подольск)</td>
-                                            <td><span class="badge bg-info">среда</span> <span class="badge bg-info">пятница</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Тула (Алексин)</td>
-                                            <td><span class="badge bg-warning">вторник</span> <span class="badge bg-warning">суббота</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Рязань (Пошевски)</td>
-                                            <td><span class="badge bg-success">пятница</span> <span class="badge bg-success">воскресенье</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Краснодар, Невинномысск</td>
-                                            <td><span class="badge bg-danger">суббота</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Санкт-Петербург</td>
-                                            <td><span class="badge bg-primary">суббота</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Екатеринбург</td>
-                                            <td><span class="badge bg-secondary">суббота</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+            <!-- Выбор города -->
+            <div class="info-card city-selection-card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-geo-alt card-icon"></i>
+                    <h5 class="card-title">Выберите город приема заявки</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">Выберите город для просмотра доступных складов и условий приема заявок.</p>
+                    
+                    <div class="city-buttons">
+                        {% for city in cities_data %}
+                        <div class="city-btn" id="city-btn-{{ city.id }}" data-city-id="{{ city.id }}">
+                            <div class="city-icon">
+                                <i class="bi bi-building"></i>
                             </div>
+                            <div class="city-name">{{ city.name }}</div>
+                            <div class="city-desc">{{ city.region|default:"Город" }}</div>
                         </div>
+                        {% empty %}
+                        <div class="alert alert-warning w-100">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Нет доступных городов для приема заявок.
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Скрытое поле для хранения выбранного города -->
+                    <input type="hidden" name="selected_city_id" id="selectedCityId">
+                </div>
+            </div>
+            
+            <!-- Динамическая информация о выбранном городе -->
+            <div class="info-card city-info-card mb-4 hidden" id="city-info">
+                <div class="card-header">
+                    <i class="bi bi-info-circle card-icon"></i>
+                    <h5 class="card-title">Информация о складах в городе <span id="selected-city-name"></span></h5>
+                </div>
+                <div class="card-body" id="city-info-content">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <p class="mt-2">Загрузка информации о складах...</p>
                     </div>
                 </div>
-                
-                <div class="col-lg-6">
-                    <div class="info-card boxes-card h-100">
-                        <div class="card-header">
-                            <i class="bi bi-box-seam card-icon"></i>
-                            <h5 class="card-title">Стандартные размеры коробок</h5>
-                        </div>
-                        <div class="card-body">
-                            <p class="text-muted mb-3">Для расчета объема используйте наши стандартные размеры</p>
-                            <div class="table-responsive">
-                                <table class="table custom-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Тип коробки</th>
-                                            <th>Размеры (Д×Ш×В, см)</th>
-                                            <th>Объем (м³)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td><strong>Коробка XL</strong></td>
-                                            <td>12 × 8 × 18</td>
-                                            <td><span class="badge bg-dark">1.7</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Коробка L</strong></td>
-                                            <td>6 × 8 × 5</td>
-                                            <td><span class="badge bg-dark">0.24</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Коробка M</strong></td>
-                                            <td>6 × 4 × 4</td>
-                                            <td><span class="badge bg-dark">0.10</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Коробка S</strong></td>
-                                            <td>4 × 3 × 4</td>
-                                            <td><span class="badge bg-dark">0.05</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="mt-3 p-3 bg-light rounded">
-                                <small class="text-muted">
-                                    <i class="bi bi-info-circle"></i> 
-                                    <strong>Совет:</strong> Для расчета общего объема умножьте количество коробок каждого типа на их объем
-                                </small>
-                            </div>
-                        </div>
+            </div>
+            
+            <!-- Информация о коробках -->
+            <div class="info-card boxes-card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-box-seam card-icon"></i>
+                    <h5 class="card-title">Стандартные размеры коробок</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Для расчета объема используйте наши стандартные размеры коробок</p>
+                    <div class="table-responsive">
+                        <table class="table custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Тип коробки</th>
+                                    <th>Размеры (Д×Ш×В, см)</th>
+                                    <th>Объем (м³)</th>
+                                    <th>Макс. вес (кг)</th>
+                                    <th>Описание</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for box in box_sizes %}
+                                <tr>
+                                    <td><strong>{{ box.name }}</strong><br><small class="text-muted">{{ box.code }}</small></td>
+                                    <td>{{ box.length }} × {{ box.width }} × {{ box.height }}</td>
+                                    <td><span class="badge bg-dark">{{ box.volume|floatformat:3 }}</span></td>
+                                    <td><span class="badge bg-secondary">{{ box.weight_capacity }}</span></td>
+                                    <td><small class="text-muted">{{ box.description|default:"-" }}</small></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        Нет данных о типах коробок
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i> 
+                            <strong>Совет:</strong> Для расчета общего объема умножьте количество коробок каждого типа на их объем.
+                            Вы можете использовать калькулятор ниже для быстрого расчета.
+                        </small>
                     </div>
                 </div>
             </div>
@@ -483,6 +581,10 @@
             <!-- Форма заявки -->
             <form method="post" novalidate class="mb-4" id="orderForm">
                 {% csrf_token %}
+                
+                <!-- Скрытые поля для города доставки и склада -->
+                <input type="hidden" name="delivery_city" id="id_delivery_city_hidden">
+                <input type="hidden" name="receiving_warehouse" id="id_receiving_warehouse_hidden">
                 
                 <!-- Раздел 1: Информация о доставке -->
                 <div class="info-card delivery-card mb-4">
@@ -503,7 +605,7 @@
                                 </div>
                                 {% endif %}
                                 <div class="form-text">
-                                    Выберите дату доставки с учетом графика
+                                    Выберите дату доставки с учетом графика работы складов
                                 </div>
                             </div>
                             
@@ -519,6 +621,36 @@
                                 {% endif %}
                                 <div class="form-text">
                                     Выберите площадку, с которой заказ
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label required">
+                                    Склад приемки
+                                </label>
+                                <div id="warehouse-selection">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle"></i>
+                                        Выберите город выше для отображения доступных складов
+                                    </div>
+                                </div>
+                                <div class="form-text" id="warehouse-info">
+                                    Склад будет выбран после выбора города
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label required">
+                                    Город доставки
+                                </label>
+                                <div id="city-selection-display">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle"></i>
+                                        Выберите город выше для отображения доступных городов доставки
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    Город назначения доставки
                                 </div>
                             </div>
                             
@@ -539,7 +671,7 @@
                             
                             <div class="col-12">
                                 <label for="{{ form.delivery_address.id_for_label }}" class="form-label required">
-                                    Адрес доставки груза
+                                    Адрес доставки груза (улица, дом)
                                 </label>
                                 {{ form.delivery_address }}
                                 {% if form.delivery_address.errors %}
@@ -548,7 +680,7 @@
                                 </div>
                                 {% endif %}
                                 <div class="form-text">
-                                    Полный адрес доставки
+                                    Улица, дом, квартира/офис, этаж
                                 </div>
                             </div>
                         </div>
@@ -559,7 +691,7 @@
                 <div class="info-card client-card mb-4">
                     <div class="card-header">
                         <i class="bi bi-person-badge card-icon"></i>
-                        <h5 class="card-title"> Информация о клиенте</h5>
+                        <h5 class="card-title">Информация о клиенте</h5>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
@@ -609,8 +741,8 @@
                             </div>
                             
                             <div class="col-md-6">
-                                <label for="{{ form.client_email.id_for_label }}" class="form-label required">
-                                    Email
+                                <label for="{{ form.client_email.id_for_label }}" class="form-label">
+                                    Email (необязательно)
                                 </label>
                                 {{ form.client_email }}
                                 {% if form.client_email.errors %}
@@ -619,7 +751,7 @@
                                 </div>
                                 {% endif %}
                                 <div class="form-text">
-                                    На этот email придет подтверждение
+                                    На этот email придет подтверждение (если указан)
                                 </div>
                             </div>
                         </div>
@@ -761,11 +893,12 @@
                 <p class="contact-info mb-2">
                     <i class="bi bi-telephone"></i>
                     По вопросам заполнения формы звоните: 
-                    <strong>+7 (495) 123-45-67</strong>
+                    <strong>+7 (495) 123-45-67</strong> (Москва) | 
+                    <strong>+7 (843) 567-89-01</strong> (Казань)
                 </p>
                 <p class="contact-info mb-2">
                     <i class="bi bi-clock"></i>
-                    Режим работы: Пн-Пт с 9:00 до 18:00
+                    Режим работы: Пн-Пт с 9:00 до 18:00 (Москва) | Пн-Пт с 9:00 до 17:00 (Казань)
                 </p>
                 <p class="copyright mb-0">
                     © {% now "Y" %} ФФ Царицыно. Все права защищены.
@@ -777,35 +910,426 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Устанавливаем минимальную дату (сегодня)
-            const dateField = document.querySelector('input[type="date"]');
-            if (dateField) {
-                const today = new Date().toISOString().split('T')[0];
-                dateField.min = today;
-                
-                // Устанавливаем дату по умолчанию (через 2 дня)
-                const defaultDate = new Date();
-                defaultDate.setDate(defaultDate.getDate() + 2);
-                const defaultDateStr = defaultDate.toISOString().split('T')[0];
-                dateField.value = defaultDateStr;
-            }
-            
-            // Добавляем валидацию формы
+            // Элементы DOM
+            const selectedCityId = document.getElementById('selectedCityId');
+            const cityInfo = document.getElementById('city-info');
+            const cityNameElement = document.getElementById('selected-city-name');
+            const cityContent = document.getElementById('city-info-content');
+            const receivingWarehouseHidden = document.getElementById('id_receiving_warehouse_hidden');
+            const deliveryCityHidden = document.getElementById('id_delivery_city_hidden');
+            const warehouseSelection = document.getElementById('warehouse-selection');
+            const citySelectionDisplay = document.getElementById('city-selection-display');
             const form = document.getElementById('orderForm');
             const submitButton = document.getElementById('submitButton');
             
+            // Данные из контекста Django (сериализованные)
+            const citiesData = JSON.parse('{{ cities_data_json|escapejs }}' || '[]');
+            
+            // Текущий выбранный город
+            let currentCity = null;
+            let selectedWarehouseId = null;
+            let selectedWarehouseName = null;
+            
+            // Функция для отображения информации о городе
+            function displayCityInfo(cityId) {
+                const city = citiesData.find(c => c.id == cityId);
+                if (!city) {
+                    cityContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Город не найден
+                        </div>
+                    `;
+                    return;
+                }
+                
+                currentCity = city;
+                cityNameElement.textContent = city.name;
+                
+                let html = '';
+                
+                if (city.warehouses && city.warehouses.length > 0) {
+                    // Отображаем информацию о каждом складе
+                    city.warehouses.forEach((warehouse, index) => {
+                        const isOpen = warehouse.is_open_now;
+                        const schedules = warehouse.schedules || [];
+                        
+                        html += `
+                            <div class="warehouse-info mb-4 p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <i class="bi bi-house-door me-2"></i>
+                                            <strong>${warehouse.name}</strong>
+                                            <span class="badge ${isOpen ? 'bg-success' : 'bg-danger'} ms-2">
+                                                <i class="bi ${isOpen ? 'bi-check-circle' : 'bi-x-circle'}"></i>
+                                                ${isOpen ? 'Открыт' : 'Закрыт'}
+                                            </span>
+                                        </h6>
+                                        <p class="text-muted mb-0"><small>Код: ${warehouse.code}</small></p>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm ${selectedWarehouseId == warehouse.id ? 'btn-primary' : 'btn-outline-primary'} select-warehouse-btn" 
+                                                data-warehouse-id="${warehouse.id}" 
+                                                data-warehouse-name="${warehouse.name}">
+                                            <i class="bi bi-check-circle me-1"></i> 
+                                            ${selectedWarehouseId == warehouse.id ? 'Выбран' : 'Выбрать'}
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <p class="mb-1">
+                                            <i class="bi bi-geo-alt text-primary"></i> 
+                                            <strong>Адрес:</strong> ${warehouse.address}
+                                        </p>
+                                        <p class="mb-1">
+                                            <i class="bi bi-telephone text-primary"></i> 
+                                            <strong>Телефон:</strong> ${warehouse.phone}
+                                        </p>
+                                        ${warehouse.email ? `
+                                            <p class="mb-1">
+                                                <i class="bi bi-envelope text-primary"></i> 
+                                                <strong>Email:</strong> ${warehouse.email}
+                                            </p>
+                                        ` : ''}
+                                        ${warehouse.manager ? `
+                                            <p class="mb-1">
+                                                <i class="bi bi-person text-primary"></i> 
+                                                <strong>Менеджер:</strong> ${warehouse.manager}
+                                            </p>
+                                        ` : ''}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1">
+                                            <i class="bi bi-clock text-primary"></i> 
+                                            <strong>График работы:</strong> ${warehouse.working_hours}
+                                        </p>
+                                        <p class="mb-1">
+                                            <i class="bi bi-rulers text-primary"></i> 
+                                            <strong>Площадь:</strong> ${warehouse.available_area} м² / ${warehouse.total_area} м²
+                                        </p>
+                                        <p class="mb-0">
+                                            <i class="bi bi-info-circle text-primary"></i> 
+                                            ${warehouse.is_24h ? 'Круглосуточный склад' : 'Работает по графику'}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <!-- График приема заявок -->
+                                ${schedules.length > 0 ? `
+                                    <div class="mt-3">
+                                        <h6 class="mb-2"><i class="bi bi-calendar-event"></i> График приема заявок:</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered">
+                                                <thead>
+                                                    <tr>
+                                                        <th>День недели</th>
+                                                        <th>Время работы</th>
+                                                        <th>Крайний срок забора</th>
+                                                        <th>Крайний срок доставки</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${schedules.map(schedule => `
+                                                        <tr>
+                                                            <td>${schedule.day_of_week}</td>
+                                                            <td>${schedule.opening_time} - ${schedule.closing_time}</td>
+                                                            <td>${schedule.pickup_cutoff_time}</td>
+                                                            <td>${schedule.delivery_cutoff_time}</td>
+                                                        </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <small class="text-muted">
+                                            Максимум заборов в день: ${schedules[0]?.max_daily_pickups || '20'}
+                                        </small>
+                                    </div>
+                                ` : '<p class="text-warning"><i class="bi bi-exclamation-triangle"></i> График приема заявок не указан</p>'}
+                            </div>
+                        `;
+                    });
+                } else {
+                    html = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            В городе ${city.name} нет доступных складов.
+                        </div>
+                    `;
+                }
+                
+                cityContent.innerHTML = html;
+                cityInfo.classList.remove('hidden');
+                cityInfo.classList.add('fade-in');
+                
+                // Добавляем обработчики для кнопок выбора склада
+                document.querySelectorAll('.select-warehouse-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        selectWarehouse(
+                            this.getAttribute('data-warehouse-id'),
+                            this.getAttribute('data-warehouse-name')
+                        );
+                    });
+                });
+                
+                // Загружаем доступные города доставки для выбранного города
+                loadDeliveryCities(cityId);
+            }
+            
+            // Функция для выбора склада
+            function selectWarehouse(warehouseId, warehouseName) {
+                selectedWarehouseId = warehouseId;
+                selectedWarehouseName = warehouseName;
+                
+                // Устанавливаем значение скрытого поля
+                receivingWarehouseHidden.value = warehouseId;
+                
+                // Обновляем кнопки
+                document.querySelectorAll('.select-warehouse-btn').forEach(btn => {
+                    const btnWarehouseId = btn.getAttribute('data-warehouse-id');
+                    if (btnWarehouseId == warehouseId) {
+                        btn.classList.remove('btn-outline-primary');
+                        btn.classList.add('btn-primary');
+                        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Выбран';
+                        btn.parentElement.parentElement.classList.add('pulse');
+                    } else {
+                        btn.classList.remove('btn-primary');
+                        btn.classList.add('btn-outline-primary');
+                        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Выбрать';
+                        btn.parentElement.parentElement.classList.remove('pulse');
+                    }
+                });
+                
+                // Показываем сообщение
+                showAlertMessage(`Выбран склад: ${warehouseName}`, 'success');
+                
+                // Обновляем отображение
+                if (warehouseSelection) {
+                    warehouseSelection.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i>
+                            Выбран склад: <strong>${warehouseName}</strong>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Функция для загрузки доступных городов доставки
+            function loadDeliveryCities(cityId) {
+                // Здесь можно сделать AJAX запрос для получения городов доставки
+                // Пока используем статический список в зависимости от города
+                let availableCities = [];
+                
+                if (cityId == 1) { // Москва
+                    availableCities = [
+                        {id: 1, name: 'Москва'},
+                        {id: 3, name: 'Санкт-Петербург'},
+                        {id: 4, name: 'Новосибирск'},
+                        {id: 5, name: 'Екатеринбург'},
+                    ];
+                } else if (cityId == 2) { // Казань
+                    availableCities = [
+                        {id: 2, name: 'Казань'},
+                        {id: 4, name: 'Новосибирск'},
+                        {id: 5, name: 'Екатеринбург'},
+                    ];
+                } else {
+                    // По умолчанию показываем все города
+                    availableCities = citiesData.map(city => ({id: city.id, name: city.name}));
+                }
+                
+                if (availableCities.length > 0) {
+                    let html = '<div class="row g-2">';
+                    availableCities.forEach(city => {
+                        html += `
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input city-radio" 
+                                           type="radio" 
+                                           name="selected_delivery_city" 
+                                           id="city_${city.id}" 
+                                           value="${city.id}"
+                                           onchange="selectDeliveryCity(${city.id}, '${city.name}')">
+                                    <label class="form-check-label" for="city_${city.id}">
+                                        ${city.name}
+                                    </label>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    
+                    citySelectionDisplay.innerHTML = html;
+                    
+                    // Выбираем первый город по умолчанию
+                    if (availableCities.length > 0) {
+                        const firstCity = availableCities[0];
+                        setTimeout(() => {
+                            selectDeliveryCity(firstCity.id, firstCity.name);
+                        }, 100);
+                    }
+                } else {
+                    citySelectionDisplay.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Нет доступных городов доставки.
+                        </div>
+                    `;
+                }
+            }
+            
+            // Глобальная функция для выбора города доставки
+            window.selectDeliveryCity = function(cityId, cityName) {
+                deliveryCityHidden.value = cityId;
+                
+                // Обновляем отображение
+                const cityInfoElement = document.querySelector('#city-selection-display .form-text');
+                if (cityInfoElement) {
+                    cityInfoElement.innerHTML = `Выбран город доставки: <strong>${cityName}</strong>`;
+                }
+                
+                // Помечаем выбранный радио-баттон
+                document.querySelectorAll('.city-radio').forEach(radio => {
+                    radio.checked = radio.value == cityId;
+                });
+            };
+            
+            // Обработчики для кнопок выбора города
+            document.querySelectorAll('.city-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const cityId = this.getAttribute('data-city-id');
+                    
+                    // Сбрасываем активные кнопки
+                    document.querySelectorAll('.city-btn').forEach(b => {
+                        b.classList.remove('active');
+                    });
+                    
+                    // Активируем текущую кнопку
+                    this.classList.add('active');
+                    
+                    // Сохраняем ID города
+                    selectedCityId.value = cityId;
+                    
+                    // Отображаем информацию о городе
+                    displayCityInfo(cityId);
+                    
+                    // Прокручиваем к информации
+                    setTimeout(() => {
+                        document.getElementById('city-info').scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                    }, 300);
+                });
+            });
+            
+            // Автоматически выбираем первый город при загрузке
+            const firstCityBtn = document.querySelector('.city-btn');
+            if (firstCityBtn && citiesData.length > 0) {
+                firstCityBtn.click();
+            }
+            
+            // Калькулятор объема
+            const quantityField = document.getElementById('id_quantity');
+            const volumeField = document.getElementById('id_volume');
+            
+            if (quantityField && volumeField) {
+                // Создаем селект для типов коробок
+                const boxTypeContainer = document.createElement('div');
+                boxTypeContainer.className = 'mt-3';
+                boxTypeContainer.innerHTML = `
+                    <label class="form-label">Быстрый расчет объема</label>
+                    <select id="box-type-select" class="form-select">
+                        <option value="">Выберите тип коробки для расчета...</option>
+                        {% for box in box_sizes %}
+                        <option value="{{ box.volume|floatformat:3 }}">{{ box.name }} ({{ box.volume|floatformat:3 }} м³)</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Выберите тип коробки для автоматического расчета объема</div>
+                `;
+                
+                volumeField.parentNode.appendChild(boxTypeContainer);
+                const boxTypeSelect = document.getElementById('box-type-select');
+                
+                // Обработчик для расчета объема
+                boxTypeSelect.addEventListener('change', function() {
+                    const boxVolume = parseFloat(this.value);
+                    const quantity = parseInt(quantityField.value) || 1;
+                    
+                    if (boxVolume && quantity) {
+                        const totalVolume = boxVolume * quantity;
+                        volumeField.value = totalVolume.toFixed(3);
+                        
+                        // Показываем подсказку
+                        volumeField.title = `Рассчитано: ${quantity} × ${boxVolume} м³ = ${totalVolume.toFixed(3)} м³`;
+                        
+                        // Подсвечиваем поле
+                        volumeField.style.backgroundColor = '#e8f4f8';
+                        volumeField.style.borderColor = '#0d6efd';
+                        setTimeout(() => {
+                            volumeField.style.backgroundColor = '';
+                            volumeField.style.borderColor = '';
+                        }, 1500);
+                    }
+                });
+                
+                // Обновление при изменении количества
+                quantityField.addEventListener('change', function() {
+                    if (boxTypeSelect.value) {
+                        boxTypeSelect.dispatchEvent(new Event('change'));
+                    }
+                });
+                
+                // Сброс при вводе вручную
+                volumeField.addEventListener('input', function() {
+                    boxTypeSelect.value = '';
+                });
+            }
+            
+            // Валидация формы
             if (form) {
                 form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Проверяем, выбран ли город приема
+                    if (!selectedCityId.value) {
+                        showAlertMessage('Пожалуйста, выберите город приема заявки', 'warning');
+                        document.querySelector('.city-selection-card').scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                        return false;
+                    }
+                    
+                    // Проверяем, выбран ли склад
+                    if (!selectedWarehouseId) {
+                        showAlertMessage('Пожалуйста, выберите склад приемки', 'warning');
+                        document.getElementById('city-info').scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                        return false;
+                    }
+                    
+                    // Проверяем, выбран ли город доставки
+                    if (!deliveryCityHidden.value) {
+                        showAlertMessage('Пожалуйста, выберите город доставки', 'warning');
+                        const citySection = document.querySelector('#city-selection-display .row');
+                        if (citySection) {
+                            citySection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        return false;
+                    }
+                    
+                    // Проверяем обязательные поля формы Django
                     let isValid = true;
                     const requiredFields = form.querySelectorAll('[required]');
                     
-                    // Сначала сбрасываем все ошибки
                     requiredFields.forEach(function(field) {
                         field.classList.remove('is-invalid');
-                    });
-                    
-                    // Проверяем обязательные поля
-                    requiredFields.forEach(function(field) {
+                        
                         const isCheckbox = field.type === 'checkbox';
                         const isEmpty = isCheckbox ? !field.checked : !field.value.trim();
                         
@@ -813,123 +1337,74 @@
                             isValid = false;
                             field.classList.add('is-invalid');
                             
-                            // Добавляем анимацию к родительскому элементу
+                            // Добавляем анимацию
                             const parentDiv = field.closest('.col-md-6, .col-md-4, .col-12');
                             if (parentDiv) {
-                                parentDiv.classList.add('required-field');
+                                parentDiv.style.animation = 'pulse 0.5s';
                                 setTimeout(() => {
-                                    parentDiv.classList.remove('required-field');
-                                }, 2000);
+                                    parentDiv.style.animation = '';
+                                }, 500);
                             }
                         }
                     });
                     
                     if (!isValid) {
-                        e.preventDefault();
-                        
-                        // Прокручиваем к первой ошибке
+                        showAlertMessage('Пожалуйста, заполните все обязательные поля', 'warning');
                         const firstError = form.querySelector('.is-invalid');
                         if (firstError) {
                             firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             firstError.focus();
                         }
-                        
-                        // Показываем сообщение
-                        showAlertMessage('Пожалуйста, заполните все обязательные поля', 'danger');
-                    } else {
-                        // Отключаем кнопку отправки, чтобы предотвратить двойную отправку
-                        if (submitButton) {
-                            submitButton.disabled = true;
-                            submitButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Отправка...';
-                        }
+                        return false;
                     }
-                });
-                
-                // Сбрасываем ошибки при вводе
-                form.querySelectorAll('input, select, textarea').forEach(function(field) {
-                    field.addEventListener('input', function() {
-                        this.classList.remove('is-invalid');
-                    });
                     
-                    field.addEventListener('change', function() {
-                        this.classList.remove('is-invalid');
-                    });
-                });
-                
-                // Кнопка очистки формы
-                const resetButton = document.getElementById('resetButton');
-                if (resetButton) {
-                    resetButton.addEventListener('click', function() {
-                        // Сбрасываем ошибки при очистке
-                        form.querySelectorAll('.is-invalid').forEach(function(field) {
-                            field.classList.remove('is-invalid');
-                        });
-                    });
-                }
-            }
-            
-            // Анимация для карточек при скролле
-            const observerOptions = {
-                threshold: 0.1
-            };
-            
-            const observer = new IntersectionObserver(function(entries) {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.style.opacity = '1';
-                        entry.target.style.transform = 'translateY(0)';
+                    // Если все проверки пройдены, отправляем форму
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                        submitButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Отправка...';
                     }
-                });
-            }, observerOptions);
-            
-            // Применяем анимацию ко всем карточкам
-            document.querySelectorAll('.info-card').forEach(card => {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(20px)';
-                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-                observer.observe(card);
-            });
-            
-            // Подсчет объема на основе количества коробок (опционально)
-            const quantityField = document.getElementById('id_quantity');
-            const volumeField = document.getElementById('id_volume');
-            
-            if (quantityField && volumeField) {
-                quantityField.addEventListener('change', function() {
-                    // Если пользователь еще не вводил объем, предлагаем рассчитать
-                    if (!volumeField.value) {
-                        const avgVolume = 0.5; // средний объем одной коробки
-                        const suggestedVolume = (parseInt(this.value) || 1) * avgVolume;
-                        volumeField.placeholder = `Примерно ${suggestedVolume.toFixed(2)} м³`;
-                    }
+                    
+                    // Отправляем форму
+                    this.submit();
                 });
             }
             
             // Функция для показа сообщений
             function showAlertMessage(message, type) {
-                // Проверяем, есть ли уже контейнер для сообщений
-                let messagesContainer = document.querySelector('.messages-container');
+                // Удаляем старые уведомления
+                const oldNotifications = document.querySelectorAll('.notification-alert');
+                oldNotifications.forEach(alert => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
                 
-                // Создаем сообщение
+                // Создаем новое уведомление
                 const alertDiv = document.createElement('div');
-                alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show notification-alert`;
+                alertDiv.style.cssText = `
+                    position: fixed;
+                    top: 100px;
+                    right: 20px;
+                    z-index: 9999;
+                    min-width: 300px;
+                    max-width: 400px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                `;
                 alertDiv.innerHTML = `
                     <div class="d-flex align-items-center">
-                        <i class="bi ${
-                            type === 'success' ? 'bi-check-circle-fill' : 
-                            type === 'danger' ? 'bi-exclamation-circle-fill' : 
-                            type === 'warning' ? 'bi-exclamation-triangle-fill' : 
-                            'bi-info-circle-fill'
-                        } me-2 fs-5"></i>
+                        ${type === 'success' ? 
+                            '<i class="bi bi-check-circle-fill me-2 fs-5"></i>' : 
+                            type === 'warning' ? 
+                            '<i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>' :
+                            '<i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>'
+                        }
                         <div>${message}</div>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 `;
                 
-                // Добавляем сообщение в контейнер
-                messagesContainer.appendChild(alertDiv);
+                document.body.appendChild(alertDiv);
                 
-                // Удаляем сообщение через 5 секунд
                 setTimeout(() => {
                     if (alertDiv.parentNode) {
                         const bsAlert = new bootstrap.Alert(alertDiv);
@@ -938,7 +1413,7 @@
                 }, 5000);
             }
             
-            // Автоматическое закрытие сообщений через 5 секунд
+            // Автоматическое закрытие сообщений
             setTimeout(function() {
                 const alerts = document.querySelectorAll('.alert');
                 alerts.forEach(function(alert) {
@@ -947,7 +1422,7 @@
                 });
             }, 5000);
             
-            // Восстанавливаем кнопку отправки при возврате на страницу (если форма не отправилась)
+            // Восстанавливаем кнопку отправки при возврате на страницу
             window.addEventListener('pageshow', function(event) {
                 if (submitButton) {
                     submitButton.disabled = false;

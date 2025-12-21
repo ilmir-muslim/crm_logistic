@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.conf import settings
 from django.utils import timezone
 from logistic.models import DeliveryOrder
+from warehouses.models import Warehouse, City
 import qrcode
 import os
 from io import BytesIO
@@ -26,10 +27,8 @@ class PickupOrder(models.Model):
     ]
 
     STATUS_CHOICES = [
-        ("new", "Новая"),
-        ("confirmed", "Подтверждена"),
-        ("picked_up", "Забран"),
-        ("cancelled", "Отменена"),
+        ("ready", "Готов к выдаче"),
+        ("payment", "На оплате"),
     ]
 
     # Основные данные из ТЗ
@@ -39,11 +38,26 @@ class PickupOrder(models.Model):
         null=True,
         help_text="Дата будет назначена оператором после подтверждения",
     )
+    pickup_time = models.TimeField(
+        verbose_name="Время забора",
+        blank=True,
+        null=True,
+        help_text="Время, когда нужно забрать груз",
+    )
     pickup_address = models.CharField(
         max_length=500,
         verbose_name="Адрес забора",
         help_text="Город, улица, дом, помещение",
         default="Не указан",
+    )
+
+    # Контактное лицо для выдачи груза
+    contact_person = models.CharField(
+        max_length=200,
+        verbose_name="Контактное лицо для выдачи груза",
+        blank=True,
+        null=True,
+        help_text="ФИО лица, которое будет выдавать груз",
     )
 
     # Информация о клиенте
@@ -95,6 +109,47 @@ class PickupOrder(models.Model):
         verbose_name="Адрес доставки",
         help_text="Полный адрес доставки",
         default="Не указан",
+    )
+
+    # Номер накладной
+    invoice_number = models.CharField(
+        max_length=100,
+        verbose_name="Номер накладной",
+        blank=True,
+        null=True,
+        help_text="Номер транспортной накладной",
+    )
+
+    # Оператор приемки и склад
+    receiving_operator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Оператор приемки",
+        related_name="receiving_orders",
+    )
+
+    # Обновлено: ForeignKey вместо CharField
+    receiving_warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Склад приемки",
+        related_name="pickup_orders",
+        help_text="Склад, куда будет доставлен груз",
+    )
+
+    # Новое поле: город доставки
+    delivery_city = models.ForeignKey(
+        City,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Город доставки",
+        related_name="pickup_orders",
+        help_text="Город назначения доставки",
     )
 
     # Характеристики груза
@@ -160,7 +215,7 @@ class PickupOrder(models.Model):
     )
 
     class Meta:
-        verbose_name = "Заявка на забор груза"
+        verbose_name = "Заявки на забор груза"
         verbose_name_plural = "Заявки на забор груза"
         ordering = ["-pickup_date", "-created_at"]
 
@@ -173,10 +228,18 @@ class PickupOrder(models.Model):
         """Возвращает URL для просмотра деталей заявки"""
         return reverse("pickup_order_detail", kwargs={"pk": self.pk})
 
+    def get_status_color(self):
+        """Возвращает цвет статуса для отображения"""
+        colors = {
+            "ready": "info",  # синий
+            "payment": "warning",  # желтый
+        }
+        return colors.get(self.status, "secondary")
+
     @property
     def is_convertible_to_delivery(self):
         """Можно ли преобразовать в заявку на доставку"""
-        return self.status in ["confirmed", "picked_up"] and not self.delivery_order
+        return self.status == "ready" and not self.delivery_order
 
     def save(self, *args, **kwargs):
         """
@@ -195,17 +258,21 @@ class PickupOrder(models.Model):
             try:
                 old = PickupOrder.objects.get(pk=self.pk)
                 # Проверяем, изменились ли данные, которые влияют на QR
-                if any(
-                    [
-                        old.desired_delivery_date != self.desired_delivery_date,
-                        old.client_company != self.client_company,
-                        old.pickup_address != self.pickup_address,
-                        old.quantity != self.quantity,
-                        old.weight != self.weight,
-                        old.volume != self.volume,
-                        old.status != self.status,
-                    ]
-                ):
+                qr_relevant_fields = [
+                    old.pickup_date != self.pickup_date,
+                    old.pickup_time != self.pickup_time,
+                    old.client_company != self.client_company,
+                    old.pickup_address != self.pickup_address,
+                    old.desired_delivery_date != self.desired_delivery_date,
+                    old.quantity != self.quantity,
+                    old.weight != self.weight,
+                    old.volume != self.volume,
+                    old.status != self.status,
+                    old.invoice_number != self.invoice_number,
+                    old.receiving_warehouse != self.receiving_warehouse,
+                ]
+
+                if any(qr_relevant_fields):
                     # Удаляем старый QR-код, если он существует
                     if self.qr_code:
                         try:
@@ -279,10 +346,17 @@ class PickupOrder(models.Model):
 Забор груза #{self.id}
 Сквозной номер: {self.tracking_number}
 Компания: {self.client_company}
-Контакное лицо: {self.client_name}
-Дата поставки: {self.desired_delivery_date}
+Контактное лицо: {self.client_name}
+Контакт для выдачи: {self.contact_person or self.client_name}
+Дата забора: {self.pickup_date}
+Время забора: {self.pickup_time}
 Адрес забора: {self.pickup_address}
+Город доставки: {self.delivery_city.name if self.delivery_city else 'Не указан'}
 Адрес доставки: {self.delivery_address}
+Дата поставки: {self.desired_delivery_date}
+Номер накладной: {self.invoice_number or 'Не указан'}
+Оператор приемки: {self.receiving_operator.username if self.receiving_operator else 'Не назначен'}
+Склад приемки: {self.receiving_warehouse.name if self.receiving_warehouse else 'Не указан'}
 Маркетплейс: {self.marketplace}
 Места: {self.quantity}
 Вес: {self.weight} кг
@@ -343,8 +417,12 @@ class PickupOrder(models.Model):
         # Создаём заявку на доставку
         delivery = DeliveryOrder.objects.create(
             date=self.desired_delivery_date,
-            city=self._extract_city_from_delivery_address(),
-            warehouse="Сборный груз",
+            city=(
+                self.delivery_city
+                if self.delivery_city
+                else self._extract_city_from_delivery_address()
+            ),
+            warehouse=self.receiving_warehouse or "Сборный груз",
             fulfillment="Фулфилмент Царицыно",
             quantity=self.quantity,
             weight=self.weight or 0,
@@ -361,7 +439,8 @@ class PickupOrder(models.Model):
 
     def _extract_city_from_delivery_address(self):
         """Извлекает город из адреса доставки"""
+        if self.delivery_city:
+            return self.delivery_city
+
         parts = self.delivery_address.split(",")
         return parts[0].strip() if parts else "Не указан"
-
-

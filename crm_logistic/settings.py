@@ -1,3 +1,4 @@
+### BEGIN: crm_logistic/settings.py
 """
 Django settings for crm_logistic project.
 """
@@ -56,6 +57,7 @@ INSTALLED_APPS = [
     "users.apps.UsersConfig",
     "pickup.apps.PickupConfig",
     "order_form.apps.OrderFormConfig",
+    "warehouses.apps.WarehousesConfig",
 ]
 
 MIDDLEWARE = [
@@ -164,7 +166,11 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
+# URL сайта для QR-кодов и ссылок
+if IS_PRODUCTION:
+    SITE_URL = "https://crm.gulnar8f.beget.tech"
+else:
+    SITE_URL = "http://localhost:8000"
 
 print(f"🌐 SITE_URL: {SITE_URL}")
 
@@ -184,26 +190,6 @@ else:
     # Разработка настройки email (консоль для отладки)
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
     print("📧 Email: Console (разработка)")
-
-# Дополнительные настройки для разработки
-if DEBUG:
-    # Показываем SQL запросы в консоли для отладки
-    LOGGING = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "handlers": {
-            "console": {
-                "level": "DEBUG",
-                "class": "logging.StreamHandler",
-            },
-        },
-        "loggers": {
-            "django.db.backends": {
-                "level": "DEBUG",
-                "handlers": ["console"],
-            },
-        },
-    }
 
 # Проверяем наличие важных переменных
 if IS_PRODUCTION:

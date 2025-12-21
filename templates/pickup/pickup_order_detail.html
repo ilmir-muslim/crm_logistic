@@ -148,8 +148,8 @@
                     </p>
                     <div class="mt-2">
                         <strong>Статус доставки:</strong>
-                        <span class="badge bg-{% if order.delivery_order.status == 'submitted' %}warning{% elif order.delivery_order.status == 'driver_assigned' %}info{% else %}success{% endif %} ms-2">
-                            {{ order.delivery_order.get_status_display }}
+                        <span class="badge bg-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% else %}secondary{% endif %} fs-6">
+                            {{ order.get_status_display }}
                         </span>
                     </div>
                 </div>

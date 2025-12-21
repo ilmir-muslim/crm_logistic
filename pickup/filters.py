@@ -1,3 +1,4 @@
+### BEGIN: pickup/filters.py
 import django_filters
 
 from utils.text_utils import normalize_phone, normalize_search_text
@@ -36,7 +37,11 @@ class PickupOrderFilter(django_filters.FilterSet):
     )
 
     status = django_filters.ChoiceFilter(
-        choices=PickupOrder.STATUS_CHOICES, empty_label="Все статусы"
+        choices=[
+            ("ready", "Готов к выдаче"),
+            ("payment", "На оплате"),
+        ],
+        empty_label="Все статусы",
     )
 
     has_delivery = django_filters.BooleanFilter(
@@ -44,6 +49,23 @@ class PickupOrderFilter(django_filters.FilterSet):
         lookup_expr="isnull",
         exclude=True,
         label="Есть связанная доставка",
+    )
+
+    # Новые фильтры
+    invoice_number = django_filters.CharFilter(
+        field_name="invoice_number", lookup_expr="icontains", label="Номер накладной"
+    )
+
+    receiving_operator = django_filters.CharFilter(
+        method="filter_receiving_operator_ignore_case", label="Оператор приемки"
+    )
+
+    receiving_warehouse = django_filters.CharFilter(
+        method="filter_receiving_warehouse_ignore_case", label="Склад приемки"
+    )
+
+    contact_person = django_filters.CharFilter(
+        method="filter_contact_person_ignore_case", label="Контактное лицо"
     )
 
     class Meta:
@@ -90,4 +112,43 @@ class PickupOrderFilter(django_filters.FilterSet):
                     | Q(client_phone__icontains=normalized_phone[-4:])
                     | Q(client_phone__icontains=normalized_phone[-7:])
                 )
+        return queryset
+
+    def filter_receiving_operator_ignore_case(self, queryset, name, value):
+        """
+        Фильтрация по оператору приемки
+        """
+        if value:
+            normalized_value = normalize_search_text(value)
+            return queryset.filter(
+                Q(receiving_operator__username__icontains=normalized_value)
+                | Q(receiving_operator__first_name__icontains=normalized_value)
+                | Q(receiving_operator__last_name__icontains=normalized_value)
+            )
+        return queryset
+
+    def filter_receiving_warehouse_ignore_case(self, queryset, name, value):
+        """
+        Фильтрация по складу приемки
+        """
+        if value:
+            normalized_value = normalize_search_text(value)
+            return queryset.filter(
+                Q(receiving_warehouse__icontains=normalized_value)
+                | Q(receiving_warehouse__icontains=value.title())
+                | Q(receiving_warehouse__icontains=value.upper())
+            )
+        return queryset
+
+    def filter_contact_person_ignore_case(self, queryset, name, value):
+        """
+        Фильтрация по контактному лицу
+        """
+        if value:
+            normalized_value = normalize_search_text(value)
+            return queryset.filter(
+                Q(contact_person__icontains=normalized_value)
+                | Q(contact_person__icontains=value.title())
+                | Q(contact_person__icontains=value.upper())
+            )
         return queryset

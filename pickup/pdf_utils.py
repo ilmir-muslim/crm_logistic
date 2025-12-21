@@ -20,10 +20,8 @@ def create_daily_pickup_report_pdf(date, orders):
     # Собираем статистику
     stats = {
         "total": len(orders),
-        "new": len([o for o in orders if o.status == "new"]),
-        "confirmed": len([o for o in orders if o.status == "confirmed"]),
-        "picked_up": len([o for o in orders if o.status == "picked_up"]),
-        "cancelled": len([o for o in orders if o.status == "cancelled"]),
+        "ready": len([o for o in orders if o.status == "ready"]),
+        "payment": len([o for o in orders if o.status == "payment"]),
         "total_weight": sum(o.weight for o in orders if o.weight),
         "total_volume": sum(o.volume for o in orders if o.volume),
         "total_quantity": sum(o.quantity for o in orders),

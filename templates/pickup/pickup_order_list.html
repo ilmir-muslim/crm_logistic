@@ -10,6 +10,284 @@
 </div>
 {% endif %}
 
+{% if is_logistic %}
+<div class="alert alert-warning">
+    <strong>Режим логиста:</strong> Вы видите все заявки. 
+    Используйте фильтры для поиска.
+</div>
+{% endif %}
+
+<style>
+    /* Стили для инлайн-редактирования */
+    .editable-cell {
+        cursor: pointer;
+        position: relative;
+        transition: background-color 0.2s;
+        padding: 8px !important;
+        min-height: 40px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        font-size: 15px !important;
+        font-weight: normal !important;
+        color: #212529 !important;
+    }
+
+    .editable-cell:hover {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+        outline: 2px solid rgba(13, 110, 253, 0.3);
+        outline-offset: -2px;
+    }
+
+    .editable-cell.editing {
+        background-color: rgba(255, 255, 204, 0.3) !important;
+        padding: 0 !important;
+    }
+
+    .editable-input {
+        width: 100%;
+        padding: 6px 10px;
+        border: 2px solid #0d6efd;
+        border-radius: 4px;
+        font-size: 15px !important;
+        background-color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    .editable-select {
+        width: 100%;
+        padding: 6px 10px;
+        border: 2px solid #0d6efd;
+        border-radius: 4px;
+        font-size: 15px !important;
+        background-color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    .editable-date {
+        width: 100%;
+        padding: 6px 10px;
+        border: 2px solid #0d6efd;
+        border-radius: 4px;
+        font-size: 15px !important;
+        background-color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    .editable-time {
+        width: 100%;
+        padding: 6px 10px;
+        border: 2px solid #0d6efd;
+        border-radius: 4px;
+        font-size: 15px !important;
+        background-color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    .save-btn {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #198754;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        padding: 2px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        display: none;
+        z-index: 10;
+        transition: all 0.2s;
+    }
+
+    .save-btn:hover {
+        background: #157347;
+    }
+
+    .editing .save-btn {
+        display: block;
+    }
+
+    .cancel-btn {
+        position: absolute;
+        right: 40px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        padding: 2px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        display: none;
+        z-index: 10;
+        transition: all 0.2s;
+    }
+
+    .cancel-btn:hover {
+        background: #c82333;
+    }
+
+    .editing .cancel-btn {
+        display: block;
+    }
+
+    .status-badge-editable {
+        cursor: pointer;
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 15px !important;
+        font-weight: normal !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        transition: all 0.2s;
+    }
+
+    .status-badge-editable:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .inline-input-container {
+        position: relative;
+        padding: 6px 10px;
+    }
+
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        min-width: 300px;
+        max-width: 400px;
+    }
+
+    /* Единые шрифты для всей таблицы */
+    .table th {
+        white-space: nowrap;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        color: #fff !important;
+    }
+
+    .table td {
+        vertical-align: middle;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        font-size: 15px !important;
+        font-weight: normal !important;
+        color: #212529 !important;
+    }
+
+    /* Стили для статусов */
+    .status-ready { 
+        color: #0dcaf0 !important; 
+    }
+    .status-payment { 
+        color: #ffc107 !important; 
+    }
+
+    /* Стили для номера накладной */
+    .invoice-number {
+        font-family: monospace;
+        color: #495057;
+        font-weight: normal;
+        font-size: 15px !important;
+    }
+
+    /* Стили для оператора */
+    .operator-name {
+        font-weight: normal;
+        color: #495057;
+        font-size: 15px !important;
+    }
+
+    /* Убираем Bootstrap стили для тега code */
+    table code {
+        color: inherit !important;
+        background-color: transparent !important;
+        font-family: inherit !important;
+        font-size: inherit !important;
+        padding: 0 !important;
+        border: none !important;
+    }
+
+    /* Стили для тега code в таблице */
+    .editable-cell code {
+        color: inherit !important;
+        background-color: transparent !important;
+        font-family: inherit !important;
+        font-size: inherit !important;
+    }
+
+    /* Стиль для полосок таблицы */
+    .table-striped > tbody > tr:nth-of-type(odd) > * {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    /* Увеличиваем отступы для лучшего вида */
+    .table th,
+    .table td {
+        padding: 12px 10px !important;
+    }
+
+    /* Стили для кнопок действий */
+    .btn-group-sm .btn {
+        font-size: 14px !important;
+        padding: 4px 8px !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    /* Стили для пагинации */
+    .pagination .page-link {
+        font-size: 15px !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    /* Стили для фильтров */
+    .form-control, .form-select {
+        font-size: 15px !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    /* Стили для текста в заголовках карточек */
+    .card-header h5, .card-header h6 {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+    }
+
+    /* Улучшаем отображение на мобильных */
+    @media (max-width: 768px) {
+        .table th,
+        .table td {
+            padding: 8px 6px !important;
+            font-size: 15px !important;
+        }
+        
+        .editable-cell {
+            font-size: 15px !important;
+        }
+        
+        .status-badge-editable {
+            font-size: 14px !important;
+        }
+        
+        .btn-group-sm .btn {
+            font-size: 13px !important;
+            padding: 3px 6px !important;
+        }
+        
+        .invoice-number {
+            font-size: 14px !important;
+        }
+        
+        .operator-name {
+            font-size: 14px !important;
+        }
+    }
+</style>
+
 <!-- Форма фильтрации -->
 <div class="card mb-4">
     <div class="card-header bg-light">
@@ -17,61 +295,45 @@
     </div>
     <div class="card-body">
         <form method="get" class="row g-3">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Дата забора от</label>
-                <input type="date" name="pickup_date__gte" class="form-control" 
-                       value="{{ request.GET.pickup_date__gte }}">
+                <input type="date" name="pickup_date__gte" class="form-control" value="{{ request.GET.pickup_date__gte }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Дата забора до</label>
-                <input type="date" name="pickup_date__lte" class="form-control" 
-                       value="{{ request.GET.pickup_date__lte }}">
+                <input type="date" name="pickup_date__lte" class="form-control" value="{{ request.GET.pickup_date__lte }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Клиент</label>
                 <input type="text" name="client_name" class="form-control" 
-                       value="{{ request.GET.client_name }}" placeholder="Поиск по клиенту">
+                       value="{{ request.GET.client_name }}" placeholder="Имя клиента">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Адрес забора</label>
                 <input type="text" name="pickup_address" class="form-control" 
-                       value="{{ request.GET.pickup_address }}" placeholder="Поиск по адресу">
+                       value="{{ request.GET.pickup_address }}" placeholder="Адрес">
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Телефон клиента</label>
-                <input type="text" name="client_phone" class="form-control" 
-                       value="{{ request.GET.client_phone }}" placeholder="Поиск по телефону">
+            <div class="col-md-2">
+                <label class="form-label">Номер накладной</label>
+                <input type="text" name="invoice_number" class="form-control" 
+                       value="{{ request.GET.invoice_number }}" placeholder="Номер накладной">
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Email клиента</label>
-                <input type="text" name="client_email" class="form-control" 
-                       value="{{ request.GET.client_email }}" placeholder="Поиск по email">
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Статус</label>
                 <select name="status" class="form-select">
                     <option value="">Все</option>
-                    <option value="new" {% if request.GET.status == 'new' %}selected{% endif %}>Новая</option>
-                    <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>Подтверждена</option>
-                    <option value="picked_up" {% if request.GET.status == 'picked_up' %}selected{% endif %}>Забран</option>
-                    <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Отменена</option>
+                    <option value="ready" {% if request.GET.status == 'ready' %}selected{% endif %}>Готов к выдаче</option>
+                    <option value="payment" {% if request.GET.status == 'payment' %}selected{% endif %}>На оплате</option>
                 </select>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Только с доставкой</label>
-                <select name="has_delivery" class="form-select">
-                    <option value="">Все</option>
-                    <option value="1" {% if request.GET.has_delivery == '1' %}selected{% endif %}>Да</option>
-                    <option value="0" {% if request.GET.has_delivery == '0' %}selected{% endif %}>Нет</option>
-                </select>
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
+            <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100">Фильтровать</button>
                 <a href="{% url 'pickup_order_list' %}" class="btn btn-outline-secondary ms-2">Сбросить</a>
             </div>
         </form>
     </div>
 </div>
+
 <!-- Добавлен блок массовых действий -->
 <div class="card mb-3">
     <div class="card-header bg-light">
@@ -90,6 +352,9 @@
                     <span class="ms-3 text-muted" id="selectedCount">Выбрано: 0</span>
                 </div>
                 <div>
+                    <a href="{% url 'pickup_order_create' %}" class="btn btn-success me-2">
+                        <i class="bi bi-plus-circle"></i> Добавить новую заявку
+                    </a>
                     <button type="submit" class="btn btn-danger" id="exportPdfBtn" disabled>
                         <i class="bi bi-file-pdf"></i> Экспорт выбранного в PDF
                     </button>
@@ -99,7 +364,7 @@
     </div>
 </div>
 
-<!-- Таблица с чекбоксами -->
+<!-- Таблица с чекбоксами и инлайн-редактированием -->
 <div class="table-responsive">
     <table class="table table-hover table-striped">
         <thead class="table-dark">
@@ -107,59 +372,97 @@
                 <th style="width: 40px;">
                     <input type="checkbox" id="selectAllCheckbox" class="form-check-input">
                 </th>
+                <th>Номер накладной</th>
                 <th>Дата забора</th>
-                <th>Клиент</th>
-                <th>Адрес</th>
-                <th>Места</th>
-                <th>Вес/Объем</th>
+                <th>Время забора</th>
+                <th>Адрес забора</th>
+                <th>Контактное лицо</th>
+                <th>Дата доставки</th>
                 <th>Статус</th>
+                <th>Клиент</th>
                 <th>Оператор</th>
-                <th>Доставка</th>
+                <th>Места</th>
                 <th>Действия</th>
             </tr>
         </thead>
         <tbody>
             {% for order in orders %}
-            <tr>
+            <tr data-order-id="{{ order.id }}" data-order-type="pickup">
                 <td>
                     <input type="checkbox" name="order_ids" value="{{ order.id }}" 
                            class="form-check-input order-checkbox">
                 </td>
-                <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
-                <td><strong>{{ order.client_name }}</strong></td>
-                <td>
-                    <small>{{ order.pickup_address|truncatechars:30 }}</small>
-                </td>
-                <td>{{ order.quantity }}</td>
-                <td>
-                    {% if order.weight %}
-                        {{ order.weight }} кг
+                <td class="editable-cell" data-field="invoice_number" data-original="{{ order.invoice_number|default:'' }}">
+                    {% if order.invoice_number %}
+                        <span class="invoice-number">{{ order.invoice_number }}</span>
+                    {% else %}
+                        <span class="text-muted">-</span>
                     {% endif %}
-                    {% if order.volume %}
-                        / {{ order.volume }} м³
-                    {% endif %}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
-                <td>
-                    <span class="badge bg-{% if order.status == 'new' %}secondary{% elif order.status == 'confirmed' %}warning{% elif order.status == 'picked_up' %}success{% else %}danger{% endif %}">
+                <td class="editable-cell" data-field="pickup_date" data-original="{{ order.pickup_date|date:'Y-m-d' }}" data-type="date">
+                    {% if order.pickup_date %}
+                        {{ order.pickup_date|date:"d.m.Y" }}
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                </td>
+                <td class="editable-cell" data-field="pickup_time" data-original="{{ order.pickup_time|time:'H:i'|default:'' }}" data-type="time">
+                    {% if order.pickup_time %}
+                        {{ order.pickup_time|time:"H:i" }}
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                </td>
+                <td class="editable-cell" data-field="pickup_address" data-original="{{ order.pickup_address }}">
+                    {{ order.pickup_address|truncatechars:30 }}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                </td>
+                <td class="editable-cell" data-field="contact_person" data-original="{{ order.contact_person|default:order.client_name }}">
+                    {{ order.contact_person|default:order.client_name|truncatechars:20 }}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                </td>
+                <td class="editable-cell" data-field="desired_delivery_date" data-original="{{ order.desired_delivery_date|date:'Y-m-d'|default:'' }}" data-type="date">
+                    {% if order.desired_delivery_date %}
+                        {{ order.desired_delivery_date|date:"d.m.Y" }}
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                </td>
+                <td class="editable-cell" data-field="status" data-original="{{ order.status }}" data-type="select">
+                    <span class="status-badge-editable status-{{ order.status }}" onclick="startEditStatus(this)">
                         {{ order.get_status_display }}
                     </span>
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
-                <td>
+                <td class="editable-cell" data-field="client_name" data-original="{{ order.client_name }}">
+                    {{ order.client_name|truncatechars:20 }}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                </td>
+                <td class="editable-cell" data-field="operator" data-original="{{ order.operator.id|default:'' }}" data-type="select">
                     {% if order.operator %}
-                        {{ order.operator.username }}
+                        <span class="operator-name">{{ order.operator.get_full_name|default:order.operator.username|truncatechars:20 }}</span>
                     {% else %}
-                        <span class="text-muted">Не назначен</span>
+                        <span class="text-muted">-</span>
                     {% endif %}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
-                <td>
-                    {% if order.delivery_order %}
-                        <a href="{% url 'delivery_order_detail' order.delivery_order.pk %}" 
-                           class="badge bg-success text-decoration-none">
-                            Доставка #{{ order.delivery_order.id }}
-                        </a>
-                    {% else %}
-                        <span class="badge bg-secondary">Нет</span>
-                    {% endif %}
+                <td class="editable-cell" data-field="quantity" data-original="{{ order.quantity }}" data-type="number">
+                    {{ order.quantity }}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
                 <td>
                     <div class="btn-group btn-group-sm">
@@ -173,18 +476,16 @@
                         </a>
                         {% if order.is_convertible_to_delivery %}
                         <a href="{% url 'convert_to_delivery' order.pk %}" 
-                           class="btn btn-outline-success">В доставку</a>
+                           class="btn btn-outline-success">
+                            <i class="bi bi-truck"></i>
+                        </a>
                         {% endif %}
                     </div>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="10" class="text-center py-4">
-                    <div class="text-muted">
-                        Нет заявок на забор по заданным фильтрам
-                    </div>
-                </td>
+                <td colspan="12" class="text-center py-4" style="font-size: 15px;">Нет заявок по заданным фильтрам</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -197,39 +498,22 @@
     <ul class="pagination justify-content-center">
         {% if page_obj.has_previous %}
         <li class="page-item">
-            <a class="page-link" 
-               href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                Назад
-            </a>
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Назад</a>
         </li>
         {% endif %}
         
         <li class="page-item disabled">
-            <span class="page-link">
-                Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
-            </span>
+            <span class="page-link">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
         </li>
         
         {% if page_obj.has_next %}
         <li class="page-item">
-            <a class="page-link" 
-               href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                Вперед
-            </a>
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Вперед</a>
         </li>
         {% endif %}
     </ul>
 </nav>
 {% endif %}
-
-<div class="mt-3">
-    <a href="{% url 'pickup_order_create' %}" class="btn btn-success">
-        <i class="bi bi-plus-circle"></i> Новая заявка на забор
-    </a>
-    <a href="{% url 'delivery_order_list' %}" class="btn btn-outline-primary ms-2">
-        Перейти к доставкам
-    </a>
-</div>
 
 <!-- JavaScript для массового выбора -->
 <script>
@@ -297,5 +581,445 @@ document.addEventListener('DOMContentLoaded', function() {
     
     updateSelectedCount();
 });
+</script>
+
+<!-- JavaScript для инлайн-редактирования -->
+<script>
+// Глобальные переменные для хранения состояния
+let editingCell = null;
+let operatorsList = [];
+
+// Загружаем список операторов при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    initInlineEditing();
+    loadOperatorsList();
+});
+
+// Загрузка списка операторов
+function loadOperatorsList() {
+    const csrfToken = getCookie('csrftoken');
+    
+    fetch('{% url "get_operators" %}', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        operatorsList = data;
+        console.log('Операторы загружены:', operatorsList.length);
+    })
+    .catch(error => {
+        console.error('Ошибка загрузки операторов:', error);
+        // Запасной вариант: статический список
+        operatorsList = [
+            {id: '', name: 'Не назначен'}
+        ];
+    });
+}
+
+function initInlineEditing() {
+    const editableCells = document.querySelectorAll('.editable-cell');
+    
+    editableCells.forEach(cell => {
+        cell.addEventListener('click', function(e) {
+            // Если уже в режиме редактирования, выходим
+            if (this.classList.contains('editing')) return;
+            
+            // Если кликнули на кнопку сохранения или отмены
+            if (e.target.classList.contains('save-btn') || e.target.classList.contains('cancel-btn')) return;
+            
+            // Если это статус и кликнули на badge
+            if (e.target.classList.contains('status-badge-editable')) {
+                startEditing(this);
+                return;
+            }
+            
+            // Для остальных ячеек - двойной клик
+            if (e.detail === 2) {
+                startEditing(this);
+            }
+        });
+    });
+}
+
+function startEditing(cell) {
+    // Если уже редактируем другую ячейку, сохраняем ее
+    if (editingCell && editingCell !== cell) {
+        saveCell(editingCell.querySelector('.save-btn'));
+    }
+    
+    const field = cell.getAttribute('data-field');
+    const originalValue = cell.getAttribute('data-original') || '';
+    const type = cell.getAttribute('data-type') || 'text';
+    const isStatusCell = field === 'status';
+    const isOperatorCell = field === 'operator';
+    
+    // Сохраняем оригинальное содержимое
+    cell.setAttribute('data-original-content', cell.innerHTML);
+    cell.classList.add('editing');
+    editingCell = cell;
+    
+    let inputElement;
+    
+    if (type === 'select' || isStatusCell || isOperatorCell) {
+        inputElement = document.createElement('select');
+        inputElement.className = 'editable-select';
+        
+        // Опции для статусов
+        let options = [];
+        if (field === 'status') {
+            const orderType = 'pickup'; // фиксированное значение для заборов
+            options = [
+                {value: 'ready', text: 'Готов к выдаче'},
+                {value: 'payment', text: 'На оплате'}
+            ];
+        } else if (field === 'operator') {
+            // Опции для оператора
+            options = [
+                {value: '', text: 'Не назначен'}
+            ];
+            // Добавляем операторов из списка
+            operatorsList.forEach(operator => {
+                options.push({
+                    value: operator.id,
+                    text: operator.full_name || operator.username
+                });
+            });
+        } else {
+            // Для других селектов
+            options = [{value: originalValue, text: originalValue}];
+        }
+        
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            if (opt.value.toString() === originalValue.toString()) {
+                option.selected = true;
+            }
+            inputElement.appendChild(option);
+        });
+    } else if (type === 'date') {
+        inputElement = document.createElement('input');
+        inputElement.type = 'date';
+        inputElement.className = 'editable-date';
+        inputElement.value = originalValue;
+    } else if (type === 'time') {
+        inputElement = document.createElement('input');
+        inputElement.type = 'time';
+        inputElement.className = 'editable-time';
+        inputElement.value = originalValue;
+    } else if (type === 'number') {
+        inputElement = document.createElement('input');
+        inputElement.type = 'number';
+        inputElement.className = 'editable-input';
+        inputElement.value = originalValue;
+        inputElement.min = field === 'quantity' ? '1' : '0';
+        inputElement.step = '1';
+    } else {
+        inputElement = document.createElement('input');
+        inputElement.type = 'text';
+        inputElement.className = 'editable-input';
+        inputElement.value = originalValue;
+    }
+    
+    // Создаем контейнер для input
+    const inputContainer = document.createElement('div');
+    inputContainer.className = 'inline-input-container';
+    inputContainer.appendChild(inputElement);
+    
+    // Очищаем ячейку и добавляем input
+    cell.innerHTML = '';
+    cell.appendChild(inputContainer);
+    
+    // Фокус на поле ввода
+    inputElement.focus();
+    
+    // Обработка нажатия Enter и Escape
+    inputElement.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            saveCell(cell);
+        } else if (e.key === 'Escape') {
+            cancelEditing(cell);
+        }
+    });
+    
+    // Сохранение при потере фокуса
+    inputElement.addEventListener('blur', function() {
+        setTimeout(() => {
+            if (!cell.contains(document.activeElement)) {
+                saveCell(cell);
+            }
+        }, 100);
+    });
+}
+
+function startEditStatus(statusBadge) {
+    const cell = statusBadge.closest('.editable-cell');
+    startEditing(cell);
+}
+
+function saveCell(cell) {
+    // Если cell - это кнопка, находим родительскую ячейку
+    if (cell.tagName === 'BUTTON') {
+        cell = cell.parentElement;
+    }
+    
+    const inputElement = cell.querySelector('input, select');
+    if (!inputElement) return;
+    
+    const newValue = inputElement.value;
+    const field = cell.getAttribute('data-field');
+    const orderId = cell.closest('tr').getAttribute('data-order-id');
+    const type = cell.getAttribute('data-type') || 'text';
+    
+    // Валидация
+    if (field === 'quantity' && (!newValue || parseInt(newValue) < 1)) {
+        showNotification('Количество мест должно быть не менее 1', 'error');
+        return;
+    }
+    
+    // Для оператора: если пустое значение, отправляем null
+    let valueToSend = newValue;
+    if (field === 'operator' && newValue === '') {
+        valueToSend = null;
+    }
+    
+    // Отправка на сервер
+    saveToServer(orderId, field, valueToSend, cell, type);
+}
+
+function saveToServer(orderId, field, value, cell, type) {
+    // ИСПРАВЛЕН URL - используем template tag
+    const url = `{% url 'pickup_order_update_field' 0 %}`.replace('0', orderId);
+    const csrfToken = getCookie('csrftoken');
+    
+    // Показываем индикатор загрузки
+    cell.classList.add('loading');
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            field: field,
+            value: value
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        cell.classList.remove('loading');
+        
+        if (data.success) {
+            let displayValue = data.display_value;
+            
+            // Для оператора получаем имя из списка
+            if (field === 'operator') {
+                const operator = operatorsList.find(op => op.id.toString() === value);
+                displayValue = operator ? operator.full_name || operator.username : '';
+            }
+            
+            updateCellDisplay(cell, field, value, displayValue, type);
+            showNotification('Изменения сохранены', 'success');
+            editingCell = null;
+        } else {
+            showNotification('Ошибка: ' + data.error, 'error');
+            cancelEditing(cell);
+        }
+    })
+    .catch(error => {
+        cell.classList.remove('loading');
+        console.error('Error:', error);
+        showNotification('Ошибка сети при сохранении: ' + error.message, 'error');
+        cancelEditing(cell);
+    });
+}
+
+function updateCellDisplay(cell, field, value, displayValue, type) {
+    cell.classList.remove('editing');
+    
+    if (field === 'status') {
+        // Обновляем badge статуса
+        const statusClass = `status-${value}`;
+        
+        cell.innerHTML = `
+            <span class="status-badge-editable ${statusClass}" onclick="startEditStatus(this)">
+                ${displayValue || value}
+            </span>
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value);
+    } else if (field === 'operator') {
+        // Обновляем отображение оператора
+        let operatorName = '-';
+        if (value && displayValue) {
+            operatorName = displayValue;
+        } else if (value) {
+            // Пытаемся найти имя оператора по ID
+            const operator = operatorsList.find(op => op.id.toString() === value.toString());
+            operatorName = operator ? (operator.full_name || operator.username) : `Оператор #${value}`;
+        }
+        
+        cell.innerHTML = `
+            <span class="operator-name">${operatorName}</span>
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value || '');
+    } else if (field === 'pickup_date' || field === 'desired_delivery_date') {
+        // Форматируем дату для отображения
+        let displayText = '-';
+        if (value) {
+            const date = new Date(value);
+            if (!isNaN(date)) {
+                displayText = date.toLocaleDateString('ru-RU');
+            }
+        }
+        cell.innerHTML = `
+            ${displayText}
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value);
+    } else if (field === 'pickup_time') {
+        cell.innerHTML = `
+            ${value || '-'}
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value);
+    } else if (field === 'invoice_number') {
+        if (!value || value.trim() === '') {
+            cell.innerHTML = `
+                <span class="text-muted">-</span>
+                <button class="save-btn" onclick="saveCell(this)">✓</button>
+                <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+            `;
+        } else {
+            cell.innerHTML = `
+                <span class="invoice-number">${value}</span>
+                <button class="save-btn" onclick="saveCell(this)">✓</button>
+                <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+            `;
+        }
+        cell.setAttribute('data-original', value);
+    } else if (field === 'pickup_address') {
+        cell.innerHTML = `
+            ${value.length > 30 ? value.substring(0, 30) + '...' : value}
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value);
+    } else if (field === 'contact_person' || field === 'client_name') {
+        cell.innerHTML = `
+            ${value.length > 20 ? value.substring(0, 20) + '...' : value}
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value);
+    } else if (field === 'quantity') {
+        cell.innerHTML = `
+            ${value}
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value);
+    } else {
+        cell.innerHTML = `
+            ${value}
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value);
+    }
+}
+
+function cancelEditing(cell) {
+    const originalContent = cell.getAttribute('data-original-content');
+    if (originalContent) {
+        cell.innerHTML = originalContent;
+    }
+    cell.classList.remove('editing');
+    editingCell = null;
+}
+
+function showNotification(message, type) {
+    // Удаляем старые уведомления
+    const oldNotifications = document.querySelectorAll('.notification-alert');
+    oldNotifications.forEach(alert => {
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+    });
+    
+    // Создаем новое уведомление
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show notification-alert`;
+    alert.style.cssText = `
+        position: fixed;
+        top: 100px;  /* Увеличил отступ сверху чтобы не скрывалось под хидером */
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    alert.innerHTML = `
+        <div class="d-flex align-items-center">
+            ${type === 'success' ? 
+                '<i class="bi bi-check-circle-fill me-2 fs-5"></i>' : 
+                '<i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>'
+            }
+            <div>${message}</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Вставляем в body
+    document.body.appendChild(alert);
+    
+    // Автоматически скрываем через 3 секунды
+    setTimeout(() => {
+        if (alert.parentNode) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }
+    }, 3000);
+}
+
+// Функция для получения CSRF токена
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Глобальные функции для использования в onclick
+window.saveCell = saveCell;
+window.cancelEditing = cancelEditing;
+window.startEditStatus = startEditStatus;
 </script>
 {% endblock %}

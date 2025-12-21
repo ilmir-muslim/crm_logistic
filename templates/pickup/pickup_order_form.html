@@ -41,6 +41,44 @@
                     </div>
                     
                     <div class="mb-3">
+                        <label class="form-label">Время забора</label>
+                        <input type="time" name="pickup_time" 
+                               class="form-control {% if form.pickup_time.errors %}is-invalid{% endif %}" 
+                               value="{{ form.pickup_time.value|time:'H:i'|default:'' }}">
+                        {% if form.pickup_time.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.pickup_time.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Контактное лицо для выдачи груза *</label>
+                        <input type="text" name="contact_person" 
+                               class="form-control {% if form.contact_person.errors %}is-invalid{% endif %}" 
+                               value="{{ form.contact_person.value|default:'' }}" required>
+                        <small class="form-text text-muted">ФИО лица, которое будет выдавать груз</small>
+                        {% if form.contact_person.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.contact_person.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Номер накладной</label>
+                        <input type="text" name="invoice_number" 
+                               class="form-control {% if form.invoice_number.errors %}is-invalid{% endif %}" 
+                               value="{{ form.invoice_number.value|default:'' }}"
+                               placeholder="Номер транспортной накладной">
+                        {% if form.invoice_number.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.invoice_number.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
                         <label class="form-label">Клиент/Компания *</label>
                         <input type="text" name="client_name" 
                                class="form-control {% if form.client_name.errors %}is-invalid{% endif %}" 
@@ -53,10 +91,22 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Телефон клиента</label>
+                        <label class="form-label">Наименование компании *</label>
+                        <input type="text" name="client_company" 
+                               class="form-control {% if form.client_company.errors %}is-invalid{% endif %}" 
+                               value="{{ form.client_company.value|default:'' }}" required>
+                        {% if form.client_company.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.client_company.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Телефон клиента *</label>
                         <input type="tel" name="client_phone" 
                                class="form-control {% if form.client_phone.errors %}is-invalid{% endif %}" 
-                               value="{{ form.client_phone.value|default:'' }}">
+                               value="{{ form.client_phone.value|default:'' }}" required>
                         {% if form.client_phone.errors %}
                         <div class="invalid-feedback">
                             {{ form.client_phone.errors.0 }}
@@ -92,7 +142,7 @@
                 
                 <!-- Правая колонка -->
                 <div class="col-md-6">
-                    <h5 class="border-bottom pb-2 mb-3">Характеристики груза</h5>
+                    <h5 class="border-bottom pb-2 mb-3">Характеристики груза и доставка</h5>
                     
                     <div class="row mb-3">
                         <div class="col-md-4">
@@ -130,10 +180,100 @@
                         </div>
                     </div>
                     
+                    <!-- Дополнительные поля из требований -->
+                    <div class="mb-3">
+                        <label class="form-label">Маркетплейс</label>
+                        <select name="marketplace" 
+                                class="form-select {% if form.marketplace.errors %}is-invalid{% endif %}">
+                            {% for value, label in form.fields.marketplace.choices %}
+                            <option value="{{ value }}" 
+                                    {% if form.marketplace.value == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.marketplace.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.marketplace.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">№ заказа в 1С</label>
+                        <input type="text" name="order_1c_number" 
+                               class="form-control {% if form.order_1c_number.errors %}is-invalid{% endif %}" 
+                               value="{{ form.order_1c_number.value|default:'' }}"
+                               placeholder="Номер заказа в системе 1С">
+                        {% if form.order_1c_number.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.order_1c_number.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Желаемая дата поставки *</label>
+                        <input type="date" name="desired_delivery_date" 
+                               class="form-control {% if form.desired_delivery_date.errors %}is-invalid{% endif %}" 
+                               value="{{ form.desired_delivery_date.value|date:'Y-m-d' }}" required>
+                        {% if form.desired_delivery_date.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.desired_delivery_date.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Адрес доставки *</label>
+                        <textarea name="delivery_address" rows="3" 
+                                  class="form-control {% if form.delivery_address.errors %}is-invalid{% endif %}" 
+                                  required>{{ form.delivery_address.value|default:'' }}</textarea>
+                        <small class="form-text text-muted">Полный адрес доставки</small>
+                        {% if form.delivery_address.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.delivery_address.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Оператор приемки</label>
+                        <select name="receiving_operator" 
+                                class="form-select {% if form.receiving_operator.errors %}is-invalid{% endif %}">
+                            <option value="">Не назначен</option>
+                            {% for user in form.fields.receiving_operator.queryset %}
+                            <option value="{{ user.pk }}" 
+                                    {% if form.receiving_operator.value == user.pk %}selected{% endif %}>
+                                {{ user.get_full_name|default:user.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.receiving_operator.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.receiving_operator.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Склад приемки</label>
+                        <input type="text" name="receiving_warehouse" 
+                               class="form-control {% if form.receiving_warehouse.errors %}is-invalid{% endif %}" 
+                               value="{{ form.receiving_warehouse.value|default:'' }}"
+                               placeholder="Склад, куда будет доставлен груз">
+                        {% if form.receiving_warehouse.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.receiving_warehouse.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
                     <div class="mb-3">
                         <label class="form-label">Описание груза</label>
                         <textarea name="cargo_description" rows="3" 
                                   class="form-control {% if form.cargo_description.errors %}is-invalid{% endif %}">{{ form.cargo_description.value|default:'' }}</textarea>
+                        <small class="form-text text-muted">Дополнительная информация о заказе</small>
                         {% if form.cargo_description.errors %}
                         <div class="invalid-feedback">
                             {{ form.cargo_description.errors.0 }}
@@ -154,7 +294,7 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Статус</label>
+                        <label class="form-label">Статус заявки</label>
                         <select name="status" 
                                 class="form-select {% if form.status.errors %}is-invalid{% endif %}">
                             {% for value, label in form.fields.status.choices %}
@@ -171,7 +311,7 @@
                         {% endif %}
                     </div>
                     
-                    {% if object and form.notes %}
+                    {% if object %}
                     <div class="mb-3">
                         <label class="form-label">Внутренние заметки</label>
                         <textarea name="notes" rows="3" 
@@ -196,4 +336,24 @@
         </form>
     </div>
 </div>
+
+<style>
+    .form-label {
+        font-weight: 500;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .card {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .border-bottom {
+        border-color: #dee2e6 !important;
+    }
+    .form-text.text-muted {
+        font-size: 0.875rem;
+    }
+</style>
+
 {% endblock %}

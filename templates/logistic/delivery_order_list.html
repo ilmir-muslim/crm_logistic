@@ -17,6 +17,263 @@
 </div>
 {% endif %}
 
+<style>
+    /* Стили для инлайн-редактирования */
+    .editable-cell {
+        cursor: pointer;
+        position: relative;
+        transition: background-color 0.2s;
+        padding: 8px !important;
+        min-height: 40px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        font-size: 15px !important;
+        font-weight: normal !important;
+        color: #212529 !important;
+    }
+
+    .editable-cell:hover {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+        outline: 2px solid rgba(13, 110, 253, 0.3);
+        outline-offset: -2px;
+    }
+
+    .editable-cell.editing {
+        background-color: rgba(255, 255, 204, 0.3) !important;
+        padding: 0 !important;
+    }
+
+    .editable-input {
+        width: 100%;
+        padding: 6px 10px;
+        border: 2px solid #0d6efd;
+        border-radius: 4px;
+        font-size: 15px !important;
+        background-color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    .editable-select {
+        width: 100%;
+        padding: 6px 10px;
+        border: 2px solid #0d6efd;
+        border-radius: 4px;
+        font-size: 15px !important;
+        background-color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    .editable-date {
+        width: 100%;
+        padding: 6px 10px;
+        border: 2px solid #0d6efd;
+        border-radius: 4px;
+        font-size: 15px !important;
+        background-color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    .save-btn {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #198754;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        padding: 2px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        display: none;
+        z-index: 10;
+        transition: all 0.2s;
+    }
+
+    .save-btn:hover {
+        background: #157347;
+    }
+
+    .editing .save-btn {
+        display: block;
+    }
+
+    .cancel-btn {
+        position: absolute;
+        right: 40px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        padding: 2px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        display: none;
+        z-index: 10;
+        transition: all 0.2s;
+    }
+
+    .cancel-btn:hover {
+        background: #c82333;
+    }
+
+    .editing .cancel-btn {
+        display: block;
+    }
+
+    .status-badge-editable {
+        cursor: pointer;
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 15px !important;
+        font-weight: normal !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        transition: all 0.2s;
+        background-color: transparent !important; /* Прозрачный фон */
+    }
+
+    .status-badge-editable:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .inline-input-container {
+        position: relative;
+        padding: 6px 10px;
+    }
+
+    .driver-info-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        min-width: 300px;
+        max-width: 400px;
+    }
+
+    /* Единые шрифты для всей таблицы */
+    .table th {
+        white-space: nowrap;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        color: #fff !important;
+    }
+
+    .table td {
+        vertical-align: middle;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        font-size: 15px !important;
+        font-weight: normal !important;
+        color: #212529 !important;
+    }
+
+    /* Стили для веса/объема */
+    .weight-volume-cell {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        font-size: 15px !important;
+        font-weight: normal !important;
+    }
+
+    /* Убираем жирное начертание */
+    .table td strong {
+        font-weight: normal !important;
+    }
+
+    /* ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ СТАТУСОВ - ЦВЕТ ТЕКСТА ВМЕСТО ФОНА */
+    .status-submitted { 
+        color: #ffc107 !important; 
+        font-weight: bold !important;
+    }
+    
+    .status-driver_assigned { 
+        color: #0dcaf0 !important; 
+        font-weight: bold !important;
+    }
+    
+    .status-shipped { 
+        color: #198754 !important; 
+        font-weight: bold !important;
+    }
+
+    /* Убираем Bootstrap стили для тега code */
+    table code {
+        color: inherit !important;
+        background-color: transparent !important;
+        font-family: inherit !important;
+        font-size: inherit !important;
+        padding: 0 !important;
+        border: none !important;
+    }
+
+    /* Стиль для полосок таблицы */
+    .table-striped > tbody > tr:nth-of-type(odd) > * {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    /* Увеличиваем отступы для лучшего вида */
+    .table th,
+    .table td {
+        padding: 12px 10px !important;
+    }
+
+    /* Стили для кнопок действий */
+    .btn-group-sm .btn {
+        font-size: 14px !important;
+        padding: 4px 8px !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    /* Стили для пагинации */
+    .pagination .page-link {
+        font-size: 15px !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    /* Стили для фильтров */
+    .form-control, .form-select {
+        font-size: 15px !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    /* Стили для текста в заголовках карточек */
+    .card-header h5, .card-header h6 {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+    }
+
+    /* Улучшаем отображение на мобильных */
+    @media (max-width: 768px) {
+        .table th,
+        .table td {
+            padding: 8px 6px !important;
+            font-size: 15px !important;
+        }
+        
+        .editable-cell {
+            font-size: 15px !important;
+        }
+        
+        .status-badge-editable {
+            font-size: 14px !important;
+        }
+        
+        .btn-group-sm .btn {
+            font-size: 13px !important;
+            padding: 3px 6px !important;
+        }
+    }
+</style>
+
 <!-- Форма фильтрации -->
 <div class="card mb-4">
     <div class="card-header bg-light">
@@ -87,7 +344,7 @@
     </div>
 </div>
 
-<!-- Таблица с чекбоксами -->
+<!-- Таблица с чекбоксами и инлайн-редактированием -->
 <div class="table-responsive">
     <table class="table table-hover table-striped">
         <thead class="table-dark">
@@ -107,28 +364,75 @@
         </thead>
         <tbody>
             {% for order in orders %}
-            <tr>
+            <tr data-order-id="{{ order.id }}">
                 <td>
                     <input type="checkbox" name="order_ids" value="{{ order.id }}" 
                            class="form-check-input order-checkbox">
                 </td>
-                <td>{{ order.date|date:"d.m.Y" }}</td>
-                <td><strong>{{ order.city }}</strong></td>
-                <td>{{ order.warehouse }}</td>
-                <td>{{ order.quantity }}</td>
-                <td>{{ order.weight }} кг / {{ order.volume }} м³</td>
-                <td>
-                    <span class="status-{{ order.status }}">
-                        {{ order.get_status_display }}
-                    </span>
+                <!-- Исправлено: Добавлено редактирование даты -->
+                <td class="editable-cell" data-field="date" data-original="{{ order.date|date:'Y-m-d' }}" data-type="date">
+                    {{ order.date|date:"d.m.Y" }}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                </td>
+                <!-- Исправлено: Убран тег <strong> для единообразия -->
+                <td class="editable-cell" data-field="city" data-original="{{ order.city }}">
+                    {{ order.city }}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                </td>
+                <td class="editable-cell" data-field="warehouse" data-original="{{ order.warehouse }}">
+                    {{ order.warehouse }}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                </td>
+                <td class="editable-cell" data-field="quantity" data-original="{{ order.quantity }}" data-type="number">
+                    {{ order.quantity }}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
                 <td>
-                    {% if order.driver_name %}
-                        {{ order.driver_name }}<br>
-                        <small>{{ order.driver_phone }}</small>
-                    {% else %}
-                        <span class="text-muted">Не назначен</span>
-                    {% endif %}
+                    <div class="d-flex align-items-center gap-2 weight-volume-cell">
+                        <span class="editable-cell" data-field="weight" data-original="{{ order.weight }}" data-type="number" style="flex: 1;">
+                            {{ order.weight }}
+                            <button class="save-btn" onclick="saveCell(this)">✓</button>
+                            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                        </span>
+                        <span>кг /</span>
+                        <span class="editable-cell" data-field="volume" data-original="{{ order.volume }}" data-type="number" style="flex: 1;">
+                            {{ order.volume }}
+                            <button class="save-btn" onclick="saveCell(this)">✓</button>
+                            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                        </span>
+                        <span>м³</span>
+                    </div>
+                </td>
+                <td class="editable-cell" data-field="status" data-original="{{ order.status }}" data-type="select">
+                    <span class="status-badge-editable status-{{ order.status }}" onclick="startEditStatus(this)">
+                        {{ order.get_status_display }}
+                    </span>
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                </td>
+                <td>
+                    <div class="driver-info-container">
+                        <span class="editable-cell" data-field="driver_name" data-original="{{ order.driver_name|default:'' }}">
+                            {% if order.driver_name %}
+                                {{ order.driver_name }}
+                            {% else %}
+                                <span class="text-muted">Не назначен</span>
+                            {% endif %}
+                            <button class="save-btn" onclick="saveCell(this)">✓</button>
+                            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                        </span>
+                        {% if order.driver_phone %}
+                        <small class="editable-cell" data-field="driver_phone" data-original="{{ order.driver_phone }}" style="color: #666; font-size: 15px;">
+                            {{ order.driver_phone }}
+                            <button class="save-btn" onclick="saveCell(this)">✓</button>
+                            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                        </small>
+                        {% endif %}
+                    </div>
                 </td>
                 <td>
                     <div class="btn-group btn-group-sm">
@@ -145,7 +449,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="9" class="text-center py-4">Нет заявок по заданным фильтрам</td>
+                <td colspan="9" class="text-center py-4" style="font-size: 15px;">Нет заявок по заданным фильтрам</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -245,5 +549,371 @@ document.addEventListener('DOMContentLoaded', function() {
     
     updateSelectedCount();
 });
+</script>
+
+<!-- JavaScript для инлайн-редактирования -->
+<script>
+// Глобальные переменные для хранения состояния
+let editingCell = null;
+
+// Инициализация инлайн-редактирования
+document.addEventListener('DOMContentLoaded', function() {
+    initInlineEditing();
+});
+
+function initInlineEditing() {
+    const editableCells = document.querySelectorAll('.editable-cell');
+    
+    editableCells.forEach(cell => {
+        cell.addEventListener('click', function(e) {
+            // Если уже в режиме редактирования, выходим
+            if (this.classList.contains('editing')) return;
+            
+            // Если кликнули на кнопку сохранения или отмены
+            if (e.target.classList.contains('save-btn') || e.target.classList.contains('cancel-btn')) return;
+            
+            // Если это статус и кликнули на badge
+            if (e.target.classList.contains('status-badge-editable')) {
+                startEditing(this);
+                return;
+            }
+            
+            // Для остальных ячеек - двойной клик
+            if (e.detail === 2) {
+                startEditing(this);
+            }
+        });
+    });
+}
+
+function startEditing(cell) {
+    // Если уже редактируем другую ячейку, сохраняем ее
+    if (editingCell && editingCell !== cell) {
+        saveCell(editingCell.querySelector('.save-btn'));
+    }
+    
+    const field = cell.getAttribute('data-field');
+    const originalValue = cell.getAttribute('data-original') || '';
+    const type = cell.getAttribute('data-type') || 'text';
+    const isStatusCell = field === 'status';
+    
+    // Сохраняем оригинальное содержимое
+    cell.setAttribute('data-original-content', cell.innerHTML);
+    cell.classList.add('editing');
+    editingCell = cell;
+    
+    let inputElement;
+    
+    if (type === 'select' || isStatusCell) {
+        inputElement = document.createElement('select');
+        inputElement.className = 'editable-select';
+        
+        // Опции для статусов
+        let options = [];
+        if (field === 'status') {
+            options = [
+                {value: 'submitted', text: 'Подана'},
+                {value: 'driver_assigned', text: 'Водитель назначен'},
+                {value: 'shipped', text: 'Отправлено'}
+            ];
+        } else {
+            // Для других селектов
+            options = [{value: originalValue, text: originalValue}];
+        }
+        
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            if (opt.value === originalValue) option.selected = true;
+            inputElement.appendChild(option);
+        });
+    } else if (type === 'date') {
+        inputElement = document.createElement('input');
+        inputElement.type = 'date';
+        inputElement.className = 'editable-date';
+        inputElement.value = originalValue;
+    } else if (type === 'time') {
+        inputElement = document.createElement('input');
+        inputElement.type = 'time';
+        inputElement.className = 'editable-input';
+        inputElement.value = originalValue;
+    } else if (type === 'number') {
+        inputElement = document.createElement('input');
+        inputElement.type = 'number';
+        inputElement.className = 'editable-input';
+        inputElement.value = originalValue;
+        inputElement.min = field === 'quantity' ? '1' : '0';
+        inputElement.step = field === 'weight' || field === 'volume' ? '0.01' : '1';
+    } else {
+        inputElement = document.createElement('input');
+        inputElement.type = 'text';
+        inputElement.className = 'editable-input';
+        inputElement.value = originalValue;
+    }
+    
+    // Создаем контейнер для input
+    const inputContainer = document.createElement('div');
+    inputContainer.className = 'inline-input-container';
+    inputContainer.appendChild(inputElement);
+    
+    // Очищаем ячейку и добавляем input
+    cell.innerHTML = '';
+    cell.appendChild(inputContainer);
+    
+    // Фокус на поле ввода
+    inputElement.focus();
+    
+    // Обработка нажатия Enter и Escape
+    inputElement.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            saveCell(cell);
+        } else if (e.key === 'Escape') {
+            cancelEditing(cell);
+        }
+    });
+    
+    // Сохранение при потере фокуса
+    inputElement.addEventListener('blur', function() {
+        setTimeout(() => {
+            if (!cell.contains(document.activeElement)) {
+                saveCell(cell);
+            }
+        }, 100);
+    });
+}
+
+function startEditStatus(statusBadge) {
+    const cell = statusBadge.closest('.editable-cell');
+    startEditing(cell);
+}
+
+function saveCell(cell) {
+    // Если cell - это кнопка, находим родительскую ячейку
+    if (cell.tagName === 'BUTTON') {
+        cell = cell.parentElement;
+    }
+    
+    const inputElement = cell.querySelector('input, select');
+    if (!inputElement) return;
+    
+    const newValue = inputElement.value;
+    const field = cell.getAttribute('data-field');
+    const orderId = cell.closest('tr').getAttribute('data-order-id');
+    const type = cell.getAttribute('data-type') || 'text';
+    
+    // Валидация
+    if (field === 'quantity' && (!newValue || parseInt(newValue) < 1)) {
+        showNotification('Количество мест должно быть не менее 1', 'error');
+        return;
+    }
+    
+    if ((field === 'weight' || field === 'volume') && parseFloat(newValue) < 0) {
+        showNotification('Значение должно быть положительным', 'error');
+        return;
+    }
+    
+    // Отправка на сервер
+    saveToServer(orderId, field, newValue, cell, type);
+}
+
+function saveToServer(orderId, field, value, cell, type) {
+    // Используем правильный URL
+    const url = `{% url 'delivery_order_update_field' 0 %}`.replace('0', orderId);
+    const csrfToken = getCookie('csrftoken');
+    
+    // Показываем индикатор загрузки
+    cell.classList.add('loading');
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            field: field,
+            value: value
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        cell.classList.remove('loading');
+        
+        if (data.success) {
+            updateCellDisplay(cell, field, value, data.display_value, type);
+            showNotification('Изменения сохранены', 'success');
+            editingCell = null;
+        } else {
+            showNotification('Ошибка: ' + data.error, 'error');
+            cancelEditing(cell);
+        }
+    })
+    .catch(error => {
+        cell.classList.remove('loading');
+        console.error('Error:', error);
+        showNotification('Ошибка сети при сохранении: ' + error.message, 'error');
+        cancelEditing(cell);
+    });
+}
+
+function updateCellDisplay(cell, field, value, displayValue, type) {
+    cell.classList.remove('editing');
+    
+    if (field === 'status') {
+        // Обновляем badge статуса
+        const statusClass = `status-${value}`;
+        
+        cell.innerHTML = `
+            <span class="status-badge-editable ${statusClass}" onclick="startEditStatus(this)">
+                ${displayValue || value}
+            </span>
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value);
+    } else if (field === 'date') {
+        // Форматируем дату для отображения
+        let displayText = '-';
+        if (value) {
+            const date = new Date(value);
+            if (!isNaN(date)) {
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                displayText = `${day}.${month}.${year}`;
+            }
+        }
+        cell.innerHTML = `
+            ${displayText}
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value);
+    } else if (field === 'driver_name') {
+        // Специальная обработка для имени водителя
+        if (!value || value.trim() === '') {
+            cell.innerHTML = `
+                <span class="text-muted">Не назначен</span>
+                <button class="save-btn" onclick="saveCell(this)">✓</button>
+                <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+            `;
+        } else {
+            cell.innerHTML = `
+                ${value}
+                <button class="save-btn" onclick="saveCell(this)">✓</button>
+                <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+            `;
+        }
+        cell.setAttribute('data-original', value);
+    } else if (field === 'driver_phone') {
+        cell.innerHTML = `
+            ${value}
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value);
+    } else if (field === 'weight' || field === 'volume') {
+        cell.innerHTML = `
+            ${value}
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value);
+    } else if (field === 'city') {
+        // Убираем тег <strong> для единообразия
+        cell.innerHTML = `
+            ${value}
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value);
+    } else {
+        cell.innerHTML = `
+            ${value}
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value);
+    }
+}
+
+function cancelEditing(cell) {
+    const originalContent = cell.getAttribute('data-original-content');
+    if (originalContent) {
+        cell.innerHTML = originalContent;
+    }
+    cell.classList.remove('editing');
+    editingCell = null;
+}
+
+function showNotification(message, type) {
+    // Удаляем старые уведомления
+    const oldNotifications = document.querySelectorAll('.notification-alert');
+    oldNotifications.forEach(alert => {
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+    });
+    
+    // Создаем новое уведомление
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show notification-alert`;
+    alert.style.cssText = `
+        position: fixed;
+        top: 100px;  /* Увеличил отступ сверху чтобы не скрывалось под хидером */
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    alert.innerHTML = `
+        <div class="d-flex align-items-center">
+            ${type === 'success' ? 
+                '<i class="bi bi-check-circle-fill me-2 fs-5"></i>' : 
+                '<i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>'
+            }
+            <div>${message}</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Вставляем в body
+    document.body.appendChild(alert);
+    
+    // Автоматически скрываем через 3 секунды
+    setTimeout(() => {
+        if (alert.parentNode) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }
+    }, 3000);
+}
+
+// Функция для получения CSRF токена
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Глобальные функции для использования в onclick
+window.saveCell = saveCell;
+window.cancelEditing = cancelEditing;
+window.startEditStatus = startEditStatus;
 </script>
 {% endblock %}
