@@ -466,29 +466,61 @@ def daily_report_pdf(request):
 
 
 def delivery_orders_bulk_pdf(request):
+    """Экспорт выбранных заявок на доставку в ZIP-архив"""
     order_ids = request.GET.getlist("order_ids")
 
     if not order_ids:
         messages.error(request, "Не выбраны заявки для экспорта")
         return redirect("delivery_order_list")
 
-    orders = DeliveryOrder.objects.filter(id__in=order_ids)
+    try:
+        orders = DeliveryOrder.objects.filter(id__in=order_ids)
 
-    if hasattr(request.user, "profile") and request.user.profile.is_operator:
-        orders = orders.filter(operator=request.user)
+        if hasattr(request.user, "profile") and request.user.profile.is_operator:
+            orders = orders.filter(operator=request.user)
 
-    zip_buffer = BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        for order in orders:
-            pdf = create_delivery_order_pdf(order)
-            if pdf:
-                filename = f"delivery_{order.tracking_number or order.id}.pdf"
-                zip_file.writestr(filename, pdf)
+        if not orders.exists():
+            messages.error(request, "Не найдено заявок для экспорта")
+            return redirect("delivery_order_list")
 
-    zip_buffer.seek(0)
-    response = HttpResponse(zip_buffer, content_type="application/zip")
-    response["Content-Disposition"] = 'attachment; filename="delivery_orders.zip"'
-    return response
+        zip_buffer = BytesIO()
+        success_count = 0
+
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for order in orders:
+                try:
+                    pdf = create_delivery_order_pdf(order)
+                    if pdf:
+                        filename = f"delivery_{order.tracking_number or order.id}.pdf"
+                        zip_file.writestr(filename, pdf)
+                        success_count += 1
+                        print(f"✅ PDF создан для заявки {order.id}: {filename}")
+                    else:
+                        print(f"⚠️ PDF не создан для заявки {order.id}")
+                except Exception as e:
+                    print(f"❌ Ошибка при создании PDF для заявки {order.id}: {e}")
+                    import traceback
+
+                    traceback.print_exc()
+
+        if success_count == 0:
+            messages.error(request, "Не удалось создать ни одного PDF файла")
+            return redirect("delivery_order_list")
+
+        zip_buffer.seek(0)
+        response = HttpResponse(zip_buffer, content_type="application/zip")
+        response["Content-Disposition"] = 'attachment; filename="delivery_orders.zip"'
+
+        print(f"✅ Создан архив с {success_count} файлами")
+        return response
+
+    except Exception as e:
+        print(f"❌ Критическая ошибка при создании архива: {e}")
+        import traceback
+
+        traceback.print_exc()
+        messages.error(request, f"Ошибка при создании архива: {str(e)[:100]}")
+        return redirect("delivery_order_list")
 
 
 def reports_dashboard(request):

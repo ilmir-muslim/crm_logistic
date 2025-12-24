@@ -9,14 +9,6 @@ import os
 def generate_pdf_from_template(template_name, context, css_string=None):
     """
     Универсальная функция для генерации PDF из HTML-шаблона
-
-    Args:
-        template_name: путь к HTML-шаблону
-        context: контекст для шаблона
-        css_string: дополнительный CSS (опционально)
-
-    Returns:
-        bytes: PDF-файл в бинарном виде
     """
     try:
         # Добавляем текущее время в контекст
@@ -26,8 +18,15 @@ def generate_pdf_from_template(template_name, context, css_string=None):
         # Рендерим HTML
         html_string = render_to_string(template_name, context)
 
-        # Создаем HTML объект с базовым URL
-        base_url = getattr(settings, "SITE_URL", "http://localhost:8000")
+        # На продакшене важно указать правильный base_url
+        if hasattr(settings, "SITE_URL") and settings.SITE_URL:
+            base_url = settings.SITE_URL
+        else:
+            # Для продакшена указываем домен
+            base_url = "https://crm.gulnar8f.beget.tech"
+
+        print(f"📄 Генерация PDF из шаблона {template_name}, base_url: {base_url}")
+
         html = HTML(string=html_string, base_url=base_url)
 
         # Если есть CSS, добавляем его
@@ -38,14 +37,28 @@ def generate_pdf_from_template(template_name, context, css_string=None):
         # Генерируем PDF
         pdf_bytes = html.write_pdf(stylesheets=stylesheets)
 
+        print(f"✅ PDF успешно сгенерирован, размер: {len(pdf_bytes)} байт")
         return pdf_bytes
 
     except Exception as e:
-        print(f"Ошибка при генерации PDF: {e}")
+        print(f"❌ Ошибка при генерации PDF: {e}")
         import traceback
 
         traceback.print_exc()
-        return None
+
+        # Пробуем альтернативный способ без base_url
+        try:
+            print("🔄 Пробуем альтернативный способ генерации...")
+            html_string = render_to_string(template_name, context)
+            html = HTML(string=html_string)
+            pdf_bytes = html.write_pdf()
+            print(
+                f"✅ PDF создан альтернативным способом, размер: {len(pdf_bytes)} байт"
+            )
+            return pdf_bytes
+        except Exception as e2:
+            print(f"❌ Альтернативный способ тоже не сработал: {e2}")
+            return None
 
 
 # Стили по умолчанию для PDF

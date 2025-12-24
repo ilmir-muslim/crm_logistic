@@ -5,14 +5,23 @@ from datetime import datetime
 
 def create_pickup_order_pdf(pickup_order):
     """Создание PDF для заявки на забор"""
-    context = {
-        "order": pickup_order,
-        "title": f"ЗАЯВКА НА ЗАБОР ГРУЗА #{pickup_order.tracking_number or pickup_order.id}",
-        "now": datetime.now(),
-    }
+    try:
+        context = {
+            "order": pickup_order,
+            "title": f"ЗАЯВКА НА ЗАБОР ГРУЗА #{pickup_order.tracking_number or pickup_order.id}",
+            "now": datetime.now(),
+        }
 
-    # Используем функцию из utils
-    return generate_pdf_from_template("pickup/pickup_pdf.html", context, DEFAULT_CSS)
+        # Для продакшена важно правильно настроить пути
+        return generate_pdf_from_template(
+            "pickup/pickup_pdf.html", context, DEFAULT_CSS
+        )
+    except Exception as e:
+        print(f"❌ Ошибка в create_pickup_order_pdf для заявки {pickup_order.id}: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return None
 
 
 def create_daily_pickup_report_pdf(date, orders):
