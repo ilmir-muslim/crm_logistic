@@ -127,23 +127,22 @@ class DeliveryOrder(models.Model):
 
         return f"FFC-{year}-{new_num:05d}"
 
-    def generate_qr_code(self):
-        """Генерирует QR-код для заявки"""
-        from django.conf import settings
 
-        if self.qr_code:
-            try:
-                if os.path.exists(self.qr_code.path):
-                    return
-            except (ValueError, FileNotFoundError, AttributeError):
-                pass
+def generate_qr_code(self):
+    """Генерирует QR-код для заявки"""
+    from django.conf import settings
 
-        qr_data = f"""
+    if self.qr_code:
+        try:
+            if os.path.exists(self.qr_code.path):
+                return
+        except (ValueError, FileNotFoundError, AttributeError):
+            pass
+
+    qr_data = f"""
 Доставка #{self.id}
 Сквозной номер: {self.tracking_number}
-Город: {self.city.name if self.city else 'Не указан'}
-Склад отправки: {self.warehouse.name if self.warehouse else 'Не указан'}
-Склад приемки: {self.receiving_warehouse.name if self.receiving_warehouse else 'Не указан'}
+Адрес отправки: {self.pickup_address or 'Не указан'}
 Адрес доставки: {self.delivery_address or 'Не указан'}
 Дата: {self.date}
 Места: {self.quantity}
@@ -156,58 +155,35 @@ class DeliveryOrder(models.Model):
 ТС: {self.vehicle or 'Не указано'}
 Пропуск: {self.driver_pass_info or 'Не требуется'}
 Ссылка: {settings.SITE_URL}{self.get_absolute_url()}
-        """.strip()
+    """.strip()
 
-        try:
-            qr = qrcode.QRCode(
-                version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_L,
-                box_size=10,
-                border=4,
-            )
-            qr.add_data(qr_data)
-            qr.make(fit=True)
+    try:
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_data)
+        qr.make(fit=True)
 
-            img = qr.make_image(fill_color="black", back_color="white")
+        img = qr.make_image(fill_color="black", back_color="white")
 
-            qr_dir = Path(settings.MEDIA_ROOT) / "qr_codes" / "delivery"
-            qr_dir.mkdir(parents=True, exist_ok=True)
+        qr_dir = Path(settings.MEDIA_ROOT) / "qr_codes" / "delivery"
+        qr_dir.mkdir(parents=True, exist_ok=True)
 
-            buffer = BytesIO()
-            img.save(buffer, format="PNG")
-            buffer.seek(0)
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+        buffer.seek(0)
 
-            filename = (
-                f'delivery_qr_{self.tracking_number.replace("/", "_")}_{self.id}.png'
-            )
-            self.qr_code.save(filename, File(buffer), save=False)
-            buffer.close()
+        filename = f'delivery_qr_{self.tracking_number.replace("/", "_")}_{self.id}.png'
+        self.qr_code.save(filename, File(buffer), save=False)
+        buffer.close()
 
-            super().save(update_fields=["qr_code"])
+        super().save(update_fields=["qr_code"])
 
-        except Exception as e:
-            print(f"❌ Ошибка при создании QR-кода для заявки #{self.id}: {e}")
-            import traceback
+    except Exception as e:
+        print(f"❌ Ошибка при создании QR-кода для заявки #{self.id}: {e}")
+        import traceback
 
-            traceback.print_exc()
-
-    def is_editable(self):
-        return self.status != "shipped"
-
-    def get_status_color(self):
-        colors = {
-            "submitted": "warning",
-            "driver_assigned": "info",
-            "shipped": "success",
-        }
-        return colors.get(self.status, "secondary")
-
-    def get_fulfillment_display(self):
-        if self.fulfillment:
-            if (
-                hasattr(self.fulfillment, "profile")
-                and self.fulfillment.profile.fulfillment
-            ):
-                return self.fulfillment.profile.fulfillment
-            return self.fulfillment.get_full_name() or self.fulfillment.username
-        return "Не назначен"
+        traceback.print_exc()
