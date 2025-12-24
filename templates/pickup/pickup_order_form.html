@@ -12,7 +12,7 @@
         </h4>
     </div>
     <div class="card-body">
-        <form method="post" novalidate>
+        <form method="post" novalidate id="pickupOrderForm">
             {% csrf_token %}
             
             {% if form.non_field_errors %}
@@ -23,10 +23,13 @@
             </div>
             {% endif %}
             
+            <!-- Скрытое поле для склада -->
+            <input type="hidden" name="receiving_warehouse" id="id_receiving_warehouse" value="{{ form.receiving_warehouse.value|default:'' }}">
+            
             <div class="row">
                 <!-- Левая колонка -->
                 <div class="col-md-6">
-                    <h5 class="border-bottom pb-2 mb-3">Клиент и адрес</h5>
+                    <h5 class="border-bottom pb-2 mb-3">Клиент и адрес забора</h5>
                     
                     <div class="mb-3">
                         <label class="form-label">Дата забора *</label>
@@ -52,6 +55,22 @@
                         {% endif %}
                     </div>
                     
+                    <!-- Адрес забора - кликабельное поле -->
+                    <div class="mb-3">
+                        <label class="form-label">Адрес забора *</label>
+                        <textarea name="pickup_address" id="pickupAddress" rows="3" 
+                                  class="form-control address-field {% if form.pickup_address.errors %}is-invalid{% endif %}" 
+                                  readonly required 
+                                  onclick="openAddressModal()"
+                                  placeholder="Нажмите для выбора адреса забора">{{ form.pickup_address.value|default:'' }}</textarea>
+                        {% if form.pickup_address.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.pickup_address.errors.0 }}
+                        </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Нажмите на поле для выбора адреса забора из списка складов</small>
+                    </div>
+                    
                     <div class="mb-3">
                         <label class="form-label">Контактное лицо для выдачи груза *</label>
                         <input type="text" name="contact_person" 
@@ -66,38 +85,15 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Номер накладной</label>
-                        <input type="text" name="invoice_number" 
-                               class="form-control {% if form.invoice_number.errors %}is-invalid{% endif %}" 
-                               value="{{ form.invoice_number.value|default:'' }}"
-                               placeholder="Номер транспортной накладной">
-                        {% if form.invoice_number.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.invoice_number.errors.0 }}
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
                         <label class="form-label">Клиент/Компания *</label>
                         <input type="text" name="client_name" 
                                class="form-control {% if form.client_name.errors %}is-invalid{% endif %}" 
-                               value="{{ form.client_name.value|default:'' }}" required>
+                               value="{{ form.client_name.value|default:'' }}" required
+                               placeholder="Введите название компании или ФИО клиента">
+                        <small class="form-text text-muted">Наименование компании или ФИО клиента</small>
                         {% if form.client_name.errors %}
                         <div class="invalid-feedback">
                             {{ form.client_name.errors.0 }}
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Наименование компании *</label>
-                        <input type="text" name="client_company" 
-                               class="form-control {% if form.client_company.errors %}is-invalid{% endif %}" 
-                               value="{{ form.client_company.value|default:'' }}" required>
-                        {% if form.client_company.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.client_company.errors.0 }}
                         </div>
                         {% endif %}
                     </div>
@@ -125,24 +121,11 @@
                         </div>
                         {% endif %}
                     </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Адрес забора *</label>
-                        <textarea name="pickup_address" rows="3" 
-                                  class="form-control {% if form.pickup_address.errors %}is-invalid{% endif %}" 
-                                  required>{{ form.pickup_address.value|default:'' }}</textarea>
-                        <small class="form-text text-muted">Город, улица, дом, помещение</small>
-                        {% if form.pickup_address.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.pickup_address.errors.0 }}
-                        </div>
-                        {% endif %}
-                    </div>
                 </div>
                 
                 <!-- Правая колонка -->
                 <div class="col-md-6">
-                    <h5 class="border-bottom pb-2 mb-3">Характеристики груза и доставка</h5>
+                    <h5 class="border-bottom pb-2 mb-3">Характеристики груза</h5>
                     
                     <div class="row mb-3">
                         <div class="col-md-4">
@@ -160,7 +143,7 @@
                             <label class="form-label">Вес (кг)</label>
                             <input type="number" step="0.1" name="weight" min="0" 
                                    class="form-control {% if form.weight.errors %}is-invalid{% endif %}" 
-                                   value="{{ form.weight.value|default:'' }}">
+                               value="{{ form.weight.value|default:'' }}">
                             {% if form.weight.errors %}
                             <div class="invalid-feedback">
                                 {{ form.weight.errors.0 }}
@@ -171,7 +154,7 @@
                             <label class="form-label">Объем (м³)</label>
                             <input type="number" step="0.01" name="volume" min="0" 
                                    class="form-control {% if form.volume.errors %}is-invalid{% endif %}" 
-                                   value="{{ form.volume.value|default:'' }}">
+                               value="{{ form.volume.value|default:'' }}">
                             {% if form.volume.errors %}
                             <div class="invalid-feedback">
                                 {{ form.volume.errors.0 }}
@@ -180,7 +163,7 @@
                         </div>
                     </div>
                     
-                    <!-- Дополнительные поля из требований -->
+                    <!-- Дополнительные поля -->
                     <div class="mb-3">
                         <label class="form-label">Маркетплейс</label>
                         <select name="marketplace" 
@@ -213,10 +196,11 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Желаемая дата поставки *</label>
+                        <label class="form-label">Желаемая дата поставки</label>
                         <input type="date" name="desired_delivery_date" 
                                class="form-control {% if form.desired_delivery_date.errors %}is-invalid{% endif %}" 
-                               value="{{ form.desired_delivery_date.value|date:'Y-m-d' }}" required>
+                               value="{{ form.desired_delivery_date.value|date:'Y-m-d' }}">
+                        <small class="form-text text-muted">Когда клиент хочет получить заказ</small>
                         {% if form.desired_delivery_date.errors %}
                         <div class="invalid-feedback">
                             {{ form.desired_delivery_date.errors.0 }}
@@ -225,46 +209,14 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Адрес доставки *</label>
-                        <textarea name="delivery_address" rows="3" 
-                                  class="form-control {% if form.delivery_address.errors %}is-invalid{% endif %}" 
-                                  required>{{ form.delivery_address.value|default:'' }}</textarea>
-                        <small class="form-text text-muted">Полный адрес доставки</small>
-                        {% if form.delivery_address.errors %}
+                        <label class="form-label">Номер накладной</label>
+                        <input type="text" name="invoice_number" 
+                               class="form-control {% if form.invoice_number.errors %}is-invalid{% endif %}" 
+                               value="{{ form.invoice_number.value|default:'' }}"
+                               placeholder="Номер транспортной накладной">
+                        {% if form.invoice_number.errors %}
                         <div class="invalid-feedback">
-                            {{ form.delivery_address.errors.0 }}
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Оператор приемки</label>
-                        <select name="receiving_operator" 
-                                class="form-select {% if form.receiving_operator.errors %}is-invalid{% endif %}">
-                            <option value="">Не назначен</option>
-                            {% for user in form.fields.receiving_operator.queryset %}
-                            <option value="{{ user.pk }}" 
-                                    {% if form.receiving_operator.value == user.pk %}selected{% endif %}>
-                                {{ user.get_full_name|default:user.username }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                        {% if form.receiving_operator.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.receiving_operator.errors.0 }}
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Склад приемки</label>
-                        <input type="text" name="receiving_warehouse" 
-                               class="form-control {% if form.receiving_warehouse.errors %}is-invalid{% endif %}" 
-                               value="{{ form.receiving_warehouse.value|default:'' }}"
-                               placeholder="Склад, куда будет доставлен груз">
-                        {% if form.receiving_warehouse.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.receiving_warehouse.errors.0 }}
+                            {{ form.invoice_number.errors.0 }}
                         </div>
                         {% endif %}
                     </div>
@@ -337,23 +289,405 @@
     </div>
 </div>
 
+<!-- Модальное окно для выбора адреса -->
+<div class="modal fade" id="addressModal" tabindex="-1" aria-labelledby="addressModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addressModalLabel">Выбор адреса забора</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="addressInput" class="form-label">Адрес</label>
+          <textarea 
+            class="form-control" 
+            id="addressInput" 
+            rows="3" 
+            placeholder="Введите адрес вручную или выберите склад для автоматического заполнения"
+          ></textarea>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="citySelect" class="form-label">Город</label>
+              <select class="form-select" id="citySelect">
+                <option value="">Выберите город</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="warehouseSelect" class="form-label">Склад</label>
+              <select class="form-select" id="warehouseSelect" disabled>
+                <option value="">Сначала выберите город</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div id="warehouseDetails" class="mt-3" style="display: none;">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">Информация о складе</h6>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Название:</strong> <span id="warehouseName">-</span></p>
+                  <p><strong>Адрес:</strong> <span id="warehouseAddress">-</span></p>
+                  <p><strong>Телефон:</strong> <span id="warehousePhone">-</span></p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Email:</strong> <span id="warehouseEmail">-</span></p>
+                  <p><strong>График работы:</strong> <span id="warehouseHours">-</span></p>
+                  <p><strong>Доступная площадь:</strong> <span id="warehouseArea">-</span> м²</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="saveAddressBtn">Выбрать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <style>
-    .form-label {
-        font-weight: 500;
-    }
-    .form-control:focus, .form-select:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
-    .card {
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    }
-    .border-bottom {
-        border-color: #dee2e6 !important;
-    }
-    .form-text.text-muted {
-        font-size: 0.875rem;
-    }
+.address-field {
+    cursor: pointer !important;
+    background-color: #f8f9fa !important;
+    transition: background-color 0.2s;
+}
+
+.address-field:hover {
+    background-color: #e9ecef !important;
+    outline: 2px solid rgba(13, 110, 253, 0.3);
+    outline-offset: -2px;
+}
+
+.warehouse-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.warehouse-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.warehouse-item:hover {
+    background-color: #f8f9fa;
+}
+
+.warehouse-item.selected {
+    background-color: #e7f1ff;
+    border-left: 3px solid #0d6efd;
+}
+
+.warehouse-name {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.warehouse-address {
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 2px;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.warehouse-city {
+    color: #888;
+    font-size: 12px;
+}
 </style>
 
+<script>
+let selectedWarehouseId = null;
+let addressModalInstance = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация модального окна
+    initAddressModal();
+});
+
+function initAddressModal() {
+    const modal = document.getElementById('addressModal');
+    
+    // Обработчик скрытия модального окна
+    modal.addEventListener('hidden.bs.modal', function() {
+        document.getElementById('citySelect').value = '';
+        document.getElementById('warehouseSelect').value = '';
+        document.getElementById('warehouseSelect').disabled = true;
+        document.getElementById('warehouseDetails').style.display = 'none';
+        document.getElementById('addressInput').value = '';
+        document.getElementById('warehouseItemsContainer').innerHTML = '';
+        selectedWarehouseId = null;
+    });
+    
+    // Обработчик выбора города
+    document.getElementById('citySelect').addEventListener('change', function() {
+        const cityId = this.value;
+        if (cityId) {
+            loadWarehousesByCity(cityId);
+            document.getElementById('warehouseDetails').style.display = 'none';
+        } else {
+            document.getElementById('warehouseSelect').value = '';
+            document.getElementById('warehouseSelect').disabled = true;
+            document.getElementById('warehouseDetails').style.display = 'none';
+        }
+    });
+    
+    // Обработчик выбора склада
+    document.getElementById('warehouseSelect').addEventListener('change', function() {
+        const warehouseId = this.value;
+        if (warehouseId) {
+            loadWarehouseDetails(warehouseId);
+        } else {
+            document.getElementById('warehouseDetails').style.display = 'none';
+            selectedWarehouseId = null;
+            document.getElementById('addressInput').value = '';
+        }
+    });
+    
+    // Кнопка сохранения адреса
+    document.getElementById('saveAddressBtn').addEventListener('click', function() {
+        saveAddress();
+    });
+    
+    // Сохранение по Ctrl+Enter
+    document.getElementById('addressInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            saveAddress();
+        }
+    });
+    
+    // Автоматическое открытие модального окна при фокусе на поле адреса
+    document.getElementById('pickupAddress').addEventListener('focus', function(e) {
+        e.preventDefault();
+        openAddressModal();
+    });
+}
+
+function openAddressModal() {
+    // Заполняем текущий адрес в модальном окне
+    const currentAddress = document.getElementById('pickupAddress').value;
+    document.getElementById('addressInput').value = currentAddress;
+    
+    // Загружаем города
+    loadCities();
+    
+    // Открываем модальное окно
+    const modalElement = document.getElementById('addressModal');
+    addressModalInstance = new bootstrap.Modal(modalElement);
+    addressModalInstance.show();
+}
+
+function loadCities() {
+    const citySelect = document.getElementById('citySelect');
+    
+    fetch('{% url "cities_json" %}')
+        .then(response => response.json())
+        .then(data => {
+            citySelect.innerHTML = '<option value="">Выберите город</option>';
+            data.forEach(city => {
+                const option = document.createElement('option');
+                option.value = city.id;
+                option.textContent = city.name;
+                citySelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки городов:', error);
+            showNotification('Ошибка загрузки списка городов', 'error');
+        });
+}
+
+function loadWarehousesByCity(cityId) {
+    const warehouseSelect = document.getElementById('warehouseSelect');
+    const warehouseItemsContainer = document.getElementById('warehouseItemsContainer');
+    
+    // Если контейнера для списка нет, создаем его
+    if (!warehouseItemsContainer) {
+        const warehouseListDiv = document.getElementById('warehouseList');
+        if (!warehouseListDiv) {
+            // Создаем контейнер для списка складов
+            const detailsDiv = document.getElementById('warehouseDetails');
+            const newWarehouseList = document.createElement('div');
+            newWarehouseList.id = 'warehouseList';
+            newWarehouseList.style.display = 'block';
+            newWarehouseList.innerHTML = `
+                <h6 class="mb-2">Список складов в выбранном городе:</h6>
+                <div class="warehouse-list" id="warehouseItemsContainer"></div>
+            `;
+            detailsDiv.parentNode.insertBefore(newWarehouseList, detailsDiv);
+        }
+    }
+    
+    fetch(`{% url "warehouses_by_city_json" 0 %}`.replace('0', cityId))
+        .then(response => response.json())
+        .then(data => {
+            warehouseSelect.innerHTML = '<option value="">Выберите склад</option>';
+            data.forEach(warehouse => {
+                const option = document.createElement('option');
+                option.value = warehouse.id;
+                option.textContent = warehouse.name;
+                warehouseSelect.appendChild(option);
+            });
+            warehouseSelect.disabled = false;
+            
+            // Обновляем список складов если контейнер существует
+            const itemsContainer = document.getElementById('warehouseItemsContainer');
+            if (itemsContainer) {
+                itemsContainer.innerHTML = '';
+                data.forEach(warehouse => {
+                    const warehouseItem = document.createElement('div');
+                    warehouseItem.className = 'warehouse-item';
+                    warehouseItem.setAttribute('data-warehouse-id', warehouse.id);
+                    warehouseItem.innerHTML = `
+                        <div class="warehouse-name">${warehouse.name}</div>
+                        <div class="warehouse-address">${warehouse.address || 'Адрес не указан'}</div>
+                    `;
+                    
+                    warehouseItem.addEventListener('click', function() {
+                        // Снимаем выделение со всех элементов
+                        document.querySelectorAll('.warehouse-item').forEach(item => {
+                            item.classList.remove('selected');
+                        });
+                        
+                        // Выделяем текущий элемент
+                        this.classList.add('selected');
+                        
+                        // Устанавливаем значение в выпадающем списке
+                        warehouseSelect.value = warehouse.id;
+                        
+                        // Загружаем детали склада
+                        loadWarehouseDetails(warehouse.id);
+                    });
+                    
+                    itemsContainer.appendChild(warehouseItem);
+                });
+                
+                document.getElementById('warehouseList').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки складов:', error);
+            showNotification('Ошибка загрузки списка складов', 'error');
+        });
+}
+
+function loadWarehouseDetails(warehouseId) {
+    fetch(`{% url "warehouse_details_json" 0 %}`.replace('0', warehouseId))
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Ошибка загрузки деталей склада:', data.error);
+                return;
+            }
+            
+            document.getElementById('warehouseName').textContent = data.name;
+            document.getElementById('warehouseAddress').textContent = data.address;
+            document.getElementById('warehousePhone').textContent = data.phone;
+            document.getElementById('warehouseEmail').textContent = data.email || 'Не указан';
+            document.getElementById('warehouseHours').textContent = data.working_hours;
+            document.getElementById('warehouseArea').textContent = data.available_area;
+            
+            document.getElementById('warehouseDetails').style.display = 'block';
+            
+            // Автоматическое заполнение адреса
+            if (data.address && data.address !== '-') {
+                document.getElementById('addressInput').value = data.address;
+            }
+            
+            // Сохраняем выбранный склад
+            selectedWarehouseId = warehouseId;
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки деталей склада:', error);
+        });
+}
+
+function saveAddress() {
+    const addressInput = document.getElementById('addressInput').value.trim();
+    
+    if (!addressInput) {
+        showNotification('Пожалуйста, введите адрес', 'error');
+        return;
+    }
+    
+    // Заполняем поле адреса в форме
+    document.getElementById('pickupAddress').value = addressInput;
+    
+    // Заполняем скрытое поле для склада
+    document.getElementById('id_receiving_warehouse').value = selectedWarehouseId || '';
+    
+    // Закрываем модальное окно
+    if (addressModalInstance) {
+        addressModalInstance.hide();
+    } else {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addressModal'));
+        if (modal) {
+            modal.hide();
+        }
+    }
+    
+    showNotification('Адрес успешно выбран', 'success');
+}
+
+function showNotification(message, type) {
+    // Удаляем старые уведомления
+    const oldNotifications = document.querySelectorAll('.notification-alert');
+    oldNotifications.forEach(alert => {
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+    });
+    
+    // Создаем новое уведомление
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show notification-alert`;
+    alert.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    alert.innerHTML = `
+        <div class="d-flex align-items-center">
+            ${type === 'success' ? 
+                '<i class="bi bi-check-circle-fill me-2 fs-5"></i>' : 
+                '<i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>'
+            }
+            <div>${message}</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Вставляем в body
+    document.body.appendChild(alert);
+    
+    // Автоматически скрываем через 3 секунды
+    setTimeout(() => {
+        if (alert.parentNode) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }
+    }, 3000);
+}
+</script>
 {% endblock %}

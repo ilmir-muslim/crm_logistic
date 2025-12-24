@@ -3,6 +3,95 @@
 <head>
     <meta charset="utf-8">
     <title>{{ title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.5;
+            margin: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        h1 {
+            font-size: 20px;
+            margin: 0;
+            color: #333;
+        }
+        h2 {
+            font-size: 16px;
+            margin: 20px 0 10px 0;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .company-info {
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .text-bold {
+            font-weight: bold;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .signature-block {
+            margin-top: 50px;
+            border-top: 1px solid #333;
+            padding-top: 20px;
+        }
+        .signature-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .signature-item {
+            text-align: center;
+            flex: 1;
+        }
+        .signature-line {
+            border-top: 1px solid #333;
+            width: 200px;
+            height: 1px;
+            margin: 40px auto 5px auto;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+        .address-block {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -27,16 +116,16 @@
             <td>{{ order.date|date:"d.m.Y" }}</td>
         </tr>
         <tr>
-            <th>Город назначения:</th>
-            <td>{{ order.city }}</td>
+            <th>Адрес отправки:</th>
+            <td class="address-block">{{ order.pickup_address|default:"Не указан" }}</td>
         </tr>
         <tr>
-            <th>Склад отправки:</th>
-            <td>{{ order.warehouse }}</td>
+            <th>Адрес доставки:</th>
+            <td class="address-block">{{ order.delivery_address|default:"Не указан" }}</td>
         </tr>
         <tr>
             <th>Фулфилмент оператор:</th>
-            <td>{{ order.fulfillment }}</td>
+            <td>{{ order.fulfillment|default:"Не указан" }}</td>
         </tr>
         <tr>
             <th>Статус:</th>
@@ -75,6 +164,12 @@
         <tr>
             <th>Марка и номер ТС:</th>
             <td>{{ order.vehicle }}</td>
+        </tr>
+        {% endif %}
+        {% if order.driver_pass_info %}
+        <tr>
+            <th>Данные пропуска:</th>
+            <td>{{ order.driver_pass_info }}</td>
         </tr>
         {% endif %}
     </table>

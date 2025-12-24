@@ -1,5 +1,8 @@
 from django import forms
 from django.utils import timezone
+from django.contrib.auth.models import User
+from logistic.models import DeliveryOrder
+from warehouses.models import City, Warehouse
 
 
 class DailyReportForm(forms.Form):
@@ -115,3 +118,134 @@ class EmailSettingsForm(forms.Form):
         ),
         help_text="Для уведомлений о новых заявках",
     )
+
+
+class DeliveryOrderCreateForm(forms.ModelForm):
+    """Форма для создания новой заявки на доставку"""
+
+    class Meta:
+        model = DeliveryOrder
+        fields = [
+            "date",
+            "pickup_address",
+            "delivery_address",
+            "fulfillment",
+            "quantity",
+            "weight",
+            "volume",
+            "status",
+            "driver_name",
+            "driver_phone",
+            "vehicle",
+            "driver_pass_info",
+        ]
+        widgets = {
+            "date": forms.DateInput(
+                attrs={"type": "date", "class": "form-control", "required": "required"}
+            ),
+            "pickup_address": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "Адрес отправки груза",
+                    "required": "required",
+                }
+            ),
+            "delivery_address": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "Адрес доставки груза",
+                    "required": "required",
+                }
+            ),
+            "fulfillment": forms.Select(attrs={"class": "form-select"}),
+            "quantity": forms.NumberInput(
+                attrs={"class": "form-control", "min": "1", "required": "required"}
+            ),
+            "weight": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "placeholder": "В кг",
+                    "required": "required",
+                }
+            ),
+            "volume": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "placeholder": "В м³",
+                    "required": "required",
+                }
+            ),
+            "status": forms.Select(attrs={"class": "form-select"}),
+            "driver_name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "ФИО водителя (опционально)",
+                }
+            ),
+            "driver_phone": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "+7 (XXX) XXX-XX-XX"}
+            ),
+            "vehicle": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Марка и номер ТС"}
+            ),
+            "driver_pass_info": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Данные пропуска"}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["status"].initial = "submitted"
+
+        # Ограничиваем выбор фулфилмент операторов только операторами
+        self.fields["fulfillment"].queryset = User.objects.filter(
+            profile__role="operator"
+        ).order_by("first_name", "last_name", "username")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        city = cleaned_data.get("city")
+        warehouse = cleaned_data.get("warehouse")
+        receiving_warehouse = cleaned_data.get("receiving_warehouse")
+        delivery_address = cleaned_data.get("delivery_address")
+
+        # Проверка, что склады принадлежат выбранному городу
+        if city:
+            if warehouse and warehouse.city != city:
+                raise forms.ValidationError(
+                    "Выбранный склад отправки не принадлежит выбранному городу."
+                )
+            if receiving_warehouse and receiving_warehouse.city != city:
+                raise forms.ValidationError(
+                    "Выбранный склад приемки не принадлежит выбранному городу."
+                )
+
+        # Проверка, что если выбран город, то должен быть выбран склад отправки
+        if city and not warehouse:
+            raise forms.ValidationError(
+                "При выборе города необходимо выбрать склад отправки."
+            )
+
+        # Проверка: либо склад приемки, либо адрес доставки
+        if not receiving_warehouse and not delivery_address:
+            raise forms.ValidationError(
+                "Укажите либо склад приемки, либо адрес доставки."
+            )
+
+        # Проверка, что не выбраны одновременно склад приемки и адрес доставки
+        if receiving_warehouse and delivery_address:
+            raise forms.ValidationError(
+                "Выберите либо склад приемки, либо адрес доставки, но не оба варианта одновременно."
+            )
+
+        # Проверка, что склады отправки и приемки не одинаковые
+        if warehouse and receiving_warehouse and warehouse.id == receiving_warehouse.id:
+            raise forms.ValidationError(
+                "Склад отправки и склад приемки не могут быть одинаковыми."
+            )
+
+        return cleaned_data

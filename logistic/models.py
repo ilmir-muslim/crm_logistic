@@ -17,9 +17,31 @@ class DeliveryOrder(models.Model):
     ]
 
     date = models.DateField(verbose_name="Дата доставки")
-    city = models.CharField(max_length=100, verbose_name="Город назначения")
-    warehouse = models.CharField(max_length=100, verbose_name="Склад отправки")
-    fulfillment = models.CharField(max_length=100, verbose_name="Фулфилмент оператор")
+
+    # Адрес отправки
+    pickup_address = models.TextField(
+        verbose_name="Адрес отправки",
+        blank=True,
+        null=True,
+    )
+
+    # Адрес доставки (приемки)
+    delivery_address = models.TextField(
+        verbose_name="Адрес доставки",
+        blank=True,
+        null=True,
+    )
+
+    # Остальные поля остаются без изменений
+    fulfillment = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Фулфилмент оператор",
+        related_name="delivery_orders",
+        limit_choices_to={"profile__role": "operator"},
+    )
     quantity = models.IntegerField(verbose_name="Количество мест")
     weight = models.FloatField(verbose_name="Вес (кг)")
     volume = models.FloatField(verbose_name="Объем (м³)")
@@ -48,10 +70,10 @@ class DeliveryOrder(models.Model):
         null=True,
         blank=True,
         verbose_name="Ответственный оператор",
+        related_name="created_delivery_orders",
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # Новые поля для этапа 3
     tracking_number = models.CharField(
         max_length=50, unique=True, blank=True, verbose_name="Сквозной номер заказа"
     )
@@ -66,78 +88,24 @@ class DeliveryOrder(models.Model):
 
     def __str__(self):
         if self.tracking_number:
-            return f"{self.tracking_number} - {self.city} от {self.date}"
-        return f"Доставка в {self.city} от {self.date}"
+            return f"{self.tracking_number} - {self.pickup_address} → {self.delivery_address}"
+        return f"Доставка #{self.id} от {self.date}"
 
     def get_absolute_url(self):
         return reverse("delivery_order_detail", kwargs={"pk": self.pk})
 
     def save(self, *args, **kwargs):
-        """
-        Автоматически управляет QR-кодами:
-        1. Генерирует tracking_number при создании
-        2. Генерирует QR-код при создании
-        3. Автоматически пересоздает QR при изменении важных данных
-        """
-
-        # Генерируем уникальный номер
         if not self.tracking_number:
             self.tracking_number = self.generate_tracking_number()
 
-        # Если объект уже существует, проверяем изменения
-        if self.pk:
-            try:
-                old = DeliveryOrder.objects.get(pk=self.pk)
-                # Проверяем, изменились ли данные, которые влияют на QR
-                qr_relevant_fields = [
-                    old.date != self.date,
-                    old.city != self.city,
-                    old.quantity != self.quantity,
-                    old.weight != self.weight,
-                    old.volume != self.volume,
-                    old.status != self.status,
-                    old.driver_name != self.driver_name,
-                    old.driver_phone != self.driver_phone,
-                    old.vehicle != self.vehicle,
-                    old.driver_pass_info != self.driver_pass_info,
-                ]
-
-                if any(qr_relevant_fields):
-                    # Удаляем старый QR-код, если он существует
-                    if self.qr_code:
-                        try:
-                            if os.path.exists(self.qr_code.path):
-                                os.remove(self.qr_code.path)
-                        except (ValueError, FileNotFoundError):
-                            pass  # Файл уже не существует
-                        self.qr_code = None
-            except DeliveryOrder.DoesNotExist:
-                pass
-
-        # Сохраняем объект
+        # Генерируем QR-код при сохранении
         super().save(*args, **kwargs)
-
-        # Проверяем и генерируем QR-код если его нет или файл отсутствует
         self.check_and_generate_qr_code()
 
     def check_and_generate_qr_code(self):
         """Проверяет существование QR-кода и создает при необходимости"""
-        # Проверяем, есть ли запись о QR-коде в БД
-        if self.qr_code:
-            # Проверяем, существует ли файл
-            try:
-                if os.path.exists(self.qr_code.path):
-                    return  # Файл существует, ничего не делаем
-                else:
-                    # Файл не существует, очищаем поле и генерируем заново
-                    self.qr_code.delete(save=False)
-                    self.qr_code = None
-            except (ValueError, FileNotFoundError, AttributeError):
-                # Ошибка доступа к файлу, очищаем поле
-                self.qr_code = None
-
-        # Если нет QR-кода или файл не существует, создаем новый
-        self.generate_qr_code()
+        if not self.qr_code or not os.path.exists(self.qr_code.path):
+            self.generate_qr_code()
 
     def generate_tracking_number(self):
         """Генерирует уникальный сквозной номер заказа"""
@@ -163,24 +131,26 @@ class DeliveryOrder(models.Model):
         """Генерирует QR-код для заявки"""
         from django.conf import settings
 
-        # Если QR-код уже существует и файл есть - ничего не делаем
         if self.qr_code:
             try:
                 if os.path.exists(self.qr_code.path):
                     return
             except (ValueError, FileNotFoundError, AttributeError):
-                pass  # Файл не существует, продолжаем создание
+                pass
 
-        # Данные для QR-кода
         qr_data = f"""
 Доставка #{self.id}
 Сквозной номер: {self.tracking_number}
-Город: {self.city}
+Город: {self.city.name if self.city else 'Не указан'}
+Склад отправки: {self.warehouse.name if self.warehouse else 'Не указан'}
+Склад приемки: {self.receiving_warehouse.name if self.receiving_warehouse else 'Не указан'}
+Адрес доставки: {self.delivery_address or 'Не указан'}
 Дата: {self.date}
 Места: {self.quantity}
 Вес: {self.weight} кг
 Объем: {self.volume} м³
 Статус: {self.get_status_display()}
+Фулфилмент: {self.get_fulfillment_display()}
 Водитель: {self.driver_name or 'Не назначен'}
 Телефон: {self.driver_phone or 'Не указан'}
 ТС: {self.vehicle or 'Не указано'}
@@ -189,7 +159,6 @@ class DeliveryOrder(models.Model):
         """.strip()
 
         try:
-            # Создаем QR-код
             qr = qrcode.QRCode(
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -199,30 +168,22 @@ class DeliveryOrder(models.Model):
             qr.add_data(qr_data)
             qr.make(fit=True)
 
-            # Создаем изображение
             img = qr.make_image(fill_color="black", back_color="white")
 
-            # Создаем папку, если её нет
             qr_dir = Path(settings.MEDIA_ROOT) / "qr_codes" / "delivery"
             qr_dir.mkdir(parents=True, exist_ok=True)
 
-            # Сохраняем в BytesIO
             buffer = BytesIO()
             img.save(buffer, format="PNG")
             buffer.seek(0)
 
-            # Сохраняем в поле модели
             filename = (
                 f'delivery_qr_{self.tracking_number.replace("/", "_")}_{self.id}.png'
             )
             self.qr_code.save(filename, File(buffer), save=False)
-
-            # Закрываем буфер
             buffer.close()
 
-            # Сохраняем модель с QR-кодом
             super().save(update_fields=["qr_code"])
-            print(f"✅ QR-код создан для заявки доставки #{self.id}")
 
         except Exception as e:
             print(f"❌ Ошибка при создании QR-кода для заявки #{self.id}: {e}")
@@ -231,11 +192,9 @@ class DeliveryOrder(models.Model):
             traceback.print_exc()
 
     def is_editable(self):
-        """Проверяет, можно ли редактировать заявку"""
         return self.status != "shipped"
 
     def get_status_color(self):
-        """Возвращает цвет статуса для отображения"""
         colors = {
             "submitted": "warning",
             "driver_assigned": "info",
@@ -243,4 +202,12 @@ class DeliveryOrder(models.Model):
         }
         return colors.get(self.status, "secondary")
 
-
+    def get_fulfillment_display(self):
+        if self.fulfillment:
+            if (
+                hasattr(self.fulfillment, "profile")
+                and self.fulfillment.profile.fulfillment
+            ):
+                return self.fulfillment.profile.fulfillment
+            return self.fulfillment.get_full_name() or self.fulfillment.username
+        return "Не назначен"

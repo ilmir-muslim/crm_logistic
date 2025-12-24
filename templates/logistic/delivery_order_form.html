@@ -42,6 +42,38 @@
             </div>
             {% endif %}
             
+            <!-- Основная информация о заявке -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Информация о заявке</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p><strong>Номер:</strong> {{ object.tracking_number|default:"#"|add:object.id }}</p>
+                            <p><strong>Город:</strong> {{ object.city }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Склад отправки:</strong> {{ object.warehouse }}</p>
+                            <p><strong>Склад приемки:</strong> 
+                                {% if object.receiving_warehouse %}
+                                    {{ object.receiving_warehouse }}
+                                {% elif object.delivery_address %}
+                                    Адрес доставки
+                                {% else %}
+                                    Не указан
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Места:</strong> {{ object.quantity }}</p>
+                            <p><strong>Вес/Объем:</strong> {{ object.weight }} кг / {{ object.volume }} м³</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Форма для водителя -->
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label class="form-label">ФИО водителя *</label>
@@ -91,6 +123,17 @@
                     </div>
                     {% endif %}
                 </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Данные пропуска</label>
+                <input type="text" name="driver_pass_info" class="form-control {% if form.driver_pass_info.errors %}is-invalid{% endif %}" 
+                       value="{{ form.driver_pass_info.value|default:'' }}">
+                {% if form.driver_pass_info.errors %}
+                <div class="invalid-feedback">
+                    {{ form.driver_pass_info.errors.0 }}
+                </div>
+                {% endif %}
             </div>
             
             <div class="mt-4">

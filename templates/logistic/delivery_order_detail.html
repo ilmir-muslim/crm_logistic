@@ -11,7 +11,7 @@
                     {% else %}
                         Заявка #{{ order.id }}
                     {% endif %}
-                    - Доставка в {{ order.city }}
+                    - Доставка
                 </h4>
                 <small class="text-muted">Создано: {{ order.created_at|date:"d.m.Y H:i" }}</small>
             </div>
@@ -37,16 +37,16 @@
                         <td>{{ order.date|date:"d.m.Y" }}</td>
                     </tr>
                     <tr>
-                        <th>Город назначения:</th>
-                        <td><strong>{{ order.city }}</strong></td>
+                        <th>Адрес отправки:</th>
+                        <td><strong>{{ order.pickup_address|default:"Не указан" }}</strong></td>
                     </tr>
                     <tr>
-                        <th>Склад отправки:</th>
-                        <td>{{ order.warehouse }}</td>
+                        <th>Адрес доставки:</th>
+                        <td><strong>{{ order.delivery_address|default:"Не указан" }}</strong></td>
                     </tr>
                     <tr>
                         <th>Фулфилмент оператор:</th>
-                        <td>{{ order.fulfillment }}</td>
+                        <td>{{ order.fulfillment|default:"Не указан" }}</td>
                     </tr>
                     <tr>
                         <th>Количество мест:</th>
@@ -81,6 +81,10 @@
                     <tr>
                         <th>Марка и номер ТС:</th>
                         <td>{{ order.vehicle|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Данные пропуска:</th>
+                        <td>{{ order.driver_pass_info|default:"-" }}</td>
                     </tr>
                     <tr>
                         <th>Ответственный оператор:</th>

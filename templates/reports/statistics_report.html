@@ -150,35 +150,31 @@
                 <div class="card-header">
                     <h5 class="mb-0">
                         {% if report_type == 'delivery' %}
-                            Распределение по городам
+                            Информация о заявках
                         {% else %}
                             Топ клиентов
                         {% endif %}
                     </h5>
                 </div>
                 <div class="card-body">
+                    {% if report_type == 'delivery' %}
+                    <div class="mb-3">
+                        <p class="mb-1"><strong>Всего заявок:</strong> {{ stats.total_orders }}</p>
+                        <p class="mb-1"><strong>Общий вес:</strong> {{ stats.total_weight|floatformat:0 }} кг</p>
+                        <p class="mb-1"><strong>Общий объем:</strong> {{ stats.total_volume|floatformat:1 }} м³</p>
+                        <p class="mb-0"><strong>Всего мест:</strong> {{ stats.total_quantity }}</p>
+                    </div>
+                    {% else %}
                     <table class="table table-bordered">
                         <thead class="table-light">
                             <tr>
-                                <th>{% if report_type == 'delivery' %}Город{% else %}Клиент{% endif %}</th>
+                                <th>Клиент</th>
                                 <th>Количество</th>
-                                {% if report_type == 'delivery' %}
                                 <th>Вес (кг)</th>
-                                <th>Объем (м³)</th>
-                                {% endif %}
+                                <th>Места</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for item in stats.by_city|slice:":10" %}
-                            <tr>
-                                <td>{{ item.city|truncatechars:30 }}</td>
-                                <td>{{ item.count }}</td>
-                                {% if report_type == 'delivery' %}
-                                <td>{{ item.total_weight|floatformat:0 }}</td>
-                                <td>{{ item.total_volume|floatformat:1 }}</td>
-                                {% endif %}
-                            </tr>
-                            {% empty %}
                             {% for item in stats.by_client|slice:":10" %}
                             <tr>
                                 <td>{{ item.client_name|truncatechars:30 }}</td>
@@ -186,10 +182,14 @@
                                 <td>{{ item.total_weight|floatformat:0 }}</td>
                                 <td>{{ item.total_quantity }}</td>
                             </tr>
-                            {% endfor %}
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">Нет данных</td>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -207,8 +207,8 @@
                             {% if report_type == 'delivery' %}
                             <th>Номер</th>
                             <th>Дата</th>
-                            <th>Город</th>
-                            <th>Склад</th>
+                            <th>Адрес отправки</th>
+                            <th>Адрес доставки</th>
                             <th>Места</th>
                             <th>Вес</th>
                             <th>Статус</th>
@@ -235,8 +235,8 @@
                                 </a>
                             </td>
                             <td>{{ order.date|date:"d.m.Y" }}</td>
-                            <td>{{ order.city }}</td>
-                            <td>{{ order.warehouse }}</td>
+                            <td>{{ order.pickup_address|truncatechars:30|default:"—" }}</td>
+                            <td>{{ order.delivery_address|truncatechars:30|default:"—" }}</td>
                             <td>{{ order.quantity }}</td>
                             <td>{{ order.weight }} кг</td>
                             <td>

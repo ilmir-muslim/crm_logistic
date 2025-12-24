@@ -9,29 +9,26 @@ from django.conf import settings
 from django.utils import timezone
 from django.db.models import Prefetch
 
-from .forms import ClientOrderForm
-from pickup.models import PickupOrder
-from warehouses.models import City, Warehouse, ContainerType, WarehouseSchedule
+from .forms import ClientPickupForm, ClientDeliveryForm
+from warehouses.models import City, ContainerType, WarehouseSchedule
 
 
-class ClientOrderFormView(FormView):
-    """Представление для формы заявки клиента"""
+class PickupOrderFormView(FormView):
+    """Представление для формы заявки на ЗАБОР груза"""
 
-    template_name = "order_form/client_order_form.html"
-    form_class = ClientOrderForm
+    template_name = "order_form/pickup_form.html"
+    form_class = ClientPickupForm
     success_url = reverse_lazy("order_form_success")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Получаем все города со складами (только активные склады)
         cities = (
             City.objects.filter(warehouses__isnull=False).distinct().order_by("name")
         )
 
         cities_data = []
         for city in cities:
-            # Получаем склады для города с расписаниями
             warehouses = city.warehouses.all().prefetch_related(
                 Prefetch(
                     "schedules",
@@ -41,7 +38,6 @@ class ClientOrderFormView(FormView):
                 )
             )
 
-            # Формируем данные о складах
             warehouses_list = []
             for warehouse in warehouses:
                 schedules = []
@@ -93,10 +89,8 @@ class ClientOrderFormView(FormView):
             )
 
         context["cities_data"] = cities_data
-        # Сериализуем данные в JSON для JavaScript
         context["cities_data_json"] = json.dumps(cities_data, default=str)
 
-        # Получаем типы коробок из базы данных
         box_types = ContainerType.objects.filter(category="box").order_by("volume")
         context["box_sizes"] = []
 
@@ -116,59 +110,73 @@ class ClientOrderFormView(FormView):
 
         return context
 
-    # Остальной код остается без изменений...
     def form_valid(self, form):
-        """Сохранение заявки и отправка уведомлений"""
+        """Сохранение заявки на забор"""
         try:
-            # Создаем объект заявки
+            # Сохраняем форму с данными
             order = form.save(commit=False)
 
             # Устанавливаем дополнительные поля
             order.pickup_date = timezone.now().date()
             order.status = "ready"
             order.notes = f'Заявка создана через веб-форму. Маркетплейс: {form.cleaned_data["marketplace"]}'
+            order.operator = None  # Будет назначен позже
 
-            # Автоматически назначаем оператора если склад выбран
+            # Получаем warehouse и устанавливаем оператора
             warehouse = form.cleaned_data.get("receiving_warehouse")
-            if warehouse and warehouse.manager:
-                order.operator = warehouse.manager
-                order.receiving_operator = warehouse.manager
+            if warehouse:
+                if warehouse.manager:
+                    order.operator = warehouse.manager
+                    order.receiving_operator = warehouse.manager
+                order.receiving_warehouse = warehouse
 
-            # Сохраняем заявку
+            # Сохраняем в базе данных (это сгенерирует tracking_number)
             order.save()
+            
+            # Перезагружаем объект из базы, чтобы получить tracking_number
+            order.refresh_from_db()
 
-            # Отправляем email уведомления
+            print(f"✅ Заявка на забор создана: ID={order.id}, Tracking={order.tracking_number}")
+
+            # Отправляем email клиенту
             try:
                 self.send_confirmation_email(order)
+                print(f"✅ Email отправлен клиенту: {order.client_email}")
             except Exception as e:
-                print(f"Ошибка при отправке письма клиенту: {e}")
+                print(f"❌ Ошибка при отправке email клиенту: {e}")
 
+            # Отправляем уведомление оператору
             try:
                 self.send_operator_notification(order)
+                print(f"✅ Уведомление отправлено оператору")
             except Exception as e:
-                print(f"Ошибка при отправке письма оператору: {e}")
+                print(f"❌ Ошибка при отправке уведомления оператору: {e}")
 
-            # Сохраняем ID заявки в сессии для страницы успеха
+            # Сохраняем данные в сессии
             self.request.session["order_id"] = order.id
             self.request.session["tracking_number"] = order.tracking_number
+            self.request.session["order_type"] = "pickup"
+            
+            # Принудительно сохраняем сессию
+            self.request.session.modified = True
+            self.request.session.save()
 
-            return super().form_valid(form)
+            return redirect(self.get_success_url())
 
         except Exception as e:
             import traceback
-
-            print(f"Ошибка при сохранении заявки: {e}")
+            print(f"❌ Ошибка при сохранении заявки на забор: {e}")
             print(traceback.format_exc())
             messages.error(
                 self.request,
-                "Произошла ошибка при отправке заявки. Пожалуйста, попробуйте еще раз или свяжитесь с нами по телефону.",
+                f"Произошла ошибка при отправке заявки: {str(e)[:100]}... Пожалуйста, попробуйте еще раз или свяжитесь с нами по телефону.",
             )
             return self.form_invalid(form)
 
     def send_confirmation_email(self, order):
         """Отправка подтверждения клиенту"""
         try:
-            subject = f"Заявка #{order.tracking_number} принята"
+            subject = f"Заявка на забор #{order.tracking_number} принята"
             context = {
                 "order": order,
                 "tracking_number": order.tracking_number,
@@ -190,13 +198,11 @@ class ClientOrderFormView(FormView):
                 fail_silently=True,
             )
 
-            print(f"✅ Email отправлен клиенту: {order.client_email}")
+            return True
 
         except Exception as e:
             print(f"❌ Ошибка при отправке email клиенту: {e}")
-            import traceback
-
-            print(traceback.format_exc())
+            return False
 
     def send_operator_notification(self, order):
         """Отправка уведомления оператору"""
@@ -227,29 +233,235 @@ class ClientOrderFormView(FormView):
                 fail_silently=True,
             )
 
-            print(f"✅ Email отправлен оператору: {operator_email}")
+            return True
 
         except Exception as e:
             print(f"❌ Ошибка при отправке email оператору: {e}")
-            import traceback
+            return False
 
+
+class DeliveryOrderFormView(FormView):
+    """Представление для формы заявки на ОТПРАВКУ груза"""
+
+    template_name = "order_form/delivery_form.html"
+    form_class = ClientDeliveryForm
+    success_url = reverse_lazy("order_form_success")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        cities = (
+            City.objects.filter(warehouses__isnull=False).distinct().order_by("name")
+        )
+
+        cities_data = []
+        for city in cities:
+            warehouses = city.warehouses.all()
+
+            warehouses_list = []
+            for warehouse in warehouses:
+                warehouses_list.append(
+                    {
+                        "id": warehouse.id,
+                        "name": warehouse.name,
+                        "code": warehouse.code,
+                        "address": warehouse.address,
+                        "phone": warehouse.phone,
+                        "email": warehouse.email or "",
+                        "manager": (
+                            warehouse.manager.get_full_name()
+                            if warehouse.manager
+                            else "Не назначен"
+                        ),
+                        "working_hours": warehouse.get_working_hours(),
+                        "is_open_now": warehouse.is_open_now,
+                    }
+                )
+
+            cities_data.append(
+                {
+                    "id": city.id,
+                    "name": city.name,
+                    "region": city.region or "",
+                    "warehouses": warehouses_list,
+                }
+            )
+
+        context["cities_data"] = cities_data
+        context["cities_data_json"] = json.dumps(cities_data, default=str)
+
+        box_types = ContainerType.objects.filter(category="box").order_by("volume")
+        context["box_sizes"] = []
+
+        for box in box_types:
+            context["box_sizes"].append(
+                {
+                    "name": box.name,
+                    "code": box.code,
+                    "length": box.length,
+                    "width": box.width,
+                    "height": box.height,
+                    "volume": box.volume or box.calculate_volume(),
+                    "weight_capacity": box.weight_capacity,
+                    "description": box.description or "",
+                }
+            )
+
+        return context
+
+    def form_valid(self, form):
+        """Сохранение заявки на доставку"""
+        try:
+            # Сохраняем форму с данными
+            order = form.save(commit=False)
+
+            # Устанавливаем статус
+            order.status = "submitted"
+
+            # Получаем warehouse и устанавливаем оператора
+            warehouse = form.cleaned_data.get("warehouse")
+            if warehouse and warehouse.manager:
+                order.operator = warehouse.manager
+
+            # Получаем данные клиента для driver_pass_info
+            client_company = form.cleaned_data.get("client_company")
+            client_name = form.cleaned_data.get("client_name")
+            client_phone = form.cleaned_data.get("client_phone")
+
+            order.driver_pass_info = (
+                f"Клиент: {client_company}, Контакт: {client_name}, Тел: {client_phone}"
+            )
+
+            # Сохраняем в базе данных (это сгенерирует tracking_number)
+            order.save()
+            
+            # Перезагружаем объект из базы, чтобы получить tracking_number
+            order.refresh_from_db()
+
+            print(f"✅ Заявка на доставку создана: ID={order.id}, Tracking={order.tracking_number}")
+
+            # Отправляем email клиенту
+            client_email = form.cleaned_data.get("client_email")
+            if client_email:
+                try:
+                    self.send_confirmation_email(
+                        order, client_company, client_name, client_email
+                    )
+                    print(f"✅ Email отправлен клиенту: {client_email}")
+                except Exception as e:
+                    print(f"❌ Ошибка при отправке письма клиенту: {e}")
+
+            # Отправляем уведомление оператору
+            try:
+                self.send_operator_notification(order)
+                print(f"✅ Уведомление отправлено оператору")
+            except Exception as e:
+                print(f"❌ Ошибка при отправке письма оператору: {e}")
+
+            # Сохраняем данные в сессии
+            self.request.session["order_id"] = order.id
+            self.request.session["tracking_number"] = order.tracking_number
+            self.request.session["order_type"] = "delivery"
+            
+            # Принудительно сохраняем сессию
+            self.request.session.modified = True
+            self.request.session.save()
+
+            return redirect(self.get_success_url())
+
+        except Exception as e:
+            import traceback
+            print(f"❌ Ошибка при сохранении заявки на доставку: {e}")
             print(traceback.format_exc())
+            messages.error(
+                self.request,
+                f"Произошла ошибка при отправке заявки: {str(e)[:100]}... Пожалуйста, попробуйте еще раз или свяжитесь с нами по телефону.",
+            )
+            return self.form_invalid(form)
+
+    def send_confirmation_email(self, order, company_name, contact_name, client_email):
+        """Отправка подтверждения клиенту"""
+        try:
+            subject = f"Заявка на доставку #{order.tracking_number} принята"
+
+            message = f"""
+            Ваша заявка на доставку груза #{order.tracking_number} принята.
+            
+            Детали заявки:
+            Компания: {company_name}
+            Контактное лицо: {contact_name}
+            Дата доставки: {order.date}
+            Город: {order.city}
+            Склад отправки: {order.warehouse}
+            
+            Мы свяжемся с вами в ближайшее время.
+            
+            С уважением,
+            Команда ФФ Царицыно
+            """
+
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[client_email],
+                fail_silently=True,
+            )
+
+            return True
+
+        except Exception as e:
+            print(f"❌ Ошибка при отправке email клиенту: {e}")
+            return False
+
+    def send_operator_notification(self, order):
+        """Отправка уведомления оператору"""
+        try:
+            subject = f"Новая заявка на доставку #{order.tracking_number}"
+            context = {
+                "order": order,
+                "tracking_number": order.tracking_number,
+                "SITE_URL": settings.SITE_URL,
+            }
+
+            txt_template = "order_form/emails/operator_notification_delivery.txt"
+            html_template = "order_form/emails/operator_notification_delivery.html"
+
+            message = render_to_string(txt_template, context)
+            html_message = render_to_string(html_template, context)
+
+            operator_email = getattr(
+                settings, "OPERATOR_EMAIL", settings.DEFAULT_FROM_EMAIL
+            )
+
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[operator_email],
+                html_message=html_message,
+                fail_silently=True,
+            )
+
+            return True
+
+        except Exception as e:
+            print(f"❌ Ошибка при отправке email оператору: {e}")
+            return False
 
 
 def order_success_view(request):
     """Страница успешной отправки заявки"""
     order_id = request.session.get("order_id")
     tracking_number = request.session.get("tracking_number")
+    order_type = request.session.get("order_type", "delivery")
+    
+    print(f"🔍 order_success_view вызван: order_id={order_id}, tracking_number={tracking_number}, order_type={order_type}")
 
     context = {
         "order_id": order_id,
         "tracking_number": tracking_number,
+        "order_type": order_type,
     }
-
-    # Очищаем данные из сессии
-    if "order_id" in request.session:
-        del request.session["order_id"]
-    if "tracking_number" in request.session:
-        del request.session["tracking_number"]
 
     return render(request, "order_form/order_success.html", context)

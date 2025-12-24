@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ФФ Царицыно - Заявка на получение груза</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-blue: #0d6efd;
+            --success-green: #198754;
+            --warning-orange: #fd7e14;
+            --info-teal: #20c997;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .form-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, #4a90e2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+        }
+        
+        .header h1 {
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .company-name {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            letter-spacing: 1px;
+        }
+        
+        .info-card {
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
+        }
+        
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .city-selection-card {
+            border-left: 5px solid var(--primary-blue);
+        }
+        
+        .city-info-card {
+            border-left: 5px solid #6f42c1;
+        }
+        
+        .boxes-card {
+            border-left: 5px solid var(--warning-orange);
+        }
+        
+        .delivery-card {
+            border-left: 5px solid var(--success-green);
+        }
+        
+        .client-card {
+            border-left: 5px solid #6f42c1;
+        }
+        
+        .cargo-card {
+            border-left: 5px solid #d63384;
+        }
+        
+        .privacy-card {
+            border-left: 5px solid var(--info-teal);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-bottom: 2px solid rgba(0,0,0,0.05);
+            padding: 1.2rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-title {
+            color: #2c3e50;
+            font-weight: 600;
+            margin: 0;
+            font-size: 1.1rem;
+        }
+        
+        .card-icon {
+            font-size: 1.3rem;
+        }
+        
+        .city-selection-card .card-icon {
+            color: var(--primary-blue);
+        }
+        
+        .city-info-card .card-icon {
+            color: #6f42c1;
+        }
+        
+        .boxes-card .card-icon {
+            color: var(--warning-orange);
+        }
+        
+        .delivery-card .card-icon {
+            color: var(--success-green);
+        }
+        
+        .client-card .card-icon {
+            color: #6f42c1;
+        }
+        
+        .cargo-card .card-icon {
+            color: #d63384;
+        }
+        
+        .privacy-card .card-icon {
+            color: var(--info-teal);
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .city-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .city-btn {
+            padding: 1.5rem;
+            border: 3px solid transparent;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .city-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .city-btn.active {
+            border-color: var(--primary-blue);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .city-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-blue);
+        }
+        
+        .city-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .city-desc {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .warehouse-info {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .warehouse-info:hover {
+            border-color: var(--primary-blue);
+            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.1);
+        }
+        
+        .custom-table {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .custom-table th {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .custom-table td {
+            padding: 0.75rem;
+            border-color: #e9ecef;
+        }
+        
+        .custom-table tbody tr:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        
+        .required::after {
+            content: " *";
+            color: #dc3545;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            padding: 0.6rem 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+        }
+        
+        .form-text {
+            color: #6c757d;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, var(--success-green) 0%, #20c997 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 2.5rem;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(25, 135, 84, 0.4);
+            background: linear-gradient(135deg, #157347 0%, #19a27a 100%);
+        }
+        
+        .btn-reset {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 2.5rem;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-reset:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+            background: linear-gradient(135deg, #545b62 0%, #3d4247 100%);
+        }
+        
+        .form-check-input:checked {
+            background-color: var(--success-green);
+            border-color: var(--success-green);
+        }
+        
+        .form-check-input:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        
+        .invalid-feedback {
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 2rem;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .contact-info {
+            color: #495057;
+            font-size: 1rem;
+        }
+        
+        .contact-info strong {
+            color: var(--primary-blue);
+        }
+        
+        .copyright {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .form-container {
+                margin: 1rem;
+                border-radius: 10px;
+            }
+            
+            .header {
+                padding: 2rem 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            .city-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-submit, .btn-reset {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .messages-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            width: 90%;
+            max-width: 600px;
+        }
+        
+        .warehouse-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-right: 8px;
+        }
+        
+        .status-open {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-closed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(13, 110, 253, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+        }
+        
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="messages-container">
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    {% if message.tags == 'success' %}
+                        <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                    {% elif message.tags == 'error' or message.tags == 'danger' %}
+                        <i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>
+                    {% elif message.tags == 'warning' %}
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                    {% elif message.tags == 'info' %}
+                        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                    {% endif %}
+                    <div>{{ message }}</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="form-container">
+        <div class="header">
+            <div class="container">
+                <h1 class="mb-3">
+                    <i class="bi bi-box-arrow-in-down"></i>
+                    Заявка на получение (забор) груза
+                </h1>
+                <p class="company-name mb-0">
+                    ФФ Царицыно - профессиональная логистика для вашего бизнеса
+                </p>
+            </div>
+        </div>
+        
+        <div class="container py-4">
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <div>
+                        {% for error in form.non_field_errors %}
+                        <p class="mb-0">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+            
+            <div class="info-card city-selection-card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-geo-alt card-icon"></i>
+                    <h5 class="card-title">Выберите город приема заявки</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">Выберите город для просмотра доступных складов и условий приема заявок.</p>
+                    
+                    <div class="city-buttons">
+                        {% for city in cities_data %}
+                        <div class="city-btn" id="city-btn-{{ city.id }}" data-city-id="{{ city.id }}">
+                            <div class="city-icon">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <div class="city-name">{{ city.name }}</div>
+                            <div class="city-desc">{{ city.region|default:"Город" }}</div>
+                        </div>
+                        {% empty %}
+                        <div class="alert alert-warning w-100">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Нет доступных городов для приема заявок.
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <input type="hidden" name="selected_city_id" id="selectedCityId">
+                </div>
+            </div>
+            
+            <div class="info-card city-info-card mb-4 hidden" id="city-info">
+                <div class="card-header">
+                    <i class="bi bi-info-circle card-icon"></i>
+                    <h5 class="card-title">Информация о складах в городе <span id="selected-city-name"></span></h5>
+                </div>
+                <div class="card-body" id="city-info-content">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <p class="mt-2">Загрузка информации о складах...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-card boxes-card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-box-seam card-icon"></i>
+                    <h5 class="card-title">Стандартные размеры коробок</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Для расчета объема используйте наши стандартные размеры коробок</p>
+                    <div class="table-responsive">
+                        <table class="table custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Тип коробки</th>
+                                    <th>Размеры (Д×Ш×В, см)</th>
+                                    <th>Объем (м³)</th>
+                                    <th>Макс. вес (кг)</th>
+                                    <th>Описание</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for box in box_sizes %}
+                                <tr>
+                                    <td><strong>{{ box.name }}</strong><br><small class="text-muted">{{ box.code }}</small></td>
+                                    <td>{{ box.length }} × {{ box.width }} × {{ box.height }}</td>
+                                    <td><span class="badge bg-dark">{{ box.volume|floatformat:3 }}</span></td>
+                                    <td><span class="badge bg-secondary">{{ box.weight_capacity }}</span></td>
+                                    <td><small class="text-muted">{{ box.description|default:"-" }}</small></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        Нет данных о типах коробок
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i> 
+                            <strong>Совет:</strong> Для расчета общего объема умножьте количество коробок каждого типа на их объем.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <form method="post" novalidate class="mb-4" id="orderForm">
+                {% csrf_token %}
+                
+                <input type="hidden" name="delivery_city" id="id_delivery_city_hidden">
+                <input type="hidden" name="receiving_warehouse" id="id_receiving_warehouse_hidden">
+                
+                <div class="info-card delivery-card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-geo-alt card-icon"></i>
+                        <h5 class="card-title">Информация о доставке</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.desired_delivery_date.id_for_label }}" class="form-label required">
+                                    Желаемая дата поставки
+                                </label>
+                                {{ form.desired_delivery_date }}
+                                {% if form.desired_delivery_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.desired_delivery_date.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Выберите дату доставки с учетом графика работы складов
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.marketplace.id_for_label }}" class="form-label required">
+                                    Маркетплейс
+                                </label>
+                                {{ form.marketplace }}
+                                {% if form.marketplace.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.marketplace.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Выберите площадку, с которой заказ
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label required">
+                                    Склад приемки
+                                </label>
+                                <div id="warehouse-selection">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle"></i>
+                                        Выберите город выше для отображения доступных складов
+                                    </div>
+                                </div>
+                                <div class="form-text" id="warehouse-info">
+                                    Склад будет выбран после выбора города
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label required">
+                                    Город доставки
+                                </label>
+                                <div id="city-selection-display">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle"></i>
+                                        Выберите город выше для отображения доступных городов доставки
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    Город назначения доставки
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="{{ form.pickup_address.id_for_label }}" class="form-label required">
+                                    Адрес забора груза
+                                </label>
+                                {{ form.pickup_address }}
+                                {% if form.pickup_address.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.pickup_address.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Город, улица, дом, этаж, наличие лифта
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="{{ form.delivery_address.id_for_label }}" class="form-label required">
+                                    Адрес доставки груза (улица, дом)
+                                </label>
+                                {{ form.delivery_address }}
+                                {% if form.delivery_address.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.delivery_address.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Улица, дом, квартира/офис, этаж
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-card client-card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-person-badge card-icon"></i>
+                        <h5 class="card-title">Информация о клиенте</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.client_company.id_for_label }}" class="form-label required">
+                                    Наименование компании
+                                </label>
+                                {{ form.client_company }}
+                                {% if form.client_company.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_company.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Полное наименование компании или ИП
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.client_name.id_for_label }}" class="form-label required">
+                                    Контактное лицо
+                                </label>
+                                {{ form.client_name }}
+                                {% if form.client_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_name.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    ФИО ответственного лица
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.client_phone.id_for_label }}" class="form-label required">
+                                    Телефон для связи
+                                </label>
+                                {{ form.client_phone }}
+                                {% if form.client_phone.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_phone.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Номер для оперативной связи
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.client_email.id_for_label }}" class="form-label">
+                                    Email (необязательно)
+                                </label>
+                                {{ form.client_email }}
+                                {% if form.client_email.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_email.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    На этот email придет подтверждение (если указан)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-card cargo-card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-box2 card-icon"></i>
+                        <h5 class="card-title">Характеристики груза</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="{{ form.quantity.id_for_label }}" class="form-label required">
+                                    Количество мест
+                                </label>
+                                {{ form.quantity }}
+                                {% if form.quantity.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.quantity.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Общее количество коробок
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.volume.id_for_label }}" class="form-label required">
+                                    Общий объем (м³)
+                                </label>
+                                {{ form.volume }}
+                                {% if form.volume.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.volume.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Используйте таблицу для расчета
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.weight.id_for_label }}" class="form-label required">
+                                    Общий вес (кг)
+                                </label>
+                                {{ form.weight }}
+                                {% if form.weight.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.weight.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Вес всех мест вместе
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="{{ form.order_1c_number.id_for_label }}" class="form-label">
+                                    № заказа в 1С
+                                </label>
+                                {{ form.order_1c_number }}
+                                {% if form.order_1c_number.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.order_1c_number.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Если заказ создан в вашей системе 1С
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="{{ form.cargo_description.id_for_label }}" class="form-label">
+                                    Комментарий к заказу
+                                </label>
+                                {{ form.cargo_description }}
+                                {% if form.cargo_description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.cargo_description.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Хрупкий груз, температурный режим и т.д.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-card privacy-card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-shield-check card-icon"></i>
+                        <h5 class="card-title">Согласие на обработку данных</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check">
+                            {{ form.privacy_policy }}
+                            <label class="form-check-label ms-2" for="{{ form.privacy_policy.id_for_label }}">
+                                Я даю свое согласие на обработку моих персональных данных в соответствии с 
+                                <a href="#" class="text-decoration-none" target="_blank">политикой конфиденциальности</a>
+                            </label>
+                            {% if form.privacy_policy.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.privacy_policy.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center py-4">
+                    <div class="d-grid gap-2 d-md-block">
+                        <button type="submit" class="btn btn-submit me-md-2" id="submitButton">
+                            <i class="bi bi-send-check me-2"></i> Отправить заявку
+                        </button>
+                        <button type="reset" class="btn btn-reset" id="resetButton">
+                            <i class="bi bi-arrow-clockwise me-2"></i> Очистить форму
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i> 
+                            Все поля, отмеченные <span class="text-danger">*</span>, обязательны для заполнения
+                        </small>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="footer">
+            <div class="container">
+                <p class="contact-info mb-2">
+                    <i class="bi bi-telephone"></i>
+                    По вопросам заполнения формы звоните: 
+                    <strong>+7 (495) 123-45-67</strong> (Москва) | 
+                    <strong>+7 (843) 567-89-01</strong> (Казань)
+                </p>
+                <p class="contact-info mb-2">
+                    <i class="bi bi-clock"></i>
+                    Режим работы: Пн-Пт с 9:00 до 18:00 (Москва) | Пн-Пт с 9:00 до 17:00 (Казань)
+                </p>
+                <p class="copyright mb-0">
+                    © {% now "Y" %} ФФ Царицыно. Все права защищены.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectedCityId = document.getElementById('selectedCityId');
+            const cityInfo = document.getElementById('city-info');
+            const cityNameElement = document.getElementById('selected-city-name');
+            const cityContent = document.getElementById('city-info-content');
+            const receivingWarehouseHidden = document.getElementById('id_receiving_warehouse_hidden');
+            const deliveryCityHidden = document.getElementById('id_delivery_city_hidden');
+            const warehouseSelection = document.getElementById('warehouse-selection');
+            const citySelectionDisplay = document.getElementById('city-selection-display');
+            const form = document.getElementById('orderForm');
+            const submitButton = document.getElementById('submitButton');
+            
+            const citiesData = JSON.parse('{{ cities_data_json|escapejs }}' || '[]');
+            
+            let currentCity = null;
+            let selectedWarehouseId = null;
+            let selectedWarehouseName = null;
+            
+            function displayCityInfo(cityId) {
+                const city = citiesData.find(c => c.id == cityId);
+                if (!city) {
+                    cityContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Город не найден
+                        </div>
+                    `;
+                    return;
+                }
+                
+                currentCity = city;
+                cityNameElement.textContent = city.name;
+                
+                let html = '';
+                
+                if (city.warehouses && city.warehouses.length > 0) {
+                    city.warehouses.forEach((warehouse, index) => {
+                        const isOpen = warehouse.is_open_now;
+                        const schedules = warehouse.schedules || [];
+                        
+                        html += `
+                            <div class="warehouse-info mb-4 p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <i class="bi bi-house-door me-2"></i>
+                                            <strong>${warehouse.name}</strong>
+                                            <span class="badge ${isOpen ? 'bg-success' : 'bg-danger'} ms-2">
+                                                <i class="bi ${isOpen ? 'bi-check-circle' : 'bi-x-circle'}"></i>
+                                                ${isOpen ? 'Открыт' : 'Закрыт'}
+                                            </span>
+                                        </h6>
+                                        <p class="text-muted mb-0"><small>Код: ${warehouse.code}</small></p>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm ${selectedWarehouseId == warehouse.id ? 'btn-primary' : 'btn-outline-primary'} select-warehouse-btn" 
+                                                data-warehouse-id="${warehouse.id}" 
+                                                data-warehouse-name="${warehouse.name}">
+                                            <i class="bi bi-check-circle me-1"></i> 
+                                            ${selectedWarehouseId == warehouse.id ? 'Выбран' : 'Выбрать'}
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <p class="mb-1">
+                                            <i class="bi bi-geo-alt text-primary"></i> 
+                                            <strong>Адрес:</strong> ${warehouse.address}
+                                        </p>
+                                        <p class="mb-1">
+                                            <i class="bi bi-telephone text-primary"></i> 
+                                            <strong>Телефон:</strong> ${warehouse.phone}
+                                        </p>
+                                        ${warehouse.email ? `
+                                            <p class="mb-1">
+                                                <i class="bi bi-envelope text-primary"></i> 
+                                                <strong>Email:</strong> ${warehouse.email}
+                                            </p>
+                                        ` : ''}
+                                        ${warehouse.manager ? `
+                                            <p class="mb-1">
+                                                <i class="bi bi-person text-primary"></i> 
+                                                <strong>Менеджер:</strong> ${warehouse.manager}
+                                            </p>
+                                        ` : ''}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1">
+                                            <i class="bi bi-clock text-primary"></i> 
+                                            <strong>График работы:</strong> ${warehouse.working_hours}
+                                        </p>
+                                        <p class="mb-1">
+                                            <i class="bi bi-rulers text-primary"></i> 
+                                            <strong>Площадь:</strong> ${warehouse.available_area} м² / ${warehouse.total_area} м²
+                                        </p>
+                                        <p class="mb-0">
+                                            <i class="bi bi-info-circle text-primary"></i> 
+                                            ${warehouse.is_24h ? 'Круглосуточный склад' : 'Работает по графику'}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                ${schedules.length > 0 ? `
+                                    <div class="mt-3">
+                                        <h6 class="mb-2"><i class="bi bi-calendar-event"></i> График приема заявок:</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered">
+                                                <thead>
+                                                    <tr>
+                                                        <th>День недели</th>
+                                                        <th>Время работы</th>
+                                                        <th>Крайний срок забора</th>
+                                                        <th>Крайний срок доставки</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${schedules.map(schedule => `
+                                                        <tr>
+                                                            <td>${schedule.day_of_week}</td>
+                                                            <td>${schedule.opening_time} - ${schedule.closing_time}</td>
+                                                            <td>${schedule.pickup_cutoff_time}</td>
+                                                            <td>${schedule.delivery_cutoff_time}</td>
+                                                        </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <small class="text-muted">
+                                            Максимум заборов в день: ${schedules[0]?.max_daily_pickups || '20'}
+                                        </small>
+                                    </div>
+                                ` : '<p class="text-warning"><i class="bi bi-exclamation-triangle"></i> График приема заявок не указан</p>'}
+                            </div>
+                        `;
+                    });
+                } else {
+                    html = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            В городе ${city.name} нет доступных складов.
+                        </div>
+                    `;
+                }
+                
+                cityContent.innerHTML = html;
+                cityInfo.classList.remove('hidden');
+                cityInfo.classList.add('fade-in');
+                
+                document.querySelectorAll('.select-warehouse-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        selectWarehouse(
+                            this.getAttribute('data-warehouse-id'),
+                            this.getAttribute('data-warehouse-name')
+                        );
+                    });
+                });
+                
+                loadDeliveryCities(cityId);
+            }
+            
+            function selectWarehouse(warehouseId, warehouseName) {
+                selectedWarehouseId = warehouseId;
+                selectedWarehouseName = warehouseName;
+                
+                receivingWarehouseHidden.value = warehouseId;
+                
+                document.querySelectorAll('.select-warehouse-btn').forEach(btn => {
+                    const btnWarehouseId = btn.getAttribute('data-warehouse-id');
+                    if (btnWarehouseId == warehouseId) {
+                        btn.classList.remove('btn-outline-primary');
+                        btn.classList.add('btn-primary');
+                        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Выбран';
+                        btn.parentElement.parentElement.classList.add('pulse');
+                    } else {
+                        btn.classList.remove('btn-primary');
+                        btn.classList.add('btn-outline-primary');
+                        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Выбрать';
+                        btn.parentElement.parentElement.classList.remove('pulse');
+                    }
+                });
+                
+                showAlertMessage(`Выбран склад: ${warehouseName}`, 'success');
+                
+                if (warehouseSelection) {
+                    warehouseSelection.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i>
+                            Выбран склад: <strong>${warehouseName}</strong>
+                        </div>
+                    `;
+                }
+            }
+            
+            function loadDeliveryCities(cityId) {
+                let availableCities = [];
+                
+                if (cityId == 1) {
+                    availableCities = [
+                        {id: 1, name: 'Москва'},
+                        {id: 3, name: 'Санкт-Петербург'},
+                        {id: 4, name: 'Новосибирск'},
+                        {id: 5, name: 'Екатеринбург'},
+                    ];
+                } else if (cityId == 2) {
+                    availableCities = [
+                        {id: 2, name: 'Казань'},
+                        {id: 4, name: 'Новосибирск'},
+                        {id: 5, name: 'Екатеринбург'},
+                    ];
+                } else {
+                    availableCities = citiesData.map(city => ({id: city.id, name: city.name}));
+                }
+                
+                if (availableCities.length > 0) {
+                    let html = '<div class="row g-2">';
+                    availableCities.forEach(city => {
+                        html += `
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input city-radio" 
+                                           type="radio" 
+                                           name="selected_delivery_city" 
+                                           id="city_${city.id}" 
+                                           value="${city.id}"
+                                           onchange="selectDeliveryCity(${city.id}, '${city.name}')">
+                                    <label class="form-check-label" for="city_${city.id}">
+                                        ${city.name}
+                                    </label>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    
+                    citySelectionDisplay.innerHTML = html;
+                    
+                    if (availableCities.length > 0) {
+                        const firstCity = availableCities[0];
+                        setTimeout(() => {
+                            selectDeliveryCity(firstCity.id, firstCity.name);
+                        }, 100);
+                    }
+                } else {
+                    citySelectionDisplay.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Нет доступных городов доставки.
+                        </div>
+                    `;
+                }
+            }
+            
+            window.selectDeliveryCity = function(cityId, cityName) {
+                deliveryCityHidden.value = cityId;
+                
+                const cityInfoElement = document.querySelector('#city-selection-display .form-text');
+                if (cityInfoElement) {
+                    cityInfoElement.innerHTML = `Выбран город доставки: <strong>${cityName}</strong>`;
+                }
+                
+                document.querySelectorAll('.city-radio').forEach(radio => {
+                    radio.checked = radio.value == cityId;
+                });
+            };
+            
+            document.querySelectorAll('.city-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const cityId = this.getAttribute('data-city-id');
+                    
+                    document.querySelectorAll('.city-btn').forEach(b => {
+                        b.classList.remove('active');
+                    });
+                    
+                    this.classList.add('active');
+                    
+                    selectedCityId.value = cityId;
+                    
+                    displayCityInfo(cityId);
+                    
+                    setTimeout(() => {
+                        document.getElementById('city-info').scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                    }, 300);
+                });
+            });
+            
+            const firstCityBtn = document.querySelector('.city-btn');
+            if (firstCityBtn && citiesData.length > 0) {
+                firstCityBtn.click();
+            }
+            
+            const quantityField = document.getElementById('id_quantity');
+            const volumeField = document.getElementById('id_volume');
+            
+            if (quantityField && volumeField) {
+                const boxTypeContainer = document.createElement('div');
+                boxTypeContainer.className = 'mt-3';
+                boxTypeContainer.innerHTML = `
+                    <label class="form-label">Быстрый расчет объема</label>
+                    <select id="box-type-select" class="form-select">
+                        <option value="">Выберите тип коробки для расчета...</option>
+                        {% for box in box_sizes %}
+                        <option value="{{ box.volume|floatformat:3 }}">{{ box.name }} ({{ box.volume|floatformat:3 }} м³)</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Выберите тип коробки для автоматического расчета объема</div>
+                `;
+                
+                volumeField.parentNode.appendChild(boxTypeContainer);
+                const boxTypeSelect = document.getElementById('box-type-select');
+                
+                boxTypeSelect.addEventListener('change', function() {
+                    const boxVolume = parseFloat(this.value);
+                    const quantity = parseInt(quantityField.value) || 1;
+                    
+                    if (boxVolume && quantity) {
+                        const totalVolume = boxVolume * quantity;
+                        volumeField.value = totalVolume.toFixed(3);
+                        
+                        volumeField.title = `Рассчитано: ${quantity} × ${boxVolume} м³ = ${totalVolume.toFixed(3)} м³`;
+                        
+                        volumeField.style.backgroundColor = '#e8f4f8';
+                        volumeField.style.borderColor = '#0d6efd';
+                        setTimeout(() => {
+                            volumeField.style.backgroundColor = '';
+                            volumeField.style.borderColor = '';
+                        }, 1500);
+                    }
+                });
+                
+                quantityField.addEventListener('change', function() {
+                    if (boxTypeSelect.value) {
+                        boxTypeSelect.dispatchEvent(new Event('change'));
+                    }
+                });
+                
+                volumeField.addEventListener('input', function() {
+                    boxTypeSelect.value = '';
+                });
+            }
+            
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    if (!selectedCityId.value) {
+                        showAlertMessage('Пожалуйста, выберите город приема заявки', 'warning');
+                        document.querySelector('.city-selection-card').scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                        return false;
+                    }
+                    
+                    if (!selectedWarehouseId) {
+                        showAlertMessage('Пожалуйста, выберите склад приемки', 'warning');
+                        document.getElementById('city-info').scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                        return false;
+                    }
+                    
+                    if (!deliveryCityHidden.value) {
+                        showAlertMessage('Пожалуйста, выберите город доставки', 'warning');
+                        const citySection = document.querySelector('#city-selection-display .row');
+                        if (citySection) {
+                            citySection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        return false;
+                    }
+                    
+                    let isValid = true;
+                    const requiredFields = form.querySelectorAll('[required]');
+                    
+                    requiredFields.forEach(function(field) {
+                        field.classList.remove('is-invalid');
+                        
+                        const isCheckbox = field.type === 'checkbox';
+                        const isEmpty = isCheckbox ? !field.checked : !field.value.trim();
+                        
+                        if (isEmpty) {
+                            isValid = false;
+                            field.classList.add('is-invalid');
+                            
+                            const parentDiv = field.closest('.col-md-6, .col-md-4, .col-12');
+                            if (parentDiv) {
+                                parentDiv.style.animation = 'pulse 0.5s';
+                                setTimeout(() => {
+                                    parentDiv.style.animation = '';
+                                }, 500);
+                            }
+                        }
+                    });
+                    
+                    if (!isValid) {
+                        showAlertMessage('Пожалуйста, заполните все обязательные поля', 'warning');
+                        const firstError = form.querySelector('.is-invalid');
+                        if (firstError) {
+                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            firstError.focus();
+                        }
+                        return false;
+                    }
+                    
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                        submitButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Отправка...';
+                    }
+                    
+                    this.submit();
+                });
+            }
+            
+            function showAlertMessage(message, type) {
+                const oldNotifications = document.querySelectorAll('.notification-alert');
+                oldNotifications.forEach(alert => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+                
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show notification-alert`;
+                alertDiv.style.cssText = `
+                    position: fixed;
+                    top: 100px;
+                    right: 20px;
+                    z-index: 9999;
+                    min-width: 300px;
+                    max-width: 400px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                `;
+                alertDiv.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        ${type === 'success' ? 
+                            '<i class="bi bi-check-circle-fill me-2 fs-5"></i>' : 
+                            type === 'warning' ? 
+                            '<i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>' :
+                            '<i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>'
+                        }
+                        <div>${message}</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                document.body.appendChild(alertDiv);
+                
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        const bsAlert = new bootstrap.Alert(alertDiv);
+                        bsAlert.close();
+                    }
+                }, 5000);
+            }
+            
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+            
+            window.addEventListener('pageshow', function(event) {
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = '<i class="bi bi-send-check me-2"></i> Отправить заявку';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

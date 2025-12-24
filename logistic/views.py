@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from django.views.generic import ListView, DetailView, UpdateView
+from django.views.generic import ListView, DetailView, UpdateView, CreateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.conf import settings as django_settings
 from django.core.mail import send_mail, get_connection
@@ -19,10 +19,9 @@ import zipfile
 from django.views.decorators.http import require_POST
 
 from .models import DeliveryOrder
-from .filters import DeliveryOrderFilter
 from pickup.models import PickupOrder
 from .pdf_utils import create_delivery_order_pdf, create_daily_report_pdf
-from .forms import DailyReportForm, DateRangeReportForm, EmailSettingsForm
+from .forms import DailyReportForm, DateRangeReportForm, DeliveryOrderCreateForm, EmailSettingsForm
 
 
 class DeliveryOrderListView(LoginRequiredMixin, ListView):
@@ -34,27 +33,97 @@ class DeliveryOrderListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
 
-        if hasattr(self.request.user, "profile"):
-            user_profile = self.request.user.profile
-
-            if user_profile.is_operator:
+        # Фильтрация по оператору
+        if self.request.user.is_authenticated and hasattr(self.request.user, "profile"):
+            if self.request.user.profile.role == "operator":
                 queryset = queryset.filter(operator=self.request.user)
 
-        # Применяем фильтр
-        self.filterset = DeliveryOrderFilter(self.request.GET, queryset=queryset)
-        return self.filterset.qs
+        # Применение фильтров
+        date_gte = self.request.GET.get("date__gte")
+        date_lte = self.request.GET.get("date__lte")
+        city = self.request.GET.get("city")
+        warehouse = self.request.GET.get("warehouse")
+        status = self.request.GET.get("status")
+        fulfillment = self.request.GET.get("fulfillment")
+
+        if date_gte:
+            queryset = queryset.filter(date__gte=date_gte)
+        if date_lte:
+            queryset = queryset.filter(date__lte=date_lte)
+        if city and city != "":
+            queryset = queryset.filter(city_id=city)
+        if warehouse and warehouse != "":
+            queryset = queryset.filter(warehouse_id=warehouse)
+        if status:
+            queryset = queryset.filter(status=status)
+        if fulfillment:
+            queryset = queryset.filter(fulfillment_id=fulfillment)
+
+        # Сортировка
+        sort = self.request.GET.get("sort", "date")
+        order = self.request.GET.get("order", "desc")
+
+        # Список разрешенных полей для сортировки
+        allowed_sort_fields = [
+            "date",
+            "city",
+            "warehouse",
+            "fulfillment",
+            "quantity",
+            "weight",
+            "status",
+            "driver_name",
+        ]
+
+        if sort in allowed_sort_fields:
+            if order == "desc":
+                sort_field = f"-{sort}"
+            else:
+                sort_field = sort
+            queryset = queryset.order_by(sort_field)
+        else:
+            queryset = queryset.order_by("-date")
+
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["filter"] = DeliveryOrderFilter(
-            self.request.GET, queryset=self.get_queryset()
+        context["is_operator"] = (
+            self.request.user.is_authenticated
+            and hasattr(self.request.user, "profile")
+            and self.request.user.profile.role == "operator"
+        )
+        context["is_logistic"] = (
+            self.request.user.is_authenticated
+            and hasattr(self.request.user, "profile")
+            and self.request.user.profile.role == "logistic"
+        )
+        context["sort"] = self.request.GET.get("sort", "date")
+        context["order"] = self.request.GET.get("order", "desc")
+
+        from django.contrib.auth.models import User
+
+        context["operators_list"] = User.objects.filter(
+            is_active=True, profile__role="operator"
+        ).order_by("first_name", "last_name", "username")
+
+        from warehouses.models import City, Warehouse
+
+        # Все города
+        context["cities"] = City.objects.all().order_by("name")
+
+        context["warehouses"] = (
+            Warehouse.objects.select_related("city").all().order_by("name")
         )
 
-        if hasattr(self.request.user, "profile"):
-            context["user_role"] = self.request.user.profile.get_role_display()
-            context["is_operator"] = self.request.user.profile.is_operator
-            context["is_logistic"] = self.request.user.profile.is_logistic
-            context["is_admin"] = self.request.user.profile.is_admin
+        if self.request.GET.get("fulfillment"):
+            try:
+                fulfillment_user = User.objects.get(
+                    id=self.request.GET.get("fulfillment")
+                )
+                context["selected_fulfillment"] = fulfillment_user
+            except User.DoesNotExist:
+                pass
 
         return context
 
@@ -141,13 +210,17 @@ def update_delivery_order_field(request, pk):
     allowed_fields = [
         "city",
         "warehouse",
+        "receiving_warehouse",
+        "delivery_address",
+        "pickup_address",  
         "quantity",
         "weight",
         "volume",
         "status",
         "driver_name",
         "driver_phone",
-        "date",  # Добавлено для редактирования даты
+        "date",
+        "fulfillment",
     ]
 
     if field not in allowed_fields:
@@ -162,13 +235,49 @@ def update_delivery_order_field(request, pk):
         elif field in ["weight", "volume"]:
             value = float(value) if value else None
         elif field == "date":
-            # Преобразуем строку даты
             from datetime import datetime
 
             try:
                 value = datetime.strptime(value, "%Y-%m-%d").date()
             except ValueError:
                 return JsonResponse({"success": False, "error": "Неверный формат даты"})
+        elif field == "fulfillment":
+            if value:
+                from django.contrib.auth.models import User
+
+                try:
+                    value = User.objects.get(id=value)
+                except User.DoesNotExist:
+                    return JsonResponse(
+                        {"success": False, "error": "Пользователь не найден"}
+                    )
+            else:
+                value = None
+        elif field == "city":
+            if value:
+                from warehouses.models import City
+
+                try:
+                    value = City.objects.get(id=value)
+                except City.DoesNotExist:
+                    return JsonResponse({"success": False, "error": "Город не найден"})
+            else:
+                value = None
+        elif field in ["warehouse", "receiving_warehouse"]:
+            if value:
+                from warehouses.models import Warehouse
+
+                try:
+                    value = Warehouse.objects.get(id=value)
+                except Warehouse.DoesNotExist:
+                    return JsonResponse({"success": False, "error": "Склад не найден"})
+            else:
+                value = None
+
+        # ДЛЯ АДРЕСОВ - просто сохраняем текст
+        elif field in ["delivery_address", "pickup_address"]:
+            # Значение уже в виде строки, никаких преобразований не нужно
+            pass
 
         setattr(order, field, value)
         order.save()
@@ -178,8 +287,26 @@ def update_delivery_order_field(request, pk):
             display_value = order.get_status_display()
             return JsonResponse({"success": True, "display_value": display_value})
         elif field == "date":
-            # Для даты возвращаем отформатированное значение
             display_value = order.date.strftime("%d.%m.%Y")
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "fulfillment":
+            display_value = order.get_fulfillment_display()
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "city":
+            display_value = order.city.name if order.city else "Не указан"
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "warehouse":
+            display_value = order.warehouse.name if order.warehouse else "Не указан"
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "receiving_warehouse":
+            display_value = (
+                order.receiving_warehouse.name
+                if order.receiving_warehouse
+                else "Не указан"
+            )
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field in ["delivery_address", "pickup_address"]:  
+            display_value = value if value else ""
             return JsonResponse({"success": True, "display_value": display_value})
 
         return JsonResponse({"success": True})
@@ -442,8 +569,8 @@ def generate_excel_report(date, report_type, user_filter):
                 {
                     "Номер": order.tracking_number or f"#{order.id}",
                     "Дата": order.date.strftime("%d.%m.%Y"),
-                    "Город": order.city,
-                    "Склад": order.warehouse,
+                    "Адрес отправки": order.pickup_address or "",
+                    "Адрес доставки": order.delivery_address or "",
                     "Места": order.quantity,
                     "Вес (кг)": order.weight,
                     "Объем (м³)": order.volume,
@@ -483,6 +610,74 @@ def generate_excel_report(date, report_type, user_filter):
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
 
+    elif report_type == "pickup":
+        orders = PickupOrder.objects.filter(pickup_date=date, **user_filter)
+
+        data = []
+        for order in orders:
+            data.append(
+                {
+                    "Номер": order.tracking_number or f"#{order.id}",
+                    "Дата забора": order.pickup_date.strftime("%d.%m.%Y"),
+                    "Время забора": (
+                        order.pickup_time.strftime("%H:%M") if order.pickup_time else ""
+                    ),
+                    "Адрес забора": order.pickup_address or "",
+                    "Контакт для выдачи": order.contact_person or "",
+                    "Клиент": order.client_name or "",
+                    "Компания": order.client_company or "",
+                    "Телефон": order.client_phone or "",
+                    "Email": order.client_email or "",
+                    "Маркетплейс": order.marketplace or "",
+                    "Дата поставки": order.desired_delivery_date.strftime("%d.%m.%Y"),
+                    "Адрес доставки": order.delivery_address or "",
+                    "Номер накладной": order.invoice_number or "",
+                    "Склад приемки": (
+                        order.receiving_warehouse.name
+                        if order.receiving_warehouse
+                        else ""
+                    ),
+                    "Оператор приемки": (
+                        order.receiving_operator.username
+                        if order.receiving_operator
+                        else ""
+                    ),
+                    "Места": order.quantity,
+                    "Вес (кг)": order.weight,
+                    "Объем (м³)": order.volume,
+                    "Статус": order.get_status_display(),
+                    "Оператор": order.operator.username if order.operator else "",
+                }
+            )
+
+        df = pd.DataFrame(data)
+
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="Заборы", index=False)
+
+            worksheet = writer.sheets["Заборы"]
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 30)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+
+        output.seek(0)
+        response = HttpResponse(
+            output.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        filename = f"pickup_report_{date.strftime('%Y%m%d')}.xlsx"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
     return None
 
 
@@ -514,15 +709,6 @@ def statistics_report(request):
                 stats = {
                     "total_orders": orders.count(),
                     "by_status": orders.values("status").annotate(count=Count("id")),
-                    "by_city": orders.values("city").annotate(
-                        count=Count("id"),
-                        total_weight=Sum("weight"),
-                        total_volume=Sum("volume"),
-                        avg_weight=Avg("weight"),
-                    ),
-                    "by_warehouse": orders.values("warehouse").annotate(
-                        count=Count("id")
-                    ),
                     "total_weight": orders.aggregate(Sum("weight"))["weight__sum"] or 0,
                     "total_volume": orders.aggregate(Sum("volume"))["volume__sum"] or 0,
                     "total_quantity": orders.aggregate(Sum("quantity"))["quantity__sum"]
@@ -747,3 +933,60 @@ def load_email_settings():
     except:
         pass
     return None
+
+
+# Добавьте этот класс в logistic/views.py, рядом с другими классами
+class DeliveryOrderCreateView(LoginRequiredMixin, CreateView):
+    """Создание новой заявки на доставку"""
+
+    model = DeliveryOrder
+    template_name = "logistic/delivery_order_create_form.html"
+    form_class = DeliveryOrderCreateForm
+
+    def form_valid(self, form):
+        # При создании заявки устанавливаем текущего пользователя как оператора
+        form.instance.operator = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, "Заявка на доставку успешно создана!")
+        return response
+
+    def get_success_url(self):
+        return reverse("delivery_order_detail", kwargs={"pk": self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if hasattr(self.request.user, "profile"):
+            context["is_operator"] = self.request.user.profile.is_operator
+            context["is_logistic"] = self.request.user.profile.is_logistic
+            context["is_admin"] = self.request.user.profile.is_admin
+        return context
+
+
+@login_required
+def get_operators(request):
+    """API для получения списка операторов фулфилмента"""
+    from django.contrib.auth.models import User
+
+    operators = User.objects.filter(is_active=True, profile__role="operator").order_by(
+        "first_name", "last_name", "username"
+    )
+
+    operators_list = []
+    for operator in operators:
+        operators_list.append(
+            {
+                "id": operator.id,
+                "username": operator.username,
+                "first_name": operator.first_name,
+                "last_name": operator.last_name,
+                "full_name": f"{operator.first_name} {operator.last_name}".strip()
+                or operator.username,
+                "fulfillment": (
+                    operator.profile.fulfillment
+                    if hasattr(operator, "profile")
+                    else None
+                ),
+            }
+        )
+
+    return JsonResponse(operators_list, safe=False)

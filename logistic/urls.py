@@ -4,6 +4,9 @@ from . import views
 urlpatterns = [
     path("", views.DeliveryOrderListView.as_view(), name="delivery_order_list"),
     path(
+        "create/", views.DeliveryOrderCreateView.as_view(), name="delivery_order_create"
+    ),
+    path(
         "<int:pk>/",
         views.DeliveryOrderDetailView.as_view(),
         name="delivery_order_detail",
@@ -30,4 +33,10 @@ urlpatterns = [
     path("reports/", views.reports_dashboard, name="reports_dashboard"),
     path("reports/daily/", views.generate_daily_report, name="generate_daily_report"),
     path("reports/statistics/", views.statistics_report, name="statistics_report"),
+    path("get-operators/", views.get_operators, name="get_operators"),
+    path(
+        "delivery/<int:pk>/update-field/",
+        views.update_delivery_order_field,
+        name="delivery_order_update_field",
+    ),
 ]

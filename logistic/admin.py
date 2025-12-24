@@ -7,14 +7,20 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
     list_display = [
         "tracking_number",
         "date",
-        "city",
-        "warehouse",
+        "pickup_address",
+        "delivery_address",
         "status",
         "quantity",
         "driver_name",
     ]
-    list_filter = ["city", "warehouse", "status", "date"]
-    search_fields = ["tracking_number", "city", "driver_name", "vehicle"]
+    list_filter = ["status", "date"]
+    search_fields = [
+        "tracking_number",
+        "pickup_address",
+        "delivery_address",
+        "driver_name",
+        "vehicle",
+    ]
     readonly_fields = ["qr_code_preview", "created_at", "tracking_number"]
     fieldsets = (
         (
@@ -23,8 +29,8 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
                 "fields": (
                     "tracking_number",
                     "date",
-                    "city",
-                    "warehouse",
+                    "pickup_address",
+                    "delivery_address",
                     "fulfillment",
                     "status",
                 )

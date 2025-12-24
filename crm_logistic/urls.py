@@ -15,7 +15,7 @@ urlpatterns = [
     path("", dashboard, name="dashboard"),
     path("delivery/", include("logistic.urls")),
     path("pickup/", include("pickup.urls")),
-    path("order/", include("order_form.urls")),  # Добавляем эту строку
+    path("order/", include("order_form.urls")),
     path("reports/", reports_dashboard, name="reports_dashboard"),
     path("reports/daily/", generate_daily_report, name="generate_daily_report"),
     path("reports/statistics/", statistics_report, name="statistics_report"),
@@ -25,6 +25,7 @@ urlpatterns = [
         name="login",
     ),
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),
+    path("warehouses/", include("warehouses.urls")),
 ]
 
 if settings.DEBUG:

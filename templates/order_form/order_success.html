@@ -94,10 +94,15 @@
                 <div class="tracking-number">
                     {% if tracking_number %}
                         {{ tracking_number }}
+                    {% elif order_id %}
+                        #{{ order_id }} (номер заявки)
                     {% else %}
-                        #{{ order_id }}
+                        <span class="text-warning">Номер будет присвоен в ближайшее время</span>
                     {% endif %}
                 </div>
+                {% if not tracking_number %}
+                <small class="text-muted">Трек-номер будет сгенерирован автоматически</small>
+                {% endif %}
             </div>
             
             <div class="info-card">
@@ -112,14 +117,30 @@
             
             <div class="action-buttons">
                 <div class="d-grid gap-2">
-                    <a href="{% url 'client_order_form' %}" class="btn btn-success">
-                        <i class="bi bi-plus-circle"></i> Отправить еще одну заявку
-                    </a>
+                    <!-- Показываем соответствующие кнопки в зависимости от типа заявки -->
+                    {% if order_type == 'pickup' %}
+                        <a href="{% url 'pickup_order_form' %}" class="btn btn-success">
+                            <i class="bi bi-plus-circle"></i> Отправить еще одну заявку на забор
+                        </a>
+                    {% elif order_type == 'delivery' %}
+                        <a href="{% url 'delivery_order_form' %}" class="btn btn-success">
+                            <i class="bi bi-plus-circle"></i> Отправить еще одну заявку на доставку
+                        </a>
+                    {% else %}
+                        <!-- Если тип не определен, показываем обе кнопки -->
+                        <a href="{% url 'pickup_order_form' %}" class="btn btn-success mb-2">
+                            <i class="bi bi-box-arrow-in-down"></i> Новая заявка на забор груза
+                        </a>
+                        <a href="{% url 'delivery_order_form' %}" class="btn btn-primary mb-2">
+                            <i class="bi bi-truck"></i> Новая заявка на доставку груза
+                        </a>
+                    {% endif %}
+                    
                     <button onclick="window.print()" class="btn btn-outline-primary">
                         <i class="bi bi-printer"></i> Распечатать страницу
                     </button>
-                    <a href="https://fmc-tzaritsyna.ru" class="btn btn-outline-secondary">
-                        <i class="bi bi-house"></i> Вернуться на сайт
+                    <a href="/" class="btn btn-outline-secondary">
+                        <i class="bi bi-house"></i> На главную
                     </a>
                 </div>
             </div>
@@ -139,13 +160,17 @@
             if (trackingNumber) {
                 trackingNumber.addEventListener('click', function() {
                     const text = this.textContent.trim();
-                    navigator.clipboard.writeText(text).then(function() {
-                        const originalText = trackingNumber.textContent;
-                        trackingNumber.innerHTML = '<i class="bi bi-check"></i> Скопировано!';
-                        setTimeout(function() {
-                            trackingNumber.textContent = originalText;
-                        }, 2000);
-                    });
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(text).then(function() {
+                            const originalText = trackingNumber.textContent;
+                            trackingNumber.innerHTML = '<i class="bi bi-check"></i> Скопировано!';
+                            setTimeout(function() {
+                                trackingNumber.textContent = originalText;
+                            }, 2000);
+                        }).catch(function(err) {
+                            console.error('Ошибка копирования: ', err);
+                        });
+                    }
                 });
                 trackingNumber.style.cursor = 'pointer';
                 trackingNumber.title = 'Кликните чтобы скопировать';

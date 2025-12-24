@@ -1,4 +1,3 @@
-### BEGIN: crm_logistic/settings.py
 """
 Django settings for crm_logistic project.
 """

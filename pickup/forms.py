@@ -16,15 +16,6 @@ class PickupOrderForm(forms.ModelForm):
         label="Время забора",
     )
 
-    # Поле для выбора города доставки
-    delivery_city = forms.ModelChoiceField(
-        queryset=City.objects.all(),
-        required=False,
-        label="Город доставки",
-        widget=forms.Select(attrs={"class": "form-select"}),
-        help_text="Выберите город назначения",
-    )
-
     class Meta:
         model = PickupOrder
         fields = [
@@ -32,16 +23,12 @@ class PickupOrderForm(forms.ModelForm):
             "pickup_time",
             "pickup_address",
             "contact_person",
-            "delivery_city",
-            "delivery_address",
             "client_name",
-            "client_company",
             "client_phone",
             "client_email",
             "marketplace",
             "desired_delivery_date",
             "invoice_number",
-            "receiving_warehouse",
             "quantity",
             "weight",
             "volume",
@@ -56,7 +43,12 @@ class PickupOrderForm(forms.ModelForm):
                 attrs={"type": "date", "class": "form-control"}
             ),
             "pickup_address": forms.Textarea(
-                attrs={"class": "form-control", "rows": 2}
+                attrs={
+                    "class": "form-control",
+                    "rows": 2,
+                    "readonly": "readonly",
+                    "id": "pickupAddress",
+                }
             ),
             "contact_person": forms.TextInput(
                 attrs={
@@ -64,11 +56,12 @@ class PickupOrderForm(forms.ModelForm):
                     "placeholder": "ФИО лица для выдачи груза",
                 }
             ),
-            "delivery_address": forms.Textarea(
-                attrs={"class": "form-control", "rows": 2}
+            "client_name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Имя компании или ФИО клиента",
+                }
             ),
-            "client_name": forms.TextInput(attrs={"class": "form-control"}),
-            "client_company": forms.TextInput(attrs={"class": "form-control"}),
             "client_phone": forms.TextInput(
                 attrs={"class": "form-control", "type": "tel"}
             ),
@@ -83,7 +76,6 @@ class PickupOrderForm(forms.ModelForm):
                     "placeholder": "Номер транспортной накладной",
                 }
             ),
-            "receiving_warehouse": forms.Select(attrs={"class": "form-select"}),
             "quantity": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
             "weight": forms.NumberInput(
                 attrs={"class": "form-control", "step": "0.1", "min": "0.1"}
@@ -104,21 +96,6 @@ class PickupOrderForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Операторы
-        operators = User.objects.filter(
-            profile__role__in=["operator", "logistic", "admin"]
-        ).order_by("username")
-
-        # Активные склады для забора
-        self.fields["receiving_warehouse"].queryset = Warehouse.objects.all()
-        self.fields["receiving_warehouse"].label_from_instance = (
-            lambda obj: f"{obj.name} ({obj.city.name})"
-        )
-
-        # Города
-        self.fields["delivery_city"].queryset = City.objects.all()
-        self.fields["delivery_city"].label_from_instance = lambda obj: f"{obj.name}"
-
         # Устанавливаем минимальные даты
         today = timezone.now().date()
         self.fields["pickup_date"].widget.attrs["min"] = today.strftime("%Y-%m-%d")
@@ -138,3 +115,18 @@ class PickupOrderForm(forms.ModelForm):
             ("ready", "Готов к выдаче"),
             ("payment", "На оплате"),
         ]
+
+    def save(self, commit=True):
+        """Сохраняет форму, автоматически заполняя client_company из client_name"""
+        instance = super().save(commit=False)
+
+        # Автоматически заполняем поле client_company из client_name
+        if instance.client_name:
+            instance.client_company = instance.client_name
+
+        if commit:
+            instance.save()
+
+        return instance
+
+

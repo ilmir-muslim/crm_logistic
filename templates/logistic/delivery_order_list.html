@@ -1,6 +1,10 @@
 {% extends 'base.html' %}
 
 {% block content %}
+{% if is_operator %}
+<div class="operator-view">
+{% endif %}
+
 <h2 class="mb-4">Заявки на доставку</h2>
 
 {% if is_operator %}
@@ -18,7 +22,47 @@
 {% endif %}
 
 <style>
-    /* Стили для инлайн-редактирования */
+    /* Существующие стили остаются без изменений */
+    .sortable-header {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        padding-right: 20px !important;
+        transition: background-color 0.2s ease;
+    }
+    
+    .sortable-header:hover {
+        background-color: #444 !important;
+    }
+    
+    .sort-icon {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 12px;
+        opacity: 0.7;
+        color: #ffffff;
+    }
+    
+    .sortable-header.sorted-asc .sort-icon::after {
+        content: "↑";
+        color: #28a745;
+        opacity: 1;
+        font-weight: bold;
+    }
+    
+    .sortable-header.sorted-desc .sort-icon::after {
+        content: "↓";
+        color: #dc3545;
+        opacity: 1;
+        font-weight: bold;
+    }
+    
+    .sortable-header:hover .sort-icon {
+        opacity: 0.9;
+    }
+    
     .editable-cell {
         cursor: pointer;
         position: relative;
@@ -70,6 +114,18 @@
         font-size: 15px !important;
         background-color: white;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    .editable-textarea {
+        width: 100%;
+        padding: 6px 10px;
+        border: 2px solid #0d6efd;
+        border-radius: 4px;
+        font-size: 15px !important;
+        background-color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        resize: vertical;
+        min-height: 60px;
     }
 
     .save-btn {
@@ -131,7 +187,7 @@
         font-weight: normal !important;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
         transition: all 0.2s;
-        background-color: transparent !important; /* Прозрачный фон */
+        background-color: transparent !important;
     }
 
     .status-badge-editable:hover {
@@ -159,7 +215,6 @@
         max-width: 400px;
     }
 
-    /* Единые шрифты для всей таблицы */
     .table th {
         white-space: nowrap;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
@@ -176,19 +231,16 @@
         color: #212529 !important;
     }
 
-    /* Стили для веса/объема */
     .weight-volume-cell {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
         font-size: 15px !important;
         font-weight: normal !important;
     }
 
-    /* Убираем жирное начертание */
     .table td strong {
         font-weight: normal !important;
     }
 
-    /* ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ СТАТУСОВ - ЦВЕТ ТЕКСТА ВМЕСТО ФОНА */
     .status-submitted { 
         color: #ffc107 !important; 
         font-weight: bold !important;
@@ -204,7 +256,6 @@
         font-weight: bold !important;
     }
 
-    /* Убираем Bootstrap стили для тега code */
     table code {
         color: inherit !important;
         background-color: transparent !important;
@@ -214,44 +265,162 @@
         border: none !important;
     }
 
-    /* Стиль для полосок таблицы */
     .table-striped > tbody > tr:nth-of-type(odd) > * {
         background-color: rgba(0, 0, 0, 0.02);
     }
 
-    /* Увеличиваем отступы для лучшего вида */
     .table th,
     .table td {
         padding: 12px 10px !important;
     }
 
-    /* Стили для кнопок действий */
     .btn-group-sm .btn {
         font-size: 14px !important;
         padding: 4px 8px !important;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
     }
 
-    /* Стили для пагинации */
     .pagination .page-link {
         font-size: 15px !important;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
     }
 
-    /* Стили для фильтров */
     .form-control, .form-select {
         font-size: 15px !important;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
     }
 
-    /* Стили для текста в заголовках карточек */
     .card-header h5, .card-header h6 {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
         font-size: 15px !important;
         font-weight: 600 !important;
     }
 
-    /* Улучшаем отображение на мобильных */
+    .operator-view .editable-cell {
+        cursor: default !important;
+    }
+
+    .operator-view .editable-cell:hover {
+        background-color: inherit !important;
+        outline: none !important;
+    }
+
+    .operator-view .status-badge-editable {
+        cursor: default !important;
+        pointer-events: none !important;
+    }
+
+    .operator-view .status-badge-editable:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    .operator-view .save-btn,
+    .operator-view .cancel-btn {
+        display: none !important;
+    }
+
+    /* Стили для адреса в таблице */
+    .address-cell {
+        max-width: 300px;
+        position: relative;
+    }
+
+    .address-text {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .address-text:hover::after {
+        content: attr(title);
+        position: absolute;
+        left: 0;
+        top: 100%;
+        background: #333;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        white-space: normal;
+        width: 300px;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    /* Общие стили для модального окна адреса */
+    #addressModal .card {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+    }
+
+    #addressModal .card-body p {
+        margin-bottom: 0.5rem;
+        font-size: 14px;
+    }
+
+    #addressModal .card-body strong {
+        color: #495057;
+        min-width: 120px;
+        display: inline-block;
+    }
+
+    #warehouseDetails {
+        transition: all 0.3s ease;
+    }
+
+    .warehouse-list {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        margin-top: 10px;
+    }
+
+    .warehouse-item {
+        padding: 10px 15px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .warehouse-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .warehouse-item.selected {
+        background-color: #e7f1ff;
+        border-left: 3px solid #0d6efd;
+    }
+
+    .warehouse-name {
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    .warehouse-address {
+        color: #666;
+        font-size: 13px;
+        margin-bottom: 2px;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .warehouse-city {
+        color: #888;
+        font-size: 12px;
+    }
+
+    /* Стили для текстового поля адреса в модальном окне */
+    #addressInput {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 15px;
+        line-height: 1.5;
+    }
+
+    /* Адаптивность */
     @media (max-width: 768px) {
         .table th,
         .table td {
@@ -271,6 +440,23 @@
             font-size: 13px !important;
             padding: 3px 6px !important;
         }
+        
+        .sort-icon {
+            right: 4px;
+            font-size: 10px;
+        }
+        
+        .address-text:hover::after {
+            display: none;
+        }
+        
+        #addressModal .modal-dialog {
+            margin: 0.5rem;
+        }
+        
+        .warehouse-list {
+            max-height: 200px;
+        }
     }
 </style>
 
@@ -280,7 +466,7 @@
         <h5 class="mb-0">Фильтры</h5>
     </div>
     <div class="card-body">
-        <form method="get" class="row g-3">
+        <form method="get" class="row g-3" id="filterForm">
             <div class="col-md-3">
                 <label class="form-label">Дата от</label>
                 <input type="date" name="date__gte" class="form-control" value="{{ request.GET.date__gte }}">
@@ -288,16 +474,6 @@
             <div class="col-md-3">
                 <label class="form-label">Дата до</label>
                 <input type="date" name="date__lte" class="form-control" value="{{ request.GET.date__lte }}">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Город</label>
-                <input type="text" name="city" class="form-control" 
-                       value="{{ request.GET.city }}" placeholder="Поиск по городу">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Склад</label>
-                <input type="text" name="warehouse" class="form-control" 
-                       value="{{ request.GET.warehouse }}" placeholder="Все">
             </div>
             <div class="col-md-2">
                 <label class="form-label">Статус</label>
@@ -308,7 +484,7 @@
                     <option value="shipped" {% if request.GET.status == 'shipped' %}selected{% endif %}>Отправлено</option>
                 </select>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
+            <div class="col-md-4 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100">Фильтровать</button>
                 <a href="{% url 'delivery_order_list' %}" class="btn btn-outline-secondary ms-2">Сбросить</a>
             </div>
@@ -316,8 +492,7 @@
     </div>
 </div>
 
-
-<!-- Добавлен блок массовых действий -->
+<!-- Добавлен блок массовых действий с кнопкой добавления -->
 <div class="card mb-3">
     <div class="card-header bg-light">
         <h6 class="mb-0">Массовые действия</h6>
@@ -335,6 +510,10 @@
                     <span class="ms-3 text-muted" id="selectedCount">Выбрано: 0</span>
                 </div>
                 <div>
+                    <!-- Кнопка добавления перемещена сюда -->
+                    <a href="{% url 'delivery_order_create' %}" class="btn btn-success me-2">
+                        <i class="bi bi-plus-circle"></i> Добавить новую заявку
+                    </a>
                     <button type="submit" class="btn btn-danger" id="exportPdfBtn" disabled>
                         <i class="bi bi-file-pdf"></i> Экспорт выбранного в PDF
                     </button>
@@ -352,13 +531,41 @@
                 <th style="width: 40px;">
                     <input type="checkbox" id="selectAllCheckbox" class="form-check-input">
                 </th>
-                <th>Дата</th>
-                <th>Город</th>
-                <th>Склад</th>
-                <th>Места</th>
-                <th>Вес/Объем</th>
-                <th>Статус</th>
-                <th>Водитель</th>
+                <th class="sortable-header {% if sort == 'date' %}sorted-{{ order }}{% endif %}" 
+                    data-sort="date">
+                    Дата
+                    <span class="sort-icon"></span>
+                </th>
+                <th class="sortable-header {% if sort == 'pickup_address' %}sorted-{{ order }}{% endif %}" 
+                    data-sort="pickup_address">
+                    Адрес отправки
+                    <span class="sort-icon"></span>
+                </th>
+                <th class="sortable-header {% if sort == 'delivery_address' %}sorted-{{ order }}{% endif %}" 
+                    data-sort="delivery_address">
+                    Адрес доставки
+                    <span class="sort-icon"></span>
+                </th>
+                <th class="sortable-header {% if sort == 'quantity' %}sorted-{{ order }}{% endif %}" 
+                    data-sort="quantity">
+                    Места
+                    <span class="sort-icon"></span>
+                </th>
+                <th class="sortable-header {% if sort == 'weight' %}sorted-{{ order }}{% endif %}" 
+                    data-sort="weight">
+                    Вес/Объем
+                    <span class="sort-icon"></span>
+                </th>
+                <th class="sortable-header {% if sort == 'status' %}sorted-{{ order }}{% endif %}" 
+                    data-sort="status">
+                    Статус
+                    <span class="sort-icon"></span>
+                </th>
+                <th class="sortable-header {% if sort == 'driver_name' %}sorted-{{ order }}{% endif %}" 
+                    data-sort="driver_name">
+                    Водитель
+                    <span class="sort-icon"></span>
+                </th>
                 <th>Действия</th>
             </tr>
         </thead>
@@ -369,20 +576,22 @@
                     <input type="checkbox" name="order_ids" value="{{ order.id }}" 
                            class="form-check-input order-checkbox">
                 </td>
-                <!-- Исправлено: Добавлено редактирование даты -->
                 <td class="editable-cell" data-field="date" data-original="{{ order.date|date:'Y-m-d' }}" data-type="date">
                     {{ order.date|date:"d.m.Y" }}
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
-                <!-- Исправлено: Убран тег <strong> для единообразия -->
-                <td class="editable-cell" data-field="city" data-original="{{ order.city }}">
-                    {{ order.city }}
+                <td class="editable-cell address-cell" data-field="pickup_address" data-original="{{ order.pickup_address|default:'' }}">
+                    <div class="address-text" title="{{ order.pickup_address|default:'Не указан' }}">
+                        {{ order.pickup_address|default:"Не указан"|truncatechars:30 }}
+                    </div>
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
-                <td class="editable-cell" data-field="warehouse" data-original="{{ order.warehouse }}">
-                    {{ order.warehouse }}
+                <td class="editable-cell address-cell" data-field="delivery_address" data-original="{{ order.delivery_address|default:'' }}">
+                    <div class="address-text" title="{{ order.delivery_address|default:'Не указан' }}">
+                        {{ order.delivery_address|default:"Не указан"|truncatechars:30 }}
+                    </div>
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
@@ -479,87 +688,420 @@
 </nav>
 {% endif %}
 
-<div class="mt-3">
-    <a href="{% url 'admin:logistic_deliveryorder_add' %}" class="btn btn-success">+ Добавить новую заявку</a>
+<!-- Модальное окно для редактирования адреса -->
+<div class="modal fade" id="addressModal" tabindex="-1" aria-labelledby="addressModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addressModalLabel">Редактирование адреса</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Текстовое поле для адреса -->
+        <div class="mb-3">
+          <label for="addressInput" class="form-label">Адрес</label>
+          <textarea 
+            class="form-control" 
+            id="addressInput" 
+            rows="3" 
+            placeholder="Введите адрес..."
+          ></textarea>
+          <div class="form-text">Можно ввести вручную или выбрать склад для автоматической подстановки адреса</div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="citySelect" class="form-label">Город</label>
+              <select class="form-select" id="citySelect">
+                <option value="">Выберите город</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="warehouseSelect" class="form-label">Склад</label>
+              <select class="form-select" id="warehouseSelect" disabled>
+                <option value="">Сначала выберите город</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Список складов с адресами -->
+        <div id="warehouseList" class="mt-3" style="display: none;">
+          <h6 class="mb-2">Список складов в выбранном городе:</h6>
+          <div class="warehouse-list" id="warehouseItemsContainer">
+            <!-- Склады будут загружены здесь -->
+          </div>
+        </div>
+        
+        <div id="warehouseDetails" class="mt-3" style="display: none;">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">Выбранный склад</h6>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Название:</strong> <span id="warehouseName">-</span></p>
+                  <p><strong>Адрес:</strong> <span id="warehouseAddress">-</span></p>
+                  <p><strong>Телефон:</strong> <span id="warehousePhone">-</span></p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Email:</strong> <span id="warehouseEmail">-</span></p>
+                  <p><strong>График работы:</strong> <span id="warehouseHours">-</span></p>
+                  <p><strong>Доступная площадь:</strong> <span id="warehouseArea">-</span> м²</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="saveAddressBtn">Сохранить адрес</button>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- JavaScript для массового выбора -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const selectAllBtn = document.getElementById('selectAllBtn');
-    const deselectAllBtn = document.getElementById('deselectAllBtn');
-    const exportPdfBtn = document.getElementById('exportPdfBtn');
-    const selectedCount = document.getElementById('selectedCount');
-    const orderCheckboxes = document.querySelectorAll('.order-checkbox');
-    const bulkActionsForm = document.getElementById('bulkActionsForm');
-    
-    function updateSelectedCount() {
-        const selected = document.querySelectorAll('.order-checkbox:checked');
-        selectedCount.textContent = `Выбрано: ${selected.length}`;
-        exportPdfBtn.disabled = selected.length === 0;
-    }
-    
-    selectAllCheckbox.addEventListener('change', function() {
-        orderCheckboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
-        });
-        updateSelectedCount();
-    });
-    
-    selectAllBtn.addEventListener('click', function() {
-        orderCheckboxes.forEach(checkbox => {
-            checkbox.checked = true;
-        });
-        selectAllCheckbox.checked = true;
-        updateSelectedCount();
-    });
-    
-    deselectAllBtn.addEventListener('click', function() {
-        orderCheckboxes.forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        selectAllCheckbox.checked = false;
-        updateSelectedCount();
-    });
-    
-    orderCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateSelectedCount);
-    });
-    
-    bulkActionsForm.addEventListener('submit', function(e) {
-        const selectedCheckboxes = document.querySelectorAll('.order-checkbox:checked');
-        if (selectedCheckboxes.length === 0) {
-            e.preventDefault();
-            alert('Пожалуйста, выберите хотя бы одну заявку');
-            return;
-        }
-        
-        const oldInputs = this.querySelectorAll('input[name="order_ids"]');
-        oldInputs.forEach(input => input.remove());
-        
-        selectedCheckboxes.forEach(checkbox => {
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = 'order_ids';
-            hiddenInput.value = checkbox.value;
-            this.appendChild(hiddenInput);
-        });
-    });
-    
-    updateSelectedCount();
-});
-</script>
-
-<!-- JavaScript для инлайн-редактирования -->
+<!-- JavaScript для инлайн-редактирования и модального окна складов -->
 <script>
 // Глобальные переменные для хранения состояния
 let editingCell = null;
+let operatorsList = [];
+let currentAddressCell = null;
+let currentAddressField = null; // 'pickup_address' или 'delivery_address'
 
-// Инициализация инлайн-редактирования
+// Загружаем список операторов при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
-    initInlineEditing();
+    // Проверяем, является ли пользователь оператором
+    const isOperator = {{ is_operator|yesno:"true,false" }};
+    
+    if (!isOperator) {
+        // Только для не-операторов (логистов и админов) инициализируем редактирование
+        initInlineEditing();
+        initAddressModal();
+        loadOperatorsList();
+    }
+    
+    // Инициализация массового выбора
+    initBulkActions();
 });
+
+// ==================== ИНИЦИАЛИЗАЦИЯ МОДАЛЬНОГО ОКНА АДРЕСА ====================
+
+function initAddressModal() {
+    const modal = document.getElementById('addressModal');
+    
+    // Очистка при закрытии
+    modal.addEventListener('hidden.bs.modal', function() {
+        document.getElementById('citySelect').value = '';
+        document.getElementById('warehouseSelect').value = '';
+        document.getElementById('warehouseSelect').disabled = true;
+        document.getElementById('warehouseList').style.display = 'none';
+        document.getElementById('warehouseDetails').style.display = 'none';
+        document.getElementById('addressInput').value = '';
+        document.getElementById('warehouseItemsContainer').innerHTML = '';
+        currentAddressCell = null;
+        currentAddressField = null;
+    });
+    
+    // Загрузка данных при открытии
+    modal.addEventListener('show.bs.modal', function() {
+        loadCities();
+    });
+    
+    // Обработчик выбора города
+    document.getElementById('citySelect').addEventListener('change', function() {
+        const cityId = this.value;
+        if (cityId) {
+            loadWarehousesByCity(cityId);
+            document.getElementById('warehouseDetails').style.display = 'none';
+        } else {
+            document.getElementById('warehouseSelect').value = '';
+            document.getElementById('warehouseSelect').disabled = true;
+            document.getElementById('warehouseList').style.display = 'none';
+            document.getElementById('warehouseDetails').style.display = 'none';
+        }
+    });
+    
+    // Обработчик выбора склада
+    document.getElementById('warehouseSelect').addEventListener('change', function() {
+        const warehouseId = this.value;
+        if (warehouseId) {
+            loadWarehouseDetails(warehouseId);
+        } else {
+            document.getElementById('warehouseDetails').style.display = 'none';
+        }
+    });
+    
+    // Кнопка сохранения адреса
+    document.getElementById('saveAddressBtn').addEventListener('click', function() {
+        saveAddressFromModal();
+    });
+    
+    // Сохранение по Ctrl+Enter
+    document.getElementById('addressInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            saveAddressFromModal();
+        }
+    });
+}
+
+// Открытие модального окна при клике на ячейку адреса
+function openAddressModal(cell, field) {
+    currentAddressCell = cell;
+    currentAddressField = field;
+    
+    // Получаем текущий адрес из data-атрибута
+    const currentAddress = cell.getAttribute('data-original') || '';
+    
+    // Заполняем поле адреса
+    document.getElementById('addressInput').value = currentAddress;
+    
+    // Показываем подсказку
+    if (currentAddress) {
+    }
+    
+    // Открываем модальное окно
+    const modal = new bootstrap.Modal(document.getElementById('addressModal'));
+    modal.show();
+}
+
+// Сохранение адреса из модального окна
+function saveAddressFromModal() {
+    if (!currentAddressCell || !currentAddressField) return;
+    
+    const newAddress = document.getElementById('addressInput').value.trim();
+    const warehouseSelect = document.getElementById('warehouseSelect');
+    const selectedWarehouseId = warehouseSelect.value;
+    const selectedWarehouseText = warehouseSelect.options[warehouseSelect.selectedIndex].text;
+    
+    if (!newAddress) {
+        showNotification('Пожалуйста, введите адрес', 'error');
+        return;
+    }
+    
+    const orderId = currentAddressCell.closest('tr').getAttribute('data-order-id');
+    
+    // Если выбран склад, обновляем оба поля
+    if (selectedWarehouseId) {
+        updateOrderWarehouseAndAddress(currentAddressCell, selectedWarehouseId, newAddress, selectedWarehouseText);
+    } else {
+        // Иначе обновляем только адрес
+        updateOrderAddressOnly(currentAddressCell, newAddress, orderId, currentAddressField);
+    }
+}
+
+// Обновление только адреса (без склада)
+function updateOrderAddressOnly(cell, address, orderId, field) {
+    const csrfToken = getCookie('csrftoken');
+    const url = `{% url 'delivery_order_update_field' 0 %}`.replace('0', orderId);
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            field: field,
+            value: address
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Обновляем отображение в ячейке
+            updateCellDisplay(cell, field, address, data.display_value || address, 'text');
+            
+            // Закрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addressModal'));
+            modal.hide();
+            
+            showNotification('Адрес успешно обновлен', 'success');
+        } else {
+            throw new Error(data.error || 'Ошибка обновления адреса');
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка обновления адреса:', error);
+        showNotification('Ошибка обновления адреса: ' + error.message, 'error');
+    });
+}
+
+// Обновление склада и адреса
+function updateOrderWarehouseAndAddress(cell, warehouseId, address, warehouseText) {
+    const orderId = cell.closest('tr').getAttribute('data-order-id');
+    const csrfToken = getCookie('csrftoken');
+    const url = `{% url 'delivery_order_update_field' 0 %}`.replace('0', orderId);
+    const field = currentAddressField;
+    
+    // Определяем поле для склада в зависимости от типа адреса
+    let warehouseField;
+    if (field === 'pickup_address') {
+        warehouseField = 'warehouse';
+    } else if (field === 'delivery_address') {
+        warehouseField = 'receiving_warehouse';
+    } else {
+        showNotification('Неизвестный тип адреса', 'error');
+        return;
+    }
+    
+    // Сначала обновляем склад
+    updateField(orderId, warehouseField, warehouseId, url)
+        .then(() => {
+            // Затем обновляем адрес
+            return updateField(orderId, field, address, url);
+        })
+        .then((data) => {
+            if (data.success) {
+                // Обновляем отображение в ячейке
+                updateCellDisplay(cell, field, address, data.display_value || address, 'text');
+                
+                // Закрываем модальное окно
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addressModal'));
+                modal.hide();
+                
+                showNotification('Адрес и склад успешно обновлены', 'success');
+            } else {
+                throw new Error(data.error || 'Ошибка обновления адреса');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка обновления склада и адреса:', error);
+            showNotification('Ошибка: ' + error.message, 'error');
+        });
+}
+
+// Универсальная функция обновления поля
+function updateField(orderId, field, value, url) {
+    const csrfToken = getCookie('csrftoken');
+    
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            field: field,
+            value: value
+        })
+    })
+    .then(response => response.json());
+}
+
+// Загрузка городов
+function loadCities() {
+    const citySelect = document.getElementById('citySelect');
+    
+    fetch('{% url "cities_json" %}')
+        .then(response => response.json())
+        .then(data => {
+            citySelect.innerHTML = '<option value="">Выберите город</option>';
+            data.forEach(city => {
+                const option = document.createElement('option');
+                option.value = city.id;
+                option.textContent = city.name;
+                citySelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки городов:', error);
+            showNotification('Ошибка загрузки списка городов', 'error');
+        });
+}
+
+// Загрузка складов по городу
+function loadWarehousesByCity(cityId) {
+    const warehouseSelect = document.getElementById('warehouseSelect');
+    const warehouseItemsContainer = document.getElementById('warehouseItemsContainer');
+    
+    fetch(`{% url "warehouses_by_city_json" 0 %}`.replace('0', cityId))
+        .then(response => response.json())
+        .then(data => {
+            // Обновляем выпадающий список
+            warehouseSelect.innerHTML = '<option value="">Выберите склад</option>';
+            data.forEach(warehouse => {
+                const option = document.createElement('option');
+                option.value = warehouse.id;
+                option.textContent = warehouse.name;
+                warehouseSelect.appendChild(option);
+            });
+            warehouseSelect.disabled = false;
+            
+            // Обновляем список складов
+            warehouseItemsContainer.innerHTML = '';
+            data.forEach(warehouse => {
+                const warehouseItem = document.createElement('div');
+                warehouseItem.className = 'warehouse-item';
+                warehouseItem.setAttribute('data-warehouse-id', warehouse.id);
+                warehouseItem.innerHTML = `
+                    <div class="warehouse-name">${warehouse.name}</div>
+                    <div class="warehouse-address">${warehouse.address || 'Адрес не указан'}</div>
+                `;
+                
+                warehouseItem.addEventListener('click', function() {
+                    // Снимаем выделение со всех элементов
+                    document.querySelectorAll('.warehouse-item').forEach(item => {
+                        item.classList.remove('selected');
+                    });
+                    
+                    // Выделяем текущий элемент
+                    this.classList.add('selected');
+                    
+                    // Устанавливаем значение в выпадающем списке
+                    warehouseSelect.value = warehouse.id;
+                    
+                    // Загружаем детали склада
+                    loadWarehouseDetails(warehouse.id);
+                });
+                
+                warehouseItemsContainer.appendChild(warehouseItem);
+            });
+            
+            document.getElementById('warehouseList').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки складов:', error);
+            showNotification('Ошибка загрузки списка складов', 'error');
+        });
+}
+
+// Загрузка деталей склада
+function loadWarehouseDetails(warehouseId) {
+    fetch(`{% url "warehouse_details_json" 0 %}`.replace('0', warehouseId))
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Ошибка загрузки деталей склада:', data.error);
+                return;
+            }
+            
+            document.getElementById('warehouseName').textContent = data.name;
+            document.getElementById('warehouseAddress').textContent = data.address;
+            document.getElementById('warehousePhone').textContent = data.phone;
+            document.getElementById('warehouseEmail').textContent = data.email || 'Не указан';
+            document.getElementById('warehouseHours').textContent = data.working_hours;
+            document.getElementById('warehouseArea').textContent = data.available_area;
+            
+            document.getElementById('warehouseDetails').style.display = 'block';
+            
+            // АВТОМАТИЧЕСКОЕ ЗАПОЛНЕНИЕ АДРЕСА
+            if (data.address && data.address !== '-') {
+                document.getElementById('addressInput').value = data.address;
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки деталей склада:', error);
+        });
+}
+
+// ==================== ИНИЦИАЛИЗАЦИЯ ИНЛАЙН-РЕДАКТИРОВАНИЯ ====================
 
 function initInlineEditing() {
     const editableCells = document.querySelectorAll('.editable-cell');
@@ -578,11 +1120,47 @@ function initInlineEditing() {
                 return;
             }
             
+            // Если это ячейка адреса - открываем модальное окно
+            const field = this.getAttribute('data-field');
+            if (field === 'pickup_address' || field === 'delivery_address') {
+                openAddressModal(this, field);
+                return;
+            }
+            
             // Для остальных ячеек - двойной клик
             if (e.detail === 2) {
                 startEditing(this);
             }
         });
+    });
+}
+
+// Загрузка списка операторов
+function loadOperatorsList() {
+    const csrfToken = getCookie('csrftoken');
+    
+    fetch('{% url "get_operators" %}', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        operatorsList = data;
+        console.log('Операторы загружены:', operatorsList.length);
+    })
+    .catch(error => {
+        console.error('Ошибка загрузки операторов:', error);
+        // Запасной вариант: статический список
+        operatorsList = [
+            {id: '', name: 'Не назначен'}
+        ];
     });
 }
 
@@ -617,7 +1195,6 @@ function startEditing(cell) {
                 {value: 'shipped', text: 'Отправлено'}
             ];
         } else {
-            // Для других селектов
             options = [{value: originalValue, text: originalValue}];
         }
         
@@ -625,7 +1202,9 @@ function startEditing(cell) {
             const option = document.createElement('option');
             option.value = opt.value;
             option.textContent = opt.text;
-            if (opt.value === originalValue) option.selected = true;
+            if (opt.value.toString() === originalValue.toString()) {
+                option.selected = true;
+            }
             inputElement.appendChild(option);
         });
     } else if (type === 'date') {
@@ -666,7 +1245,7 @@ function startEditing(cell) {
     
     // Обработка нажатия Enter и Escape
     inputElement.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !e.shiftKey) {
             saveCell(cell);
         } else if (e.key === 'Escape') {
             cancelEditing(cell);
@@ -694,7 +1273,7 @@ function saveCell(cell) {
         cell = cell.parentElement;
     }
     
-    const inputElement = cell.querySelector('input, select');
+    const inputElement = cell.querySelector('input, select, textarea');
     if (!inputElement) return;
     
     const newValue = inputElement.value;
@@ -713,12 +1292,17 @@ function saveCell(cell) {
         return;
     }
     
+    // Для адресов: проверка на пустоту
+    if ((field === 'pickup_address' || field === 'delivery_address') && newValue.trim() === '') {
+        showNotification('Адрес не может быть пустым', 'error');
+        return;
+    }
+    
     // Отправка на сервер
     saveToServer(orderId, field, newValue, cell, type);
 }
 
 function saveToServer(orderId, field, value, cell, type) {
-    // Используем правильный URL
     const url = `{% url 'delivery_order_update_field' 0 %}`.replace('0', orderId);
     const csrfToken = getCookie('csrftoken');
     
@@ -795,8 +1379,28 @@ function updateCellDisplay(cell, field, value, displayValue, type) {
             <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
         `;
         cell.setAttribute('data-original', value);
+    } else if (field === 'pickup_address' || field === 'delivery_address') {
+        // Для адресов используем специальную структуру с подсказкой
+        let addressText = value || '';
+        let displayText = addressText;
+        let titleText = addressText;
+        
+        if (!addressText || addressText.trim() === '') {
+            displayText = "Не указан";
+            titleText = "Не указан";
+        } else if (addressText.length > 30) {
+            displayText = addressText.substring(0, 30) + '...';
+            titleText = addressText;
+        }
+        
+        cell.innerHTML = `
+            <div class="address-text" title="${titleText}">${displayText}</div>
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', addressText);
     } else if (field === 'driver_name') {
-        // Специальная обработка для имени водителя
+        // Для имени водителя
         if (!value || value.trim() === '') {
             cell.innerHTML = `
                 <span class="text-muted">Не назначен</span>
@@ -812,6 +1416,7 @@ function updateCellDisplay(cell, field, value, displayValue, type) {
         }
         cell.setAttribute('data-original', value);
     } else if (field === 'driver_phone') {
+        // Для телефона водителя
         cell.innerHTML = `
             ${value}
             <button class="save-btn" onclick="saveCell(this)">✓</button>
@@ -819,14 +1424,15 @@ function updateCellDisplay(cell, field, value, displayValue, type) {
         `;
         cell.setAttribute('data-original', value);
     } else if (field === 'weight' || field === 'volume') {
+        // Для веса и объема
         cell.innerHTML = `
             ${value}
             <button class="save-btn" onclick="saveCell(this)">✓</button>
             <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
         `;
         cell.setAttribute('data-original', value);
-    } else if (field === 'city') {
-        // Убираем тег <strong> для единообразия
+    } else if (field === 'quantity') {
+        // Для количества мест
         cell.innerHTML = `
             ${value}
             <button class="save-btn" onclick="saveCell(this)">✓</button>
@@ -834,6 +1440,7 @@ function updateCellDisplay(cell, field, value, displayValue, type) {
         `;
         cell.setAttribute('data-original', value);
     } else {
+        // Для всех остальных полей
         cell.innerHTML = `
             ${value}
             <button class="save-btn" onclick="saveCell(this)">✓</button>
@@ -865,7 +1472,7 @@ function showNotification(message, type) {
     alert.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show notification-alert`;
     alert.style.cssText = `
         position: fixed;
-        top: 100px;  /* Увеличил отступ сверху чтобы не скрывалось под хидером */
+        top: 100px;
         right: 20px;
         z-index: 9999;
         min-width: 300px;
@@ -911,9 +1518,143 @@ function getCookie(name) {
     return cookieValue;
 }
 
+// ==================== ИНИЦИАЛИЗАЦИЯ МАССОВЫХ ДЕЙСТВИЙ ====================
+
+function initBulkActions() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const deselectAllBtn = document.getElementById('deselectAllBtn');
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    const selectedCount = document.getElementById('selectedCount');
+    const orderCheckboxes = document.querySelectorAll('.order-checkbox');
+    const bulkActionsForm = document.getElementById('bulkActionsForm');
+    
+    if (!selectAllCheckbox) return;
+    
+    function updateSelectedCount() {
+        const selected = document.querySelectorAll('.order-checkbox:checked');
+        selectedCount.textContent = `Выбрано: ${selected.length}`;
+        exportPdfBtn.disabled = selected.length === 0;
+    }
+    
+    selectAllCheckbox.addEventListener('change', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateSelectedCount();
+    });
+    
+    selectAllBtn.addEventListener('click', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        selectAllCheckbox.checked = true;
+        updateSelectedCount();
+    });
+    
+    deselectAllBtn.addEventListener('click', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        selectAllCheckbox.checked = false;
+        updateSelectedCount();
+    });
+    
+    orderCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+    
+    bulkActionsForm.addEventListener('submit', function(e) {
+        const selectedCheckboxes = document.querySelectorAll('.order-checkbox:checked');
+        if (selectedCheckboxes.length === 0) {
+            e.preventDefault();
+            alert('Пожалуйста, выберите хотя бы одну заявку');
+            return;
+        }
+        
+        const oldInputs = this.querySelectorAll('input[name="order_ids"]');
+        oldInputs.forEach(input => input.remove());
+        
+        selectedCheckboxes.forEach(checkbox => {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'order_ids';
+            hiddenInput.value = checkbox.value;
+            this.appendChild(hiddenInput);
+        });
+    });
+    
+    updateSelectedCount();
+}
+
+// ==================== СОРТИРОВКА ТАБЛИЦЫ ====================
+
+document.addEventListener('DOMContentLoaded', function() {
+    const sortableHeaders = document.querySelectorAll('.sortable-header');
+    
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortField = this.getAttribute('data-sort');
+            const currentUrl = new URL(window.location.href);
+            const currentSort = currentUrl.searchParams.get('sort') || 'date';
+            const currentOrder = currentUrl.searchParams.get('order') || 'desc';
+            
+            let newOrder = 'asc';
+            
+            if (currentSort === sortField) {
+                // Меняем направление сортировки
+                newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+            }
+            
+            // Устанавливаем параметры сортировки
+            currentUrl.searchParams.set('sort', sortField);
+            currentUrl.searchParams.set('order', newOrder);
+            
+            // Переходим на обновленный URL
+            window.location.href = currentUrl.toString();
+        });
+    });
+    
+    // Проверка прав доступа для редактирования
+    const canEdit = !{{ is_operator|yesno:"true,false" }};
+    
+    if (!canEdit) {
+        // Для операторов отключаем все возможности редактирования
+        const editableCells = document.querySelectorAll('.editable-cell');
+        editableCells.forEach(cell => {
+            cell.style.cursor = 'default';
+            cell.style.transition = 'none';
+            
+            cell.onclick = null;
+            cell.ondblclick = null;
+            cell.onmouseenter = null;
+            cell.onmouseleave = null;
+            
+            cell.classList.remove('editable-cell');
+            
+            const saveBtn = cell.querySelector('.save-btn');
+            const cancelBtn = cell.querySelector('.cancel-btn');
+            if (saveBtn) saveBtn.style.display = 'none';
+            if (cancelBtn) cancelBtn.style.display = 'none';
+        });
+        
+        const statusBadges = document.querySelectorAll('.status-badge-editable');
+        statusBadges.forEach(badge => {
+            badge.style.cursor = 'default';
+            badge.onclick = null;
+            badge.style.pointerEvents = 'none';
+        });
+    }
+});
+
 // Глобальные функции для использования в onclick
 window.saveCell = saveCell;
 window.cancelEditing = cancelEditing;
 window.startEditStatus = startEditStatus;
+window.openAddressModal = openAddressModal;
 </script>
+
+{% if is_operator %}
+</div>
+{% endif %}
 {% endblock %}

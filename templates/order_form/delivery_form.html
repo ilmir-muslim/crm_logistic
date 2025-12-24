@@ -424,6 +424,12 @@
         .pulse {
             animation: pulse 1.5s infinite;
         }
+        
+        /* Стили для выбранного склада */
+        .selected-warehouse {
+            background-color: #e8f4f8;
+            border: 2px solid var(--primary-blue) !important;
+        }
     </style>
 </head>
 <body>
@@ -453,12 +459,12 @@
     </div>
 
     <div class="form-container">
-        <!-- Шапка -->
+        <!-- Шапка для ОТПРАВКИ -->
         <div class="header">
             <div class="container">
                 <h1 class="mb-3">
                     <i class="bi bi-truck"></i>
-                    Заявка на отправку груза
+                    Заявка на отправку (доставку) груза
                 </h1>
                 <p class="company-name mb-0">
                     ФФ Царицыно - профессиональная логистика для вашего бизнеса
@@ -482,14 +488,14 @@
             </div>
             {% endif %}
             
-            <!-- Выбор города -->
+            <!-- Выбор города отправки -->
             <div class="info-card city-selection-card mb-4">
                 <div class="card-header">
                     <i class="bi bi-geo-alt card-icon"></i>
-                    <h5 class="card-title">Выберите город приема заявки</h5>
+                    <h5 class="card-title">Выберите город отправки груза</h5>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted mb-4">Выберите город для просмотра доступных складов и условий приема заявок.</p>
+                    <p class="text-muted mb-4">Выберите город, откуда будет отправлен груз, чтобы увидеть доступные склады отправки.</p>
                     
                     <div class="city-buttons">
                         {% for city in cities_data %}
@@ -503,7 +509,7 @@
                         {% empty %}
                         <div class="alert alert-warning w-100">
                             <i class="bi bi-exclamation-triangle"></i>
-                            Нет доступных городов для приема заявок.
+                            Нет доступных городов для отправки груза.
                         </div>
                         {% endfor %}
                     </div>
@@ -517,14 +523,14 @@
             <div class="info-card city-info-card mb-4 hidden" id="city-info">
                 <div class="card-header">
                     <i class="bi bi-info-circle card-icon"></i>
-                    <h5 class="card-title">Информация о складах в городе <span id="selected-city-name"></span></h5>
+                    <h5 class="card-title">Информация о складах отправки в городе <span id="selected-city-name"></span></h5>
                 </div>
                 <div class="card-body" id="city-info-content">
                     <div class="text-center">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Загрузка...</span>
                         </div>
-                        <p class="mt-2">Загрузка информации о складах...</p>
+                        <p class="mt-2">Загрузка информации о складах отправки...</p>
                     </div>
                 </div>
             </div>
@@ -572,122 +578,162 @@
                         <small class="text-muted">
                             <i class="bi bi-info-circle"></i> 
                             <strong>Совет:</strong> Для расчета общего объема умножьте количество коробок каждого типа на их объем.
-                            Вы можете использовать калькулятор ниже для быстрого расчета.
                         </small>
                     </div>
                 </div>
             </div>
             
-            <!-- Форма заявки -->
+            <!-- Форма заявки на доставку -->
             <form method="post" novalidate class="mb-4" id="orderForm">
                 {% csrf_token %}
                 
-                <!-- Скрытые поля для города доставки и склада -->
-                <input type="hidden" name="delivery_city" id="id_delivery_city_hidden">
-                <input type="hidden" name="receiving_warehouse" id="id_receiving_warehouse_hidden">
+                <!-- Скрытые поля для города и склада -->
+                <input type="hidden" name="city" id="id_city_hidden">
+                <input type="hidden" name="warehouse" id="id_warehouse_hidden">
                 
                 <!-- Раздел 1: Информация о доставке -->
                 <div class="info-card delivery-card mb-4">
                     <div class="card-header">
-                        <i class="bi bi-geo-alt card-icon"></i>
-                        <h5 class="card-title">Информация о доставке</h5>
+                        <i class="bi bi-calendar-date card-icon"></i>
+                        <h5 class="card-title">Дата и место отправки</h5>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="{{ form.desired_delivery_date.id_for_label }}" class="form-label required">
-                                    Желаемая дата поставки
+                                <label for="{{ form.date.id_for_label }}" class="form-label required">
+                                    Дата отправки *
                                 </label>
-                                {{ form.desired_delivery_date }}
-                                {% if form.desired_delivery_date.errors %}
+                                {{ form.date }}
+                                {% if form.date.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {{ form.desired_delivery_date.errors.0 }}
+                                    {{ form.date.errors.0 }}
                                 </div>
                                 {% endif %}
                                 <div class="form-text">
-                                    Выберите дату доставки с учетом графика работы складов
+                                    Выберите желаемую дату отправки груза
                                 </div>
                             </div>
                             
                             <div class="col-md-6">
-                                <label for="{{ form.marketplace.id_for_label }}" class="form-label required">
-                                    Маркетплейс
+                                <label for="{{ form.fulfillment.id_for_label }}" class="form-label required">
+                                    Фулфилмент оператор *
                                 </label>
-                                {{ form.marketplace }}
-                                {% if form.marketplace.errors %}
+                                {{ form.fulfillment }}
+                                {% if form.fulfillment.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {{ form.marketplace.errors.0 }}
+                                    {{ form.fulfillment.errors.0 }}
                                 </div>
                                 {% endif %}
                                 <div class="form-text">
-                                    Выберите площадку, с которой заказ
+                                    Например: Фулфилмент Царицыно
                                 </div>
                             </div>
                             
                             <div class="col-md-6">
                                 <label class="form-label required">
-                                    Склад приемки
-                                </label>
-                                <div id="warehouse-selection">
-                                    <div class="alert alert-info">
-                                        <i class="bi bi-info-circle"></i>
-                                        Выберите город выше для отображения доступных складов
-                                    </div>
-                                </div>
-                                <div class="form-text" id="warehouse-info">
-                                    Склад будет выбран после выбора города
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <label class="form-label required">
-                                    Город доставки
+                                    Город назначения *
                                 </label>
                                 <div id="city-selection-display">
                                     <div class="alert alert-info">
                                         <i class="bi bi-info-circle"></i>
-                                        Выберите город выше для отображения доступных городов доставки
+                                        Выберите город выше для отображения доступных городов
                                     </div>
                                 </div>
                                 <div class="form-text">
-                                    Город назначения доставки
+                                    Город, куда нужно доставить груз
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label required">
+                                    Склад отправки *
+                                </label>
+                                <div id="warehouse-selection">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle"></i>
+                                        Выберите город для отображения доступных складов отправки
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    Склад, откуда будет отправлен груз
                                 </div>
                             </div>
                             
                             <div class="col-12">
-                                <label for="{{ form.pickup_address.id_for_label }}" class="form-label required">
-                                    Адрес забора груза
+                                <label for="{{ form.driver_pass_info.id_for_label }}" class="form-label">
+                                    Данные пропуска водителя
                                 </label>
-                                {{ form.pickup_address }}
-                                {% if form.pickup_address.errors %}
+                                {{ form.driver_pass_info }}
+                                {% if form.driver_pass_info.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {{ form.pickup_address.errors.0 }}
+                                    {{ form.driver_pass_info.errors.0 }}
                                 </div>
                                 {% endif %}
                                 <div class="form-text">
-                                    Город, улица, дом, этаж, наличие лифта
-                                </div>
-                            </div>
-                            
-                            <div class="col-12">
-                                <label for="{{ form.delivery_address.id_for_label }}" class="form-label required">
-                                    Адрес доставки груза (улица, дом)
-                                </label>
-                                {{ form.delivery_address }}
-                                {% if form.delivery_address.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.delivery_address.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    Улица, дом, квартира/офис, этаж
+                                    Номер пропуска, серия, срок действия (если требуются для доступа на объект)
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Раздел 2: Информация о клиенте -->
+                <!-- Раздел 2: Характеристики груза -->
+                <div class="info-card cargo-card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-box2 card-icon"></i>
+                        <h5 class="card-title">Характеристики груза</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="{{ form.quantity.id_for_label }}" class="form-label required">
+                                    Количество мест *
+                                </label>
+                                {{ form.quantity }}
+                                {% if form.quantity.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.quantity.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Общее количество коробок/мест
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.volume.id_for_label }}" class="form-label required">
+                                    Общий объем (м³) *
+                                </label>
+                                {{ form.volume }}
+                                {% if form.volume.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.volume.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Используйте таблицу для расчета
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.weight.id_for_label }}" class="form-label required">
+                                    Общий вес (кг) *
+                                </label>
+                                {{ form.weight }}
+                                {% if form.weight.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.weight.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Вес всех мест вместе
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Раздел 3: Информация о клиенте -->
                 <div class="info-card client-card mb-4">
                     <div class="card-header">
                         <i class="bi bi-person-badge card-icon"></i>
@@ -697,7 +743,7 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="{{ form.client_company.id_for_label }}" class="form-label required">
-                                    Наименование компании
+                                    Наименование компании *
                                 </label>
                                 {{ form.client_company }}
                                 {% if form.client_company.errors %}
@@ -712,7 +758,7 @@
                             
                             <div class="col-md-6">
                                 <label for="{{ form.client_name.id_for_label }}" class="form-label required">
-                                    Контактное лицо
+                                    Контактное лицо *
                                 </label>
                                 {{ form.client_name }}
                                 {% if form.client_name.errors %}
@@ -727,7 +773,7 @@
                             
                             <div class="col-md-6">
                                 <label for="{{ form.client_phone.id_for_label }}" class="form-label required">
-                                    Телефон для связи
+                                    Телефон для связи *
                                 </label>
                                 {{ form.client_phone }}
                                 {% if form.client_phone.errors %}
@@ -758,92 +804,6 @@
                     </div>
                 </div>
                 
-                <!-- Раздел 3: Характеристики груза -->
-                <div class="info-card cargo-card mb-4">
-                    <div class="card-header">
-                        <i class="bi bi-box2 card-icon"></i>
-                        <h5 class="card-title">Характеристики груза</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label for="{{ form.quantity.id_for_label }}" class="form-label required">
-                                    Количество мест
-                                </label>
-                                {{ form.quantity }}
-                                {% if form.quantity.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.quantity.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    Общее количество коробок
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <label for="{{ form.volume.id_for_label }}" class="form-label required">
-                                    Общий объем (м³)
-                                </label>
-                                {{ form.volume }}
-                                {% if form.volume.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.volume.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    Используйте таблицу для расчета
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <label for="{{ form.weight.id_for_label }}" class="form-label required">
-                                    Общий вес (кг)
-                                </label>
-                                {{ form.weight }}
-                                {% if form.weight.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.weight.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    Вес всех мест вместе
-                                </div>
-                            </div>
-                            
-                            <div class="col-12">
-                                <label for="{{ form.order_1c_number.id_for_label }}" class="form-label">
-                                    № заказа в 1С
-                                </label>
-                                {{ form.order_1c_number }}
-                                {% if form.order_1c_number.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.order_1c_number.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    Если заказ создан в вашей системе 1С
-                                </div>
-                            </div>
-                            
-                            <div class="col-12">
-                                <label for="{{ form.cargo_description.id_for_label }}" class="form-label">
-                                    Комментарий к заказу
-                                </label>
-                                {{ form.cargo_description }}
-                                {% if form.cargo_description.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.cargo_description.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    Хрупкий груз, температурный режим и т.д.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
                 <!-- Раздел 4: Согласие -->
                 <div class="info-card privacy-card mb-4">
                     <div class="card-header">
@@ -855,7 +815,7 @@
                             {{ form.privacy_policy }}
                             <label class="form-check-label ms-2" for="{{ form.privacy_policy.id_for_label }}">
                                 Я даю свое согласие на обработку моих персональных данных в соответствии с 
-                                <a href="#" class="text-decoration-none" target="_blank">политикой конфиденциальности</a>
+                                <a href="#" class="text-decoration-none" target="_blank">политикой конфиденциальности</a> *
                             </label>
                             {% if form.privacy_policy.errors %}
                             <div class="invalid-feedback d-block">
@@ -915,20 +875,22 @@
             const cityInfo = document.getElementById('city-info');
             const cityNameElement = document.getElementById('selected-city-name');
             const cityContent = document.getElementById('city-info-content');
-            const receivingWarehouseHidden = document.getElementById('id_receiving_warehouse_hidden');
-            const deliveryCityHidden = document.getElementById('id_delivery_city_hidden');
+            const warehouseHidden = document.getElementById('id_warehouse_hidden');
+            const cityHidden = document.getElementById('id_city_hidden');
             const warehouseSelection = document.getElementById('warehouse-selection');
             const citySelectionDisplay = document.getElementById('city-selection-display');
             const form = document.getElementById('orderForm');
             const submitButton = document.getElementById('submitButton');
             
-            // Данные из контекста Django (сериализованные)
+            // Данные из контекста Django
             const citiesData = JSON.parse('{{ cities_data_json|escapejs }}' || '[]');
             
-            // Текущий выбранный город
+            // Текущий выбранный город и склад
             let currentCity = null;
             let selectedWarehouseId = null;
             let selectedWarehouseName = null;
+            let selectedCityIdValue = null;
+            let selectedCityName = null;
             
             // Функция для отображения информации о городе
             function displayCityInfo(cityId) {
@@ -945,6 +907,14 @@
                 
                 currentCity = city;
                 cityNameElement.textContent = city.name;
+                selectedCityIdValue = city.id;
+                selectedCityName = city.name;
+                
+                // Устанавливаем город в скрытое поле
+                cityHidden.value = city.id;
+                
+                // Обновляем отображение выбранного города
+                updateCitySelectionDisplay(city.name);
                 
                 let html = '';
                 
@@ -952,11 +922,11 @@
                     // Отображаем информацию о каждом складе
                     city.warehouses.forEach((warehouse, index) => {
                         const isOpen = warehouse.is_open_now;
-                        const schedules = warehouse.schedules || [];
                         
                         html += `
-                            <div class="warehouse-info mb-4 p-3">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="warehouse-info mb-3 p-3 ${selectedWarehouseId == warehouse.id ? 'selected-warehouse' : ''}" 
+                                 data-warehouse-id="${warehouse.id}">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
                                     <div>
                                         <h6 class="mb-1">
                                             <i class="bi bi-house-door me-2"></i>
@@ -971,83 +941,38 @@
                                     <div>
                                         <button type="button" class="btn btn-sm ${selectedWarehouseId == warehouse.id ? 'btn-primary' : 'btn-outline-primary'} select-warehouse-btn" 
                                                 data-warehouse-id="${warehouse.id}" 
-                                                data-warehouse-name="${warehouse.name}">
+                                                data-warehouse-name="${warehouse.name}"
+                                                data-warehouse-city="${city.name}">
                                             <i class="bi bi-check-circle me-1"></i> 
                                             ${selectedWarehouseId == warehouse.id ? 'Выбран' : 'Выбрать'}
                                         </button>
                                     </div>
                                 </div>
                                 
-                                <div class="row mb-3">
+                                <div class="row">
                                     <div class="col-md-6">
-                                        <p class="mb-1">
+                                        <p class="mb-1 small">
                                             <i class="bi bi-geo-alt text-primary"></i> 
                                             <strong>Адрес:</strong> ${warehouse.address}
                                         </p>
-                                        <p class="mb-1">
+                                        <p class="mb-1 small">
                                             <i class="bi bi-telephone text-primary"></i> 
                                             <strong>Телефон:</strong> ${warehouse.phone}
                                         </p>
-                                        ${warehouse.email ? `
-                                            <p class="mb-1">
-                                                <i class="bi bi-envelope text-primary"></i> 
-                                                <strong>Email:</strong> ${warehouse.email}
-                                            </p>
-                                        ` : ''}
-                                        ${warehouse.manager ? `
-                                            <p class="mb-1">
-                                                <i class="bi bi-person text-primary"></i> 
-                                                <strong>Менеджер:</strong> ${warehouse.manager}
-                                            </p>
-                                        ` : ''}
                                     </div>
                                     <div class="col-md-6">
-                                        <p class="mb-1">
+                                        <p class="mb-1 small">
                                             <i class="bi bi-clock text-primary"></i> 
                                             <strong>График работы:</strong> ${warehouse.working_hours}
                                         </p>
-                                        <p class="mb-1">
-                                            <i class="bi bi-rulers text-primary"></i> 
-                                            <strong>Площадь:</strong> ${warehouse.available_area} м² / ${warehouse.total_area} м²
-                                        </p>
-                                        <p class="mb-0">
-                                            <i class="bi bi-info-circle text-primary"></i> 
-                                            ${warehouse.is_24h ? 'Круглосуточный склад' : 'Работает по графику'}
-                                        </p>
+                                        ${warehouse.available_area ? `
+                                            <p class="mb-1 small">
+                                                <i class="bi bi-rulers text-primary"></i> 
+                                                <strong>Доступная площадь:</strong> ${warehouse.available_area} м²
+                                            </p>
+                                        ` : ''}
                                     </div>
                                 </div>
-                                
-                                <!-- График приема заявок -->
-                                ${schedules.length > 0 ? `
-                                    <div class="mt-3">
-                                        <h6 class="mb-2"><i class="bi bi-calendar-event"></i> График приема заявок:</h6>
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-bordered">
-                                                <thead>
-                                                    <tr>
-                                                        <th>День недели</th>
-                                                        <th>Время работы</th>
-                                                        <th>Крайний срок забора</th>
-                                                        <th>Крайний срок доставки</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    ${schedules.map(schedule => `
-                                                        <tr>
-                                                            <td>${schedule.day_of_week}</td>
-                                                            <td>${schedule.opening_time} - ${schedule.closing_time}</td>
-                                                            <td>${schedule.pickup_cutoff_time}</td>
-                                                            <td>${schedule.delivery_cutoff_time}</td>
-                                                        </tr>
-                                                    `).join('')}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        <small class="text-muted">
-                                            Максимум заборов в день: ${schedules[0]?.max_daily_pickups || '20'}
-                                        </small>
-                                    </div>
-                                ` : '<p class="text-warning"><i class="bi bi-exclamation-triangle"></i> График приема заявок не указан</p>'}
                             </div>
                         `;
                     });
@@ -1055,7 +980,7 @@
                     html = `
                         <div class="alert alert-warning">
                             <i class="bi bi-exclamation-triangle"></i>
-                            В городе ${city.name} нет доступных складов.
+                            В городе ${city.name} нет доступных складов отправки.
                         </div>
                     `;
                 }
@@ -1069,132 +994,75 @@
                     btn.addEventListener('click', function() {
                         selectWarehouse(
                             this.getAttribute('data-warehouse-id'),
-                            this.getAttribute('data-warehouse-name')
+                            this.getAttribute('data-warehouse-name'),
+                            this.getAttribute('data-warehouse-city')
                         );
                     });
                 });
                 
-                // Загружаем доступные города доставки для выбранного города
-                loadDeliveryCities(cityId);
+                // Если склад уже выбран, обновляем его отображение
+                if (selectedWarehouseId) {
+                    document.querySelectorAll('.warehouse-info').forEach(div => {
+                        if (div.getAttribute('data-warehouse-id') == selectedWarehouseId) {
+                            div.classList.add('selected-warehouse');
+                        }
+                    });
+                }
+            }
+            
+            // Функция для обновления отображения выбранного города
+            function updateCitySelectionDisplay(cityName) {
+                citySelectionDisplay.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i>
+                        Выбран город назначения: <strong>${cityName}</strong>
+                    </div>
+                `;
             }
             
             // Функция для выбора склада
-            function selectWarehouse(warehouseId, warehouseName) {
+            function selectWarehouse(warehouseId, warehouseName, warehouseCity) {
                 selectedWarehouseId = warehouseId;
                 selectedWarehouseName = warehouseName;
                 
                 // Устанавливаем значение скрытого поля
-                receivingWarehouseHidden.value = warehouseId;
+                warehouseHidden.value = warehouseId;
                 
-                // Обновляем кнопки
+                // Обновляем кнопки и стили
                 document.querySelectorAll('.select-warehouse-btn').forEach(btn => {
                     const btnWarehouseId = btn.getAttribute('data-warehouse-id');
                     if (btnWarehouseId == warehouseId) {
                         btn.classList.remove('btn-outline-primary');
                         btn.classList.add('btn-primary');
                         btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Выбран';
-                        btn.parentElement.parentElement.classList.add('pulse');
                     } else {
                         btn.classList.remove('btn-primary');
                         btn.classList.add('btn-outline-primary');
                         btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Выбрать';
-                        btn.parentElement.parentElement.classList.remove('pulse');
+                    }
+                });
+                
+                // Обновляем стили складов
+                document.querySelectorAll('.warehouse-info').forEach(div => {
+                    div.classList.remove('selected-warehouse');
+                    if (div.getAttribute('data-warehouse-id') == warehouseId) {
+                        div.classList.add('selected-warehouse');
                     }
                 });
                 
                 // Показываем сообщение
-                showAlertMessage(`Выбран склад: ${warehouseName}`, 'success');
+                showAlertMessage(`Выбран склад отправки: ${warehouseName} (${warehouseCity})`, 'success');
                 
                 // Обновляем отображение
                 if (warehouseSelection) {
                     warehouseSelection.innerHTML = `
                         <div class="alert alert-success">
                             <i class="bi bi-check-circle"></i>
-                            Выбран склад: <strong>${warehouseName}</strong>
+                            Выбран склад отправки: <strong>${warehouseName}</strong> (${warehouseCity})
                         </div>
                     `;
                 }
             }
-            
-            // Функция для загрузки доступных городов доставки
-            function loadDeliveryCities(cityId) {
-                // Здесь можно сделать AJAX запрос для получения городов доставки
-                // Пока используем статический список в зависимости от города
-                let availableCities = [];
-                
-                if (cityId == 1) { // Москва
-                    availableCities = [
-                        {id: 1, name: 'Москва'},
-                        {id: 3, name: 'Санкт-Петербург'},
-                        {id: 4, name: 'Новосибирск'},
-                        {id: 5, name: 'Екатеринбург'},
-                    ];
-                } else if (cityId == 2) { // Казань
-                    availableCities = [
-                        {id: 2, name: 'Казань'},
-                        {id: 4, name: 'Новосибирск'},
-                        {id: 5, name: 'Екатеринбург'},
-                    ];
-                } else {
-                    // По умолчанию показываем все города
-                    availableCities = citiesData.map(city => ({id: city.id, name: city.name}));
-                }
-                
-                if (availableCities.length > 0) {
-                    let html = '<div class="row g-2">';
-                    availableCities.forEach(city => {
-                        html += `
-                            <div class="col-md-6">
-                                <div class="form-check">
-                                    <input class="form-check-input city-radio" 
-                                           type="radio" 
-                                           name="selected_delivery_city" 
-                                           id="city_${city.id}" 
-                                           value="${city.id}"
-                                           onchange="selectDeliveryCity(${city.id}, '${city.name}')">
-                                    <label class="form-check-label" for="city_${city.id}">
-                                        ${city.name}
-                                    </label>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                    
-                    citySelectionDisplay.innerHTML = html;
-                    
-                    // Выбираем первый город по умолчанию
-                    if (availableCities.length > 0) {
-                        const firstCity = availableCities[0];
-                        setTimeout(() => {
-                            selectDeliveryCity(firstCity.id, firstCity.name);
-                        }, 100);
-                    }
-                } else {
-                    citySelectionDisplay.innerHTML = `
-                        <div class="alert alert-warning">
-                            <i class="bi bi-exclamation-triangle"></i>
-                            Нет доступных городов доставки.
-                        </div>
-                    `;
-                }
-            }
-            
-            // Глобальная функция для выбора города доставки
-            window.selectDeliveryCity = function(cityId, cityName) {
-                deliveryCityHidden.value = cityId;
-                
-                // Обновляем отображение
-                const cityInfoElement = document.querySelector('#city-selection-display .form-text');
-                if (cityInfoElement) {
-                    cityInfoElement.innerHTML = `Выбран город доставки: <strong>${cityName}</strong>`;
-                }
-                
-                // Помечаем выбранный радио-баттон
-                document.querySelectorAll('.city-radio').forEach(radio => {
-                    radio.checked = radio.value == cityId;
-                });
-            };
             
             // Обработчики для кнопок выбора города
             document.querySelectorAll('.city-btn').forEach(btn => {
@@ -1228,64 +1096,9 @@
             // Автоматически выбираем первый город при загрузке
             const firstCityBtn = document.querySelector('.city-btn');
             if (firstCityBtn && citiesData.length > 0) {
-                firstCityBtn.click();
-            }
-            
-            // Калькулятор объема
-            const quantityField = document.getElementById('id_quantity');
-            const volumeField = document.getElementById('id_volume');
-            
-            if (quantityField && volumeField) {
-                // Создаем селект для типов коробок
-                const boxTypeContainer = document.createElement('div');
-                boxTypeContainer.className = 'mt-3';
-                boxTypeContainer.innerHTML = `
-                    <label class="form-label">Быстрый расчет объема</label>
-                    <select id="box-type-select" class="form-select">
-                        <option value="">Выберите тип коробки для расчета...</option>
-                        {% for box in box_sizes %}
-                        <option value="{{ box.volume|floatformat:3 }}">{{ box.name }} ({{ box.volume|floatformat:3 }} м³)</option>
-                        {% endfor %}
-                    </select>
-                    <div class="form-text">Выберите тип коробки для автоматического расчета объема</div>
-                `;
-                
-                volumeField.parentNode.appendChild(boxTypeContainer);
-                const boxTypeSelect = document.getElementById('box-type-select');
-                
-                // Обработчик для расчета объема
-                boxTypeSelect.addEventListener('change', function() {
-                    const boxVolume = parseFloat(this.value);
-                    const quantity = parseInt(quantityField.value) || 1;
-                    
-                    if (boxVolume && quantity) {
-                        const totalVolume = boxVolume * quantity;
-                        volumeField.value = totalVolume.toFixed(3);
-                        
-                        // Показываем подсказку
-                        volumeField.title = `Рассчитано: ${quantity} × ${boxVolume} м³ = ${totalVolume.toFixed(3)} м³`;
-                        
-                        // Подсвечиваем поле
-                        volumeField.style.backgroundColor = '#e8f4f8';
-                        volumeField.style.borderColor = '#0d6efd';
-                        setTimeout(() => {
-                            volumeField.style.backgroundColor = '';
-                            volumeField.style.borderColor = '';
-                        }, 1500);
-                    }
-                });
-                
-                // Обновление при изменении количества
-                quantityField.addEventListener('change', function() {
-                    if (boxTypeSelect.value) {
-                        boxTypeSelect.dispatchEvent(new Event('change'));
-                    }
-                });
-                
-                // Сброс при вводе вручную
-                volumeField.addEventListener('input', function() {
-                    boxTypeSelect.value = '';
-                });
+                setTimeout(() => {
+                    firstCityBtn.click();
+                }, 500);
             }
             
             // Валидация формы
@@ -1293,9 +1106,9 @@
                 form.addEventListener('submit', function(e) {
                     e.preventDefault();
                     
-                    // Проверяем, выбран ли город приема
-                    if (!selectedCityId.value) {
-                        showAlertMessage('Пожалуйста, выберите город приема заявки', 'warning');
+                    // Проверяем, выбран ли город назначения
+                    if (!selectedCityIdValue) {
+                        showAlertMessage('Пожалуйста, выберите город назначения', 'warning');
                         document.querySelector('.city-selection-card').scrollIntoView({ 
                             behavior: 'smooth', 
                             block: 'center' 
@@ -1303,23 +1116,13 @@
                         return false;
                     }
                     
-                    // Проверяем, выбран ли склад
+                    // Проверяем, выбран ли склад отправки
                     if (!selectedWarehouseId) {
-                        showAlertMessage('Пожалуйста, выберите склад приемки', 'warning');
+                        showAlertMessage('Пожалуйста, выберите склад отправки', 'warning');
                         document.getElementById('city-info').scrollIntoView({ 
                             behavior: 'smooth', 
                             block: 'center' 
                         });
-                        return false;
-                    }
-                    
-                    // Проверяем, выбран ли город доставки
-                    if (!deliveryCityHidden.value) {
-                        showAlertMessage('Пожалуйста, выберите город доставки', 'warning');
-                        const citySection = document.querySelector('#city-selection-display .row');
-                        if (citySection) {
-                            citySection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
                         return false;
                     }
                     

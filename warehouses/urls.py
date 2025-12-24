@@ -18,4 +18,5 @@ urlpatterns = [
         views.get_available_containers_json,
         name="available_containers_json",
     ),
+    path("api/warehouses/", views.get_warehouses_json, name="warehouses_json"),
 ]

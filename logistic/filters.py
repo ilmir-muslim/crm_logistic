@@ -13,10 +13,21 @@ class DeliveryOrderFilter(django_filters.FilterSet):
         field_name="date", lookup_expr="lte", label="Дата до"
     )
 
-    city = django_filters.CharFilter(method="filter_city_ignore_case", label="Город")
+    # Используем NumberFilter для ID, чтобы избежать импорта моделей
+    city = django_filters.NumberFilter(field_name="city__id", label="Город (ID)")
 
-    warehouse = django_filters.CharFilter(
-        method="filter_warehouse_ignore_case", label="Склад отправки"
+    # Добавляем фильтр по названию города
+    city_name = django_filters.CharFilter(
+        field_name="city__name", lookup_expr="icontains", label="Название города"
+    )
+
+    warehouse = django_filters.NumberFilter(
+        field_name="warehouse__id", label="Склад (ID)"
+    )
+
+    # Добавляем фильтр по названию склада
+    warehouse_name = django_filters.CharFilter(
+        field_name="warehouse__name", lookup_expr="icontains", label="Название склада"
     )
 
     fulfillment = django_filters.CharFilter(
@@ -31,32 +42,12 @@ class DeliveryOrderFilter(django_filters.FilterSet):
         model = DeliveryOrder
         fields = []
 
-    def filter_city_ignore_case(self, queryset, name, value):
-        if value:
-            normalized_value = normalize_search_text(value)
-            return queryset.filter(
-                Q(city__icontains=normalized_value)
-                | Q(city__icontains=value.title())
-                | Q(city__icontains=value.upper())
-            )
-        return queryset
-
-    def filter_warehouse_ignore_case(self, queryset, name, value):
-        if value:
-            normalized_value = normalize_search_text(value)
-            return queryset.filter(
-                Q(warehouse__icontains=normalized_value)
-                | Q(warehouse__icontains=value.title())
-                | Q(warehouse__icontains=value.upper())
-            )
-        return queryset
-
     def filter_fulfillment_ignore_case(self, queryset, name, value):
         if value:
             normalized_value = normalize_search_text(value)
             return queryset.filter(
-                Q(fulfillment__icontains=normalized_value)
-                | Q(fulfillment__icontains=value.title())
-                | Q(fulfillment__icontains=value.upper())
+                Q(fulfillment__username__icontains=normalized_value)
+                | Q(fulfillment__first_name__icontains=normalized_value)
+                | Q(fulfillment__last_name__icontains=normalized_value)
             )
         return queryset

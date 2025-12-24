@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 """
 Скрипт для создания всех тестовых данных одним вызовом
-Обновлено для новых моделей городов и складов
+Обновлено под текущую версию проекта с моделями Warehouse и City
 """
 
 import os
 import sys
 import django
-from datetime import datetime, date, timedelta
-import random
+from datetime import date, datetime, timedelta, time
 
 # Добавляем корневую директорию проекта в PYTHONPATH
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -17,9 +16,10 @@ sys.path.append(project_root)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "crm_logistic.settings")
 django.setup()
 
+# Теперь Django будет использовать правильную базу данных из settings.py
+
 print("=" * 60)
 print("СОЗДАНИЕ ВСЕХ ТЕСТОВЫХ ДАННЫХ CRM ЛОГИСТИКА")
-print("(с поддержкой городов, складов и новой структуры)")
 print("=" * 60)
 
 # Сначала создадим пользователей
@@ -29,11 +29,7 @@ from users.models import UserProfile
 print("\n1. СОЗДАНИЕ ТЕСТОВЫХ ПОЛЬЗОВАТЕЛЕЙ...")
 
 # Удаляем старых тестовых пользователей (кроме суперпользователя)
-test_users = User.objects.filter(is_superuser=False)
-if test_users.exists():
-    print(f"  Удаляем {test_users.count()} старых тестовых пользователей...")
-    test_users.delete()
-    print("  ✅ Старые тестовые пользователи удалены")
+User.objects.filter(is_superuser=False).delete()
 
 # Создаем тестовых пользователей с разными ролями
 users_data = [
@@ -82,7 +78,6 @@ users_data = [
     },
 ]
 
-created_users = []
 for user_data in users_data:
     user, created = User.objects.get_or_create(
         username=user_data["username"],
@@ -103,318 +98,189 @@ for user_data in users_data:
             profile.fulfillment = user_data["fulfillment"]
         profile.save()
 
-        created_users.append(user.username)
         print(f"  ✅ Создан пользователь: {user.username} ({user_data['role']})")
     else:
-        print(f"  ⚠️  Пользователь уже существовал, обновляем: {user.username}")
-        # Обновляем существующего пользователя
-        user.email = user_data["email"]
-        user.first_name = user_data["first_name"]
-        user.last_name = user_data["last_name"]
-        user.set_password(user_data["password"])
-        user.save()
-
-        # Обновляем профиль
-        profile, _ = UserProfile.objects.get_or_create(user=user)
-        profile.role = user_data["role"]
-        if "fulfillment" in user_data:
-            profile.fulfillment = user_data["fulfillment"]
-        profile.save()
-        print(f"  ✅ Обновлен пользователь: {user.username}")
+        print(f"  ⚠️  Пользователь уже существует: {user.username}")
 
 print(f"\n   Всего пользователей: {User.objects.count()}")
 
+# Создаем тестовые города и склады
+print("\n2. СОЗДАНИЕ ТЕСТОВЫХ ГОРОДОВ И СКЛАДОВ...")
+from warehouses.models import City, Warehouse, WarehouseSchedule
+
 # Создаем города
-print("\n2. СОЗДАНИЕ ТЕСТОВЫХ ГОРОДОВ...")
-from warehouses.models import City
-
-# Удаляем старые тестовые города
-old_cities = City.objects.all()
-if old_cities.exists():
-    print(f"  Удаляем {old_cities.count()} старых городов...")
-    old_cities.delete()
-
 cities_data = [
     {"name": "Москва", "region": "Московская область"},
+    {"name": "Казань", "region": "Республика Татарстан"},
     {"name": "Санкт-Петербург", "region": "Ленинградская область"},
     {"name": "Новосибирск", "region": "Новосибирская область"},
     {"name": "Екатеринбург", "region": "Свердловская область"},
-    {"name": "Казань", "region": "Республика Татарстан"},
-    {"name": "Нижний Новгород", "region": "Нижегородская область"},
-    {"name": "Челябинск", "region": "Челябинская область"},
-    {"name": "Самара", "region": "Самарская область"},
-    {"name": "Омск", "region": "Омская область"},
-    {"name": "Ростов-на-Дону", "region": "Ростовская область"},
     {"name": "Краснодар", "region": "Краснодарский край"},
     {"name": "Тула", "region": "Тульская область"},
     {"name": "Владивосток", "region": "Приморский край"},
 ]
 
-created_cities = {}
+cities = {}
 for city_data in cities_data:
     city, created = City.objects.get_or_create(
-        name=city_data["name"], defaults=city_data
+        name=city_data["name"], defaults={"region": city_data["region"]}
     )
-    created_cities[city.name] = city
+    cities[city.name] = city
     if created:
         print(f"  ✅ Создан город: {city.name}")
 
-print(f"   Всего городов: {City.objects.count()}")
-
 # Создаем склады
-print("\n3. СОЗДАНИЕ ТЕСТОВЫХ СКЛАДОВ...")
-from warehouses.models import Warehouse
-from datetime import time
-
-# Удаляем старые тестовые склады
-old_warehouses = Warehouse.objects.all()
-if old_warehouses.exists():
-    print(f"  Удаляем {old_warehouses.count()} старых складов...")
-    old_warehouses.delete()
-
-# Получаем администратора для назначения менеджером
-admin_user = User.objects.filter(username="admin").first()
-
+admin_user = User.objects.get(username="admin")
 warehouses_data = [
     {
-        "city": created_cities["Москва"],
-        "name": "Склад Царицыно",
-        "code": "MSK-TSAR",
-        "address": "г. Москва, ул. Луганская, д. 5, склад №1",
-        "phone": "+7 (495) 123-45-67",
-        "email": "tsaritsyno@fmc-tzaritsyna.ru",
+        "name": "Склад Электросталь",
+        "code": "MSK-EL",
+        "city": cities["Москва"],
+        "address": "Московская область, г. Электросталь, ул. Промышленная, 1",
+        "phone": "+7 (495) 111-11-11",
+        "email": "electrostal@example.com",
         "total_area": 5000,
         "available_area": 3500,
-        "opening_time": time(9, 0),
-        "closing_time": time(18, 0),
-        "work_days": "пн-пт",
-        "manager": admin_user,
-    },
-    {
-        "city": created_cities["Москва"],
-        "name": "Склад Люберцы",
-        "code": "MSK-LUB",
-        "address": "Московская область, г. Люберцы, ул. Красная, д. 10",
-        "phone": "+7 (495) 234-56-78",
-        "email": "lubertsy@fmc-tzaritsyna.ru",
-        "total_area": 3000,
-        "available_area": 2000,
         "opening_time": time(8, 0),
         "closing_time": time(20, 0),
-        "work_days": "пн-сб",
-        "manager": admin_user,
+        "work_days": "пн-пт, сб",
+        "is_24h": False,
     },
     {
-        "city": created_cities["Санкт-Петербург"],
-        "name": "Склад Пулково",
-        "code": "SPB-PUL",
-        "address": "г. Санкт-Петербург, Пулковское шоссе, д. 25",
-        "phone": "+7 (812) 345-67-89",
-        "email": "pulkovo@fmc-tzaritsyna.ru",
-        "total_area": 4000,
-        "available_area": 2500,
+        "name": "Склад Подольск",
+        "code": "MSK-POD",
+        "city": cities["Москва"],
+        "address": "Московская область, г. Подольск, ул. Заводская, 15",
+        "phone": "+7 (495) 222-22-22",
+        "email": "podolsk@example.com",
+        "total_area": 3000,
+        "available_area": 2000,
         "opening_time": time(9, 0),
         "closing_time": time(19, 0),
         "work_days": "пн-пт",
-        "manager": admin_user,
+        "is_24h": False,
     },
     {
-        "city": created_cities["Екатеринбург"],
-        "name": "Склад Урал",
-        "code": "EKB-URAL",
-        "address": "г. Екатеринбург, ул. Машиностроителей, д. 15",
-        "phone": "+7 (343) 456-78-90",
-        "email": "ural@fmc-tzaritsyna.ru",
-        "total_area": 2500,
-        "available_area": 1500,
-        "opening_time": time(8, 30),
-        "closing_time": time(17, 30),
-        "work_days": "пн-пт",
-        "manager": admin_user,
+        "name": "Склад Коледино",
+        "code": "MSK-KOL",
+        "city": cities["Москва"],
+        "address": "Московская область, г. Домодедово, промзона Коледино",
+        "phone": "+7 (495) 333-33-33",
+        "email": "koledino@example.com",
+        "total_area": 8000,
+        "available_area": 6000,
+        "opening_time": time(7, 0),
+        "closing_time": time(23, 0),
+        "work_days": "пн-вс",
+        "is_24h": True,
     },
     {
-        "city": created_cities["Казань"],
-        "name": "Склад Татарстан",
-        "code": "KAZ-TAT",
-        "address": "г. Казань, ул. Пушкина, д. 42",
-        "phone": "+7 (843) 567-89-01",
-        "email": "kazan@fmc-tzaritsyna.ru",
-        "total_area": 2000,
-        "available_area": 1200,
+        "name": "Основной склад Казань",
+        "code": "KZN-MAIN",
+        "city": cities["Казань"],
+        "address": "г. Казань, ул. Промышленная, 10",
+        "phone": "+7 (843) 333-33-33",
+        "email": "kazan@example.com",
+        "total_area": 4000,
+        "available_area": 2500,
         "opening_time": time(9, 0),
         "closing_time": time(18, 0),
+        "work_days": "пн-пт, сб",
+        "is_24h": False,
+    },
+    {
+        "name": "Склад Санкт-Петербург",
+        "code": "SPB-MAIN",
+        "city": cities["Санкт-Петербург"],
+        "address": "г. Санкт-Петербург, ул. Индустриальная, 5",
+        "phone": "+7 (812) 444-44-44",
+        "email": "spb@example.com",
+        "total_area": 3500,
+        "available_area": 2000,
+        "opening_time": time(8, 0),
+        "closing_time": time(20, 0),
         "work_days": "пн-пт",
-        "manager": admin_user,
+        "is_24h": False,
     },
 ]
 
-created_warehouses = {}
+warehouses = {}
 for wh_data in warehouses_data:
     warehouse, created = Warehouse.objects.get_or_create(
-        code=wh_data["code"], defaults=wh_data
+        code=wh_data["code"],
+        defaults={
+            "city": wh_data["city"],
+            "manager": admin_user,
+            "name": wh_data["name"],
+            "address": wh_data["address"],
+            "phone": wh_data["phone"],
+            "email": wh_data["email"],
+            "total_area": wh_data["total_area"],
+            "available_area": wh_data["available_area"],
+            "opening_time": wh_data["opening_time"],
+            "closing_time": wh_data["closing_time"],
+            "work_days": wh_data["work_days"],
+            "is_24h": wh_data["is_24h"],
+        },
     )
-    created_warehouses[warehouse.name] = warehouse
+    warehouses[warehouse.code] = warehouse
     if created:
         print(f"  ✅ Создан склад: {warehouse.name} ({warehouse.city.name})")
 
-# Назначаем операторов на склады
-operator_users = User.objects.filter(
-    username__in=["operator1", "operator2", "operator3"]
-)
-for warehouse in Warehouse.objects.all():
-    for operator in operator_users:
-        warehouse.operators.add(operator)
-    print(f"  ✅ Назначены операторы на склад: {warehouse.name}")
+        # Создаем расписание для склада
+        for day_num in range(1, 8):  # 1-7 дни недели
+            is_working = day_num <= 5  # пн-пт рабочие
+            if warehouse.is_24h:
+                opening = time(0, 0)
+                closing = time(23, 59)
+            else:
+                opening = warehouse.opening_time
+                closing = warehouse.closing_time
 
-print(f"   Всего складов: {Warehouse.objects.count()}")
+            WarehouseSchedule.objects.create(
+                warehouse=warehouse,
+                day_of_week=day_num,
+                is_working=is_working,
+                opening_time=opening,
+                closing_time=closing,
+                pickup_cutoff_time=time(16, 0),
+                delivery_cutoff_time=time(17, 0),
+                max_daily_pickups=20,
+                max_daily_deliveries=30,
+            )
 
-# Создаем типы тары
-print("\n4. СОЗДАНИЕ ТИПОВ ТАРЫ...")
-from warehouses.models import ContainerType, WarehouseContainer
-
-# Удаляем старые данные о таре
-WarehouseContainer.objects.all().delete()
-ContainerType.objects.all().delete()
-
-container_types_data = [
-    {
-        "name": "Коробка S",
-        "code": "BOX-S",
-        "category": "box",
-        "length": 40,
-        "width": 30,
-        "height": 40,
-        "weight_capacity": 15,
-        "is_reusable": False,
-        "purchase_price": 50.00,
-    },
-    {
-        "name": "Коробка M",
-        "code": "BOX-M",
-        "category": "box",
-        "length": 60,
-        "width": 40,
-        "height": 40,
-        "weight_capacity": 30,
-        "is_reusable": False,
-        "purchase_price": 80.00,
-    },
-    {
-        "name": "Коробка L",
-        "code": "BOX-L",
-        "category": "box",
-        "length": 60,
-        "width": 80,
-        "height": 50,
-        "weight_capacity": 50,
-        "is_reusable": False,
-        "purchase_price": 120.00,
-    },
-    {
-        "name": "Коробка XL",
-        "code": "BOX-XL",
-        "category": "box",
-        "length": 120,
-        "width": 80,
-        "height": 180,
-        "weight_capacity": 1200,
-        "is_reusable": True,
-        "purchase_price": 1500.00,
-    },
-    {
-        "name": "Еврокуб 1000л",
-        "code": "EURO-1000",
-        "category": "container",
-        "length": 120,
-        "width": 100,
-        "height": 116,
-        "weight_capacity": 1200,
-        "is_reusable": True,
-        "purchase_price": 8000.00,
-        "rental_price_per_day": 100.00,
-    },
-    {
-        "name": "Паллет 80x120",
-        "code": "PAL-80x120",
-        "category": "pallet",
-        "length": 120,
-        "width": 80,
-        "height": 15,
-        "weight_capacity": 2000,
-        "is_reusable": True,
-        "purchase_price": 1500.00,
-        "rental_price_per_day": 50.00,
-    },
-]
-
-for ct_data in container_types_data:
-    ct, created = ContainerType.objects.get_or_create(
-        code=ct_data["code"], defaults=ct_data
-    )
-    if created:
-        print(f"  ✅ Создан тип тары: {ct.name} ({ct.code})")
-
-print(f"   Всего типов тары: {ContainerType.objects.count()}")
-
-# Создаем запасы тары на складах
-print("\n5. СОЗДАНИЕ ЗАПАСОВ ТАРЫ НА СКЛАДАХ...")
-
-for warehouse in Warehouse.objects.all():
-    for container_type in ContainerType.objects.filter(category="box"):
-        wc, created = WarehouseContainer.objects.get_or_create(
-            warehouse=warehouse,
-            container_type=container_type,
-            defaults={
-                "total_quantity": random.randint(50, 200),
-                "available_quantity": random.randint(30, 150),
-                "reserved_quantity": random.randint(0, 20),
-                "min_stock_level": 20,
-                "storage_location": f"Секция {chr(65 + random.randint(0, 3))}, стеллажи 1-5",
-                "last_restock_date": date.today()
-                - timedelta(days=random.randint(0, 30)),
-            },
-        )
-        if created:
-            print(f"  ✅ Создан запас {container_type.name} на складе {warehouse.name}")
-
-print(f"   Всего записей о запасах: {WarehouseContainer.objects.count()}")
+print(f"  Всего складов: {Warehouse.objects.count()}")
 
 # Теперь создаем данные для доставки
-print("\n6. СОЗДАНИЕ ТЕСТОВЫХ ДАННЫХ ДЛЯ ДОСТАВКИ...")
+print("\n3. СОЗДАНИЕ ТЕСТОВЫХ ДАННЫХ ДЛЯ ДОСТАВКИ...")
 from logistic.models import DeliveryOrder
 
-# Удаляем старые тестовые данные доставки
-old_deliveries = DeliveryOrder.objects.all()
-if old_deliveries.exists():
-    print(f"  Удаляем {old_deliveries.count()} старых заявок на доставку...")
-    old_deliveries.delete()
-    print("  ✅ Старые заявки на доставку удалены")
+DeliveryOrder.objects.all().delete()
 
-warehouse_names = ["Склад А", "Склад Б", "Склад В", "Сборный груз"]
-fulfillments = ["Фулфилмент Царицыно", "Фулфилмент Люберцы", "Фулфилмент Химки"]
+# Получаем операторов
+operators = User.objects.filter(profile__role="operator")
+operator_list = list(operators)
 
-created_deliveries = 0
+# Города для доставки (используем реальные объекты City)
+delivery_cities = list(City.objects.all())
+delivery_warehouses = list(Warehouse.objects.all())
+
 for i in range(40):
-    operator = (
-        User.objects.filter(username__startswith="operator").order_by("?").first()
-        or User.objects.first()
-    )
-
-    # Используем города из созданных
-    random_city = random.choice(list(created_cities.values()))
+    operator = operator_list[i % len(operator_list)]
+    city = delivery_cities[i % len(delivery_cities)]
+    warehouse = delivery_warehouses[i % len(delivery_warehouses)]
 
     order = DeliveryOrder.objects.create(
         date=date.today() + timedelta(days=i % 14),
-        city=random_city.name,
-        warehouse=random.choice(warehouse_names),
-        fulfillment=random.choice(fulfillments),
+        city=city,
+        warehouse=warehouse,
+        fulfillment=operator,
         quantity=(i % 10) + 1,
         weight=(i % 100) + 50.5,
         volume=(i % 3) + 0.5,
         status="submitted",
         operator=operator,
     )
-    created_deliveries += 1
 
     # Назначаем водителя для некоторых заявок
     if i % 3 == 0:
@@ -431,18 +297,13 @@ for i in range(40):
         order.status = "shipped"
         order.save()
 
-print(f"  ✅ Создано {created_deliveries} заявок на доставку")
+print(f"  ✅ Создано {DeliveryOrder.objects.count()} заявок на доставку")
 
-# Создаем данные для забора с новыми статусами и использованием складов
-print("\n7. СОЗДАНИЕ ТЕСТОВЫХ ДАННЫХ ДЛЯ ЗАБОРА (с городами и складами)...")
+# Создаем данные для забора
+print("\n4. СОЗДАНИЕ ТЕСТОВЫХ ДАННЫХ ДЛЯ ЗАБОРА...")
 from pickup.models import PickupOrder
 
-# Удаляем старые тестовые данные забора
-old_pickups = PickupOrder.objects.all()
-if old_pickups.exists():
-    print(f"  Удаляем {old_pickups.count()} старых заявок на забор...")
-    old_pickups.delete()
-    print("  ✅ Старые заявки на забор удалены")
+PickupOrder.objects.all().delete()
 
 clients = [
     "ООО 'Ромашка'",
@@ -464,121 +325,70 @@ addresses = [
     "Краснодар, ул. Красная, 150",
 ]
 
-marketplaces = [
-    "Wildberries",
-    "Ozon",
-    "Яндекс.Маркет",
-    "SberMarket",
-    "Собственный сайт",
-    "Другое",
-]
+pickup_cities = list(City.objects.all())
+pickup_warehouses = list(Warehouse.objects.all())
 
-contact_persons = [
-    "Иванов Иван Иванович",
-    "Петров Петр Петрович",
-    "Сидорова Анна Сергеевна",
-    "Кузнецов Алексей Владимирович",
-    "Морозова Екатерина Дмитриевна",
-    "Соколов Денис Андреевич",
-]
-
-created_pickups = 0
 for i in range(25):
-    operator = (
-        User.objects.filter(username__startswith="operator").order_by("?").first()
-        or User.objects.first()
-    )
+    operator = operator_list[i % len(operator_list)]
+    delivery_city = pickup_cities[i % len(pickup_cities)]
+    receiving_warehouse = pickup_warehouses[i % len(pickup_warehouses)]
 
-    # Определяем статус (чередуем ready и payment)
-    status = "ready" if i % 2 == 0 else "payment"
-
-    # Вес и объем
-    weight_value = (i % 200) + 50.0
-    volume_value = (i % 5) + 0.5
-
-    # Выбираем случайный склад и город
-    random_warehouse = random.choice(list(created_warehouses.values()))
-    random_city = random.choice(list(created_cities.values()))
-
-    # Создаем заявку на забор с новыми ForeignKey полями
     order = PickupOrder.objects.create(
         pickup_date=date.today() + timedelta(days=i % 10),
-        pickup_time=(
-            (datetime.now() + timedelta(hours=9, minutes=30)).time()
-            if i % 3 == 0
-            else None
-        ),
         pickup_address=addresses[i % len(addresses)],
-        contact_person=contact_persons[i % len(contact_persons)],
-        delivery_city=random_city,
-        delivery_address=f"Ул. Примерная, д. {i+1}, кв. {(i%20)+1}",
-        client_name=f"Контактное лицо {i+1}",
+        contact_person=f"Контактное лицо {i+1}",
+        client_name=f"Клиент {i+1}",
         client_company=clients[i % len(clients)],
         client_phone=f"+7916{3000000 + i*1000}",
         client_email=f"client{i}@example.com",
-        marketplace=marketplaces[i % len(marketplaces)],
-        order_1c_number=f"1C-2024-{1000+i:04d}" if i % 3 == 0 else "",
-        desired_delivery_date=date.today() + timedelta(days=(i % 10) + 2),
-        invoice_number=f"ТН-2024-{5000+i:05d}" if i % 2 == 0 else "",
-        receiving_operator=operator if i % 3 == 0 else None,
-        receiving_warehouse=random_warehouse,
+        marketplace=["Wildberries", "Ozon", "Яндекс.Маркет", "Собственный сайт"][i % 4],
+        desired_delivery_date=date.today() + timedelta(days=(i % 7) + 2),
+        delivery_address=f"ул. Доставки, д.{i+1}, кв.{i%10+1}",
+        invoice_number=f"INV-{1000+i}",
+        receiving_operator=operator,
+        receiving_warehouse=receiving_warehouse,
+        delivery_city=delivery_city,
         quantity=(i % 8) + 1,
-        weight=weight_value,
-        volume=volume_value,
-        cargo_description=f"Тестовый груз #{i+1}. Состоит из {((i % 8) + 1)} мест, вес {weight_value} кг.",
-        special_requirements="Хрупкий груз" if i % 4 == 0 else "Без особых требований",
-        status=status,
+        weight=(i % 200) + 50.0,
+        volume=(i % 5) + 0.5,
+        cargo_description=f"Тестовый груз #{i+1}",
+        special_requirements="Хрупкий груз" if i % 4 == 0 else "",
+        status=["ready", "payment"][i % 2],
         operator=operator,
-        notes=f"Тестовая заявка #{i+1}. Статус: {status}. Склад: {random_warehouse.name}",
+        notes=f"Тестовая заявка #{i+1}",
     )
-    created_pickups += 1
 
-print(
-    f"  ✅ Создано {created_pickups} заявок на забор с использованием складов и городов"
-)
+print(f"  ✅ Создано {PickupOrder.objects.count()} заявок на забор")
 
 # Создаем несколько связанных заявок (забор -> доставка)
-print("\n8. СОЗДАНИЕ СВЯЗАННЫХ ЗАЯВОК...")
+print("\n5. СОЗДАНИЕ СВЯЗАННЫХ ЗАЯВОК...")
 from django.db import transaction
 
-# Берем несколько заявок на забор со статусом "ready", готовых к преобразованию
+# Берем несколько заявок на забор, готовых к преобразованию
 pickup_orders = PickupOrder.objects.filter(status="ready", delivery_order__isnull=True)[
     :5
 ]
 
-created_links = 0
 for pickup in pickup_orders:
     with transaction.atomic():
-        try:
-            delivery = DeliveryOrder.objects.create(
-                date=pickup.pickup_date if pickup.pickup_date else date.today(),
-                city=(
-                    pickup.delivery_city.name
-                    if pickup.delivery_city
-                    else pickup.pickup_address.split(",")[0].strip()
-                ),
-                warehouse=(
-                    pickup.receiving_warehouse.name
-                    if pickup.receiving_warehouse
-                    else "Сборный груз"
-                ),
-                fulfillment="Фулфилмент Царицыно",
-                quantity=pickup.quantity,
-                weight=pickup.weight or 0,
-                volume=pickup.volume or 0,
-                status="submitted",
-                operator=pickup.operator,
-            )
+        delivery = DeliveryOrder.objects.create(
+            date=pickup.desired_delivery_date,
+            city=pickup.delivery_city,
+            warehouse=pickup.receiving_warehouse,
+            fulfillment=pickup.operator,
+            quantity=pickup.quantity,
+            weight=pickup.weight,
+            volume=pickup.volume,
+            status="submitted",
+            operator=pickup.operator,
+        )
 
-            pickup.delivery_order = delivery
-            pickup.save()
+        pickup.delivery_order = delivery
+        pickup.save()
 
-            created_links += 1
-            print(
-                f"  🔄 Создана связанная доставка: {pickup.tracking_number} -> {delivery.tracking_number}"
-            )
-        except Exception as e:
-            print(f"  ❌ Ошибка при создании связанной доставки: {e}")
+        print(
+            f"  🔄 Создана связанная доставка: {pickup.tracking_number} -> {delivery.tracking_number}"
+        )
 
 # Статистика
 print("\n" + "=" * 60)
@@ -586,13 +396,9 @@ print("📊 ИТОГОВАЯ СТАТИСТИКА:")
 print("=" * 60)
 print(f"👥 Пользователей: {User.objects.count()}")
 print(f"🏙️  Городов: {City.objects.count()}")
-print(f"🏭 Складов: {Warehouse.objects.count()}")
-print(f"📦 Типов тары: {ContainerType.objects.count()}")
-print(f"📊 Запасов на складах: {WarehouseContainer.objects.count()}")
+print(f"🏢 Складов: {Warehouse.objects.count()}")
 print(f"🚚 Заявок на доставку: {DeliveryOrder.objects.count()}")
 print(f"📦 Заявок на забор: {PickupOrder.objects.count()}")
-print(f"  - Готов к выдаче: {PickupOrder.objects.filter(status='ready').count()}")
-print(f"  - На оплате: {PickupOrder.objects.filter(status='payment').count()}")
 print(
     f"🔄 Связанных заявок: {PickupOrder.objects.filter(delivery_order__isnull=False).count()}"
 )
@@ -608,13 +414,11 @@ print("  Администратор: admin / admin123")
 print("  Логист: logistic / logistic123")
 print("  Операторы: operator1, operator2, operator3 / operator123")
 
-print("\n🏙️  СОЗДАННЫЕ ГОРОДА:")
-for city in City.objects.all().order_by("name"):
-    print(f"  - {city.name} ({city.region or 'без региона'})")
-
-print("\n🏭 СОЗДАННЫЕ СКЛАДЫ:")
-for warehouse in Warehouse.objects.all().order_by("city__name", "name"):
-    print(f"  - {warehouse.name} в {warehouse.city.name}")
+print("\n🌐 Адреса:")
+print("  Главная страница: http://localhost:8000/")
+print("  Админка: http://localhost:8000/admin/")
+print("  Форма забора: http://localhost:8000/order/pickup/")
+print("  Форма доставки: http://localhost:8000/order/delivery/")
 
 print("\n✅ Все тестовые данные успешно созданы!")
 print("=" * 60)

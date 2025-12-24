@@ -29,35 +29,77 @@ class PickupOrderListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
 
-        if hasattr(self.request.user, "profile"):
-            user_profile = self.request.user.profile
-
-            if user_profile.is_operator:
+        # Фильтрация по оператору
+        if self.request.user.is_authenticated and hasattr(self.request.user, "profile"):
+            if self.request.user.profile.role == "operator":
                 queryset = queryset.filter(operator=self.request.user)
 
-        # Применяем фильтр - ИСПРАВЛЕНО: было DeliveryOrderFilter
-        self.filterset = PickupOrderFilter(self.request.GET, queryset=queryset)
-        return self.filterset.qs
+        # Применение фильтров
+        pickup_date_gte = self.request.GET.get("pickup_date__gte")
+        pickup_date_lte = self.request.GET.get("pickup_date__lte")
+        client_name = self.request.GET.get("client_name")
+        pickup_address = self.request.GET.get("pickup_address")
+        invoice_number = self.request.GET.get("invoice_number")
+        status = self.request.GET.get("status")
+
+        if pickup_date_gte:
+            queryset = queryset.filter(pickup_date__gte=pickup_date_gte)
+        if pickup_date_lte:
+            queryset = queryset.filter(pickup_date__lte=pickup_date_lte)
+        if client_name:
+            queryset = queryset.filter(client_name__icontains=client_name)
+        if pickup_address:
+            queryset = queryset.filter(pickup_address__icontains=pickup_address)
+        if invoice_number:
+            queryset = queryset.filter(invoice_number__icontains=invoice_number)
+        if status:
+            queryset = queryset.filter(status=status)
+
+        # Сортировка
+        sort = self.request.GET.get("sort", "-pickup_date")
+        order = self.request.GET.get("order", "desc")
+
+        # Список разрешенных полей для сортировки
+        allowed_sort_fields = [
+            "invoice_number",
+            "pickup_date",
+            "pickup_time",
+            "pickup_address",
+            "contact_person",
+            "desired_delivery_date",
+            "status",
+            "client_name",
+            "operator",
+            "quantity",
+        ]
+
+        if sort in allowed_sort_fields:
+            if order == "desc":
+                sort_field = f"-{sort}"
+            else:
+                sort_field = sort
+            queryset = queryset.order_by(sort_field)
+        else:
+            # Сортировка по умолчанию
+            queryset = queryset.order_by("-pickup_date")
+
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["filter"] = PickupOrderFilter(
-            self.request.GET, queryset=self.get_queryset()
+        context["is_operator"] = (
+            self.request.user.is_authenticated
+            and hasattr(self.request.user, "profile")
+            and self.request.user.profile.role == "operator"
         )
-
-        # Статистика
-        queryset = self.get_queryset()
-        context["total_orders"] = queryset.count()
-        context["ready_orders"] = queryset.filter(status="ready").count()
-        context["payment_orders"] = queryset.filter(status="payment").count()
-
-
-        if hasattr(self.request.user, "profile"):
-            context["user_role"] = self.request.user.profile.get_role_display()
-            context["is_operator"] = self.request.user.profile.is_operator
-            context["is_logistic"] = self.request.user.profile.is_logistic
-            context["is_admin"] = self.request.user.profile.is_admin
-
+        context["is_logistic"] = (
+            self.request.user.is_authenticated
+            and hasattr(self.request.user, "profile")
+            and self.request.user.profile.role == "logistic"
+        )
+        # Передаем параметры сортировки в контекст
+        context["sort"] = self.request.GET.get("sort", "pickup_date")
+        context["order"] = self.request.GET.get("order", "desc")
         return context
 
 
@@ -205,7 +247,8 @@ def update_pickup_order_field(request, pk):
         "desired_delivery_date",
         "quantity",
         "status",
-        "operator",  
+        "operator",
+        "receiving_warehouse",  # Добавлено
     ]
 
     if field not in allowed_fields:
@@ -238,6 +281,18 @@ def update_pickup_order_field(request, pk):
             else:
                 value = None  # Если значение пустое, устанавливаем None
 
+        elif field == "receiving_warehouse":  # Добавлена обработка склада
+            if value:
+                # Получаем объект Warehouse по ID
+                from warehouses.models import Warehouse
+
+                try:
+                    value = Warehouse.objects.get(id=value)
+                except Warehouse.DoesNotExist:
+                    return JsonResponse({"success": False, "error": "Склад не найден"})
+            else:
+                value = None
+
         setattr(order, field, value)
         order.save()
 
@@ -251,6 +306,12 @@ def update_pickup_order_field(request, pk):
                 display_value = (
                     order.operator.get_full_name() or order.operator.username
                 )
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "receiving_warehouse":  # Добавлено для склада
+            # Для склада возвращаем название для отображения
+            display_value = ""
+            if order.receiving_warehouse:
+                display_value = f"{order.receiving_warehouse.name} ({order.receiving_warehouse.city.name})"
             return JsonResponse({"success": True, "display_value": display_value})
 
         return JsonResponse({"success": True})

@@ -3,6 +3,86 @@
 <head>
     <meta charset="utf-8">
     <title>{{ title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            line-height: 1.4;
+            margin: 1.5cm;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        h1 {
+            font-size: 18px;
+            margin: 0;
+            color: #333;
+        }
+        h2 {
+            font-size: 14px;
+            margin: 15px 0 8px 0;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 4px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .stat-item {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 8px;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 3px;
+        }
+        .stat-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 10px;
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 6px 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 9px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 8px;
+        }
+        .address-cell {
+            max-width: 200px;
+            word-wrap: break-word;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -46,8 +126,9 @@
             <tr>
                 <th>№</th>
                 <th>Номер</th>
-                <th>Город</th>
-                <th>Склад</th>
+                <th>Дата</th>
+                <th>Адрес отправки</th>
+                <th>Адрес доставки</th>
                 <th>Места</th>
                 <th>Вес, кг</th>
                 <th>Объем, м³</th>
@@ -60,8 +141,9 @@
             <tr>
                 <td>{{ forloop.counter }}</td>
                 <td>{{ order.tracking_number|default:"#"|add:order.id }}</td>
-                <td>{{ order.city }}</td>
-                <td>{{ order.warehouse }}</td>
+                <td>{{ order.date|date:"d.m.Y" }}</td>
+                <td class="address-cell">{{ order.pickup_address|default:"—"|truncatechars:40 }}</td>
+                <td class="address-cell">{{ order.delivery_address|default:"—"|truncatechars:40 }}</td>
                 <td>{{ order.quantity }}</td>
                 <td>{{ order.weight }}</td>
                 <td>{{ order.volume }}</td>
@@ -70,7 +152,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="9" class="text-center">Нет заявок за выбранную дату</td>
+                <td colspan="10" class="text-center">Нет заявок за выбранную дату</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -71,3 +71,12 @@ def get_available_containers_json(request, warehouse_id):
         return JsonResponse(data, safe=False)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@require_GET
+@login_required
+def get_warehouses_json(request):
+    """Возвращает список всех складов в формате JSON"""
+    warehouses = Warehouse.objects.all().order_by("name")
+    data = [{"id": wh.id, "name": f"{wh.name} ({wh.city.name})"} for wh in warehouses]
+    return JsonResponse(data, safe=False)
