@@ -132,6 +132,7 @@ def generate_qr_code(self):
     """Генерирует QR-код для заявки"""
     from django.conf import settings
 
+    # Проверяем, существует ли уже QR-код
     if self.qr_code:
         try:
             if os.path.exists(self.qr_code.path):
@@ -139,6 +140,7 @@ def generate_qr_code(self):
         except (ValueError, FileNotFoundError, AttributeError):
             pass
 
+    # Формируем данные для QR-кода (БЕЗ устаревших полей)
     qr_data = f"""
 Доставка #{self.id}
 Сквозной номер: {self.tracking_number}
