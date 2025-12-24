@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 """
 Скрипт для создания всех тестовых данных одним вызовом
-Обновлено под текущую версию проекта с моделями Warehouse и City
+Обновлено под текущую версию проекта с актуальными моделями DeliveryOrder и PickupOrder
 """
 
 import os
 import sys
 import django
 from datetime import date, datetime, timedelta, time
+import random
 
 # Добавляем корневую директорию проекта в PYTHONPATH
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -15,8 +16,6 @@ sys.path.append(project_root)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "crm_logistic.settings")
 django.setup()
-
-# Теперь Django будет использовать правильную базу данных из settings.py
 
 print("=" * 60)
 print("СОЗДАНИЕ ВСЕХ ТЕСТОВЫХ ДАННЫХ CRM ЛОГИСТИКА")
@@ -261,40 +260,89 @@ DeliveryOrder.objects.all().delete()
 operators = User.objects.filter(profile__role="operator")
 operator_list = list(operators)
 
-# Города для доставки (используем реальные объекты City)
-delivery_cities = list(City.objects.all())
-delivery_warehouses = list(Warehouse.objects.all())
+# Адреса для доставок
+pickup_addresses = [
+    "Москва, ул. Тверская, д. 10, офис 25",
+    "Москва, пр-т Мира, д. 15, склад 3",
+    "Казань, ул. Баумана, д. 45, помещение 12",
+    "Санкт-Петербург, Невский пр., д. 100, офис 305",
+    "Екатеринбург, ул. Малышева, д. 50",
+    "Новосибирск, ул. Ленина, д. 30, склад 5",
+    "Краснодар, ул. Красная, д. 150, офис 10",
+    "Тула, пр-т Ленина, д. 80, помещение 4",
+]
+
+delivery_addresses = [
+    "Москва, ул. Пушкина, д. 20, кв. 45",
+    "Москва, ул. Лермонтова, д. 15, офис 12",
+    "Казань, ул. Габдуллы Тукая, д. 60, кв. 33",
+    "Санкт-Петербург, ул. Садовая, д. 25, офис 8",
+    "Екатеринбург, ул. 8 Марта, д. 70, склад 2",
+    "Новосибирск, ул. Кирова, д. 40, помещение 15",
+    "Краснодар, ул. Северная, д. 300, офис 5",
+    "Тула, ул. Советская, д. 90, кв. 12",
+]
+
+driver_names = [
+    "Иванов Иван Иванович",
+    "Петров Петр Петрович",
+    "Сидоров Алексей Владимирович",
+    "Кузнецов Дмитрий Сергеевич",
+    "Смирнова Анна Михайловна",
+    "Попов Андрей Николаевич",
+    "Лебедев Сергей Алексеевич",
+    "Козлова Екатерина Дмитриевна",
+]
+
+vehicles = [
+    "ГАЗель NEXT А123АА777",
+    "Форд Транзит В234ВВ777",
+    "Мерседес Спринтер С345СС777",
+    "Фольксваген Крафтер D456DD777",
+    "Исузу Эльф Е567ЕЕ777",
+    "Пежо Боксер F678FF777",
+    "Рено Мастер G789GG777",
+    "Фиат Дукато H890HH777",
+]
 
 for i in range(40):
     operator = operator_list[i % len(operator_list)]
-    city = delivery_cities[i % len(delivery_cities)]
-    warehouse = delivery_warehouses[i % len(delivery_warehouses)]
+    pickup_addr = pickup_addresses[i % len(pickup_addresses)]
+    delivery_addr = delivery_addresses[i % len(delivery_addresses)]
 
+    # Определяем статус
+    status_options = ["submitted", "driver_assigned", "shipped"]
+    if i % 3 == 0:
+        status = "driver_assigned"
+    elif i % 5 == 0:
+        status = "shipped"
+    else:
+        status = "submitted"
+
+    # Создаем заявку на доставку
     order = DeliveryOrder.objects.create(
         date=date.today() + timedelta(days=i % 14),
-        city=city,
-        warehouse=warehouse,
+        pickup_address=pickup_addr,
+        delivery_address=delivery_addr,
         fulfillment=operator,
         quantity=(i % 10) + 1,
         weight=(i % 100) + 50.5,
         volume=(i % 3) + 0.5,
-        status="submitted",
+        status=status,
         operator=operator,
     )
 
     # Назначаем водителя для некоторых заявок
-    if i % 3 == 0:
-        order.driver_name = f"Водитель {i+1}"
+    if status == "driver_assigned" or status == "shipped":
+        order.driver_name = driver_names[i % len(driver_names)]
         order.driver_phone = f"+7916{1000000 + i*1000}"
-        order.vehicle = f"ГАЗель А{100+i%50}АА"
-        order.status = "driver_assigned"
+        order.vehicle = vehicles[i % len(vehicles)]
         order.save()
 
-    if i % 5 == 0:
-        order.driver_name = f"Водитель {i+5}"
-        order.driver_phone = f"+7916{2000000 + i*1000}"
-        order.vehicle = f"Камаз Б{200+i%50}ББ"
-        order.status = "shipped"
+    if i % 20 == 0:
+        order.driver_pass_info = (
+            f"Пропуск №{1000+i}, действует до {date.today() + timedelta(days=365)}"
+        )
         order.save()
 
 print(f"  ✅ Создано {DeliveryOrder.objects.count()} заявок на доставку")
@@ -316,46 +364,61 @@ clients = [
     "ЗАО 'СтройГрад'",
 ]
 
-addresses = [
+pickup_addresses_pickup = [
     "Москва, ул. Ленина, 15, офис 203",
     "Казань, пр. Победы, 42, склад 5",
     "Санкт-Петербург, Невский пр., 100",
     "Екатеринбург, ул. Мамина-Сибиряка, 145",
     "Новосибирск, ул. Кирова, 25",
     "Краснодар, ул. Красная, 150",
+    "Тула, пр-т Ленина, 80, помещение 4",
+    "Владивосток, ул. Светланская, 50",
 ]
 
-pickup_cities = list(City.objects.all())
-pickup_warehouses = list(Warehouse.objects.all())
+marketplaces = ["Wildberries", "Ozon", "Яндекс.Маркет", "Собственный сайт", "Другое"]
+
+# Получаем список складов для привязки
+warehouse_list = list(Warehouse.objects.all())
+city_list = list(City.objects.all())
 
 for i in range(25):
     operator = operator_list[i % len(operator_list)]
-    delivery_city = pickup_cities[i % len(pickup_cities)]
-    receiving_warehouse = pickup_warehouses[i % len(pickup_warehouses)]
+    delivery_city = city_list[i % len(city_list)]
+    receiving_warehouse = (
+        warehouse_list[i % len(warehouse_list)] if warehouse_list else None
+    )
+
+    # Определяем статус
+    status_pickup = "ready" if i % 2 == 0 else "payment"
+
+    # Время забора
+    pickup_time_obj = time(9 + i % 8, 0)  # С 9 до 17
 
     order = PickupOrder.objects.create(
         pickup_date=date.today() + timedelta(days=i % 10),
-        pickup_address=addresses[i % len(addresses)],
+        pickup_time=pickup_time_obj,
+        pickup_address=pickup_addresses_pickup[i % len(pickup_addresses_pickup)],
         contact_person=f"Контактное лицо {i+1}",
         client_name=f"Клиент {i+1}",
         client_company=clients[i % len(clients)],
         client_phone=f"+7916{3000000 + i*1000}",
         client_email=f"client{i}@example.com",
-        marketplace=["Wildberries", "Ozon", "Яндекс.Маркет", "Собственный сайт"][i % 4],
+        marketplace=marketplaces[i % len(marketplaces)],
         desired_delivery_date=date.today() + timedelta(days=(i % 7) + 2),
         delivery_address=f"ул. Доставки, д.{i+1}, кв.{i%10+1}",
-        invoice_number=f"INV-{1000+i}",
+        invoice_number=f"INV-{1000+i}" if i % 3 == 0 else None,
         receiving_operator=operator,
         receiving_warehouse=receiving_warehouse,
         delivery_city=delivery_city,
         quantity=(i % 8) + 1,
         weight=(i % 200) + 50.0,
         volume=(i % 5) + 0.5,
-        cargo_description=f"Тестовый груз #{i+1}",
-        special_requirements="Хрупкий груз" if i % 4 == 0 else "",
-        status=["ready", "payment"][i % 2],
+        cargo_description=f"Тестовый груз #{i+1}. "
+        + ("Хрупкий груз" if i % 4 == 0 else "Обычный груз"),
+        special_requirements="Требуется бережная перевозка" if i % 4 == 0 else "",
+        status=status_pickup,
         operator=operator,
-        notes=f"Тестовая заявка #{i+1}",
+        notes=f"Тестовая заявка #{i+1}. Создана автоматически.",
     )
 
 print(f"  ✅ Создано {PickupOrder.objects.count()} заявок на забор")
@@ -371,10 +434,11 @@ pickup_orders = PickupOrder.objects.filter(status="ready", delivery_order__isnul
 
 for pickup in pickup_orders:
     with transaction.atomic():
+        # Используем данные из заявки на забор для создания доставки
         delivery = DeliveryOrder.objects.create(
             date=pickup.desired_delivery_date,
-            city=pickup.delivery_city,
-            warehouse=pickup.receiving_warehouse,
+            pickup_address=pickup.pickup_address,
+            delivery_address=pickup.delivery_address,
             fulfillment=pickup.operator,
             quantity=pickup.quantity,
             weight=pickup.weight,
@@ -409,6 +473,18 @@ print(
     f"📱 QR-кодов забора: {PickupOrder.objects.filter(qr_code__isnull=False).count()}"
 )
 
+# Вывод распределения по статусам
+print("\n📊 СТАТУСЫ ЗАЯВОК:")
+print(f"  Доставки:")
+for status_code, status_name in DeliveryOrder.STATUS_CHOICES:
+    count = DeliveryOrder.objects.filter(status=status_code).count()
+    print(f"    {status_name}: {count}")
+
+print(f"  Заборы:")
+for status_code, status_name in PickupOrder.STATUS_CHOICES:
+    count = PickupOrder.objects.filter(status=status_code).count()
+    print(f"    {status_name}: {count}")
+
 print("\n🔑 ДАННЫЕ ДЛЯ ВХОДА:")
 print("  Администратор: admin / admin123")
 print("  Логист: logistic / logistic123")
@@ -419,6 +495,8 @@ print("  Главная страница: http://localhost:8000/")
 print("  Админка: http://localhost:8000/admin/")
 print("  Форма забора: http://localhost:8000/order/pickup/")
 print("  Форма доставки: http://localhost:8000/order/delivery/")
+print("  Список заявок на доставку: http://localhost:8000/delivery/")
+print("  Список заявок на забор: http://localhost:8000/pickup/")
 
 print("\n✅ Все тестовые данные успешно созданы!")
 print("=" * 60)
