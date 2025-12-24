@@ -128,64 +128,70 @@ class DeliveryOrder(models.Model):
         return f"FFC-{year}-{new_num:05d}"
 
 
-def generate_qr_code(self):
-    """Генерирует QR-код для заявки"""
-    from django.conf import settings
+    def generate_qr_code(self):
+        """Генерирует QR-код для заявки"""
 
-    # Проверяем, существует ли уже QR-код
-    if self.qr_code:
+        if self.qr_code:
+            try:
+                if os.path.exists(self.qr_code.path):
+                    return
+            except (ValueError, FileNotFoundError, AttributeError):
+                pass
+
+        # Получаем отображаемое значение для fulfillment
+        fulfillment_display = "Не указан"
+        if self.fulfillment:
+            # Пробуем получить полное имя, если доступно
+            full_name = (
+                f"{self.fulfillment.first_name} {self.fulfillment.last_name}".strip()
+            )
+            fulfillment_display = full_name if full_name else self.fulfillment.username
+
+        qr_data = f"""
+    Доставка #{self.id}
+    Сквозной номер: {self.tracking_number}
+    Адрес отправки: {self.pickup_address or 'Не указан'}
+    Адрес доставки: {self.delivery_address or 'Не указан'}
+    Дата: {self.date}
+    Места: {self.quantity}
+    Вес: {self.weight} кг
+    Объем: {self.volume} м³
+    Статус: {self.get_status_display()}
+    Фулфилмент: {fulfillment_display}
+    Водитель: {self.driver_name or 'Не назначен'}
+    Телефон: {self.driver_phone or 'Не указан'}
+    ТС: {self.vehicle or 'Не указано'}
+    Пропуск: {self.driver_pass_info or 'Не требуется'}
+    Ссылка: {settings.SITE_URL}{self.get_absolute_url()}
+        """.strip()
+
         try:
-            if os.path.exists(self.qr_code.path):
-                return
-        except (ValueError, FileNotFoundError, AttributeError):
-            pass
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(qr_data)
+            qr.make(fit=True)
 
-    # Формируем данные для QR-кода (БЕЗ устаревших полей)
-    qr_data = f"""
-Доставка #{self.id}
-Сквозной номер: {self.tracking_number}
-Адрес отправки: {self.pickup_address or 'Не указан'}
-Адрес доставки: {self.delivery_address or 'Не указан'}
-Дата: {self.date}
-Места: {self.quantity}
-Вес: {self.weight} кг
-Объем: {self.volume} м³
-Статус: {self.get_status_display()}
-Фулфилмент: {self.get_fulfillment_display()}
-Водитель: {self.driver_name or 'Не назначен'}
-Телефон: {self.driver_phone or 'Не указан'}
-ТС: {self.vehicle or 'Не указано'}
-Пропуск: {self.driver_pass_info or 'Не требуется'}
-Ссылка: {settings.SITE_URL}{self.get_absolute_url()}
-    """.strip()
+            img = qr.make_image(fill_color="black", back_color="white")
 
-    try:
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(qr_data)
-        qr.make(fit=True)
+            qr_dir = Path(settings.MEDIA_ROOT) / "qr_codes" / "delivery"
+            qr_dir.mkdir(parents=True, exist_ok=True)
 
-        img = qr.make_image(fill_color="black", back_color="white")
+            buffer = BytesIO()
+            img.save(buffer, format="PNG")
+            buffer.seek(0)
 
-        qr_dir = Path(settings.MEDIA_ROOT) / "qr_codes" / "delivery"
-        qr_dir.mkdir(parents=True, exist_ok=True)
+            filename = f'delivery_qr_{self.tracking_number.replace("/", "_")}_{self.id}.png'
+            self.qr_code.save(filename, File(buffer), save=False)
+            buffer.close()
 
-        buffer = BytesIO()
-        img.save(buffer, format="PNG")
-        buffer.seek(0)
+            super().save(update_fields=["qr_code"])
 
-        filename = f'delivery_qr_{self.tracking_number.replace("/", "_")}_{self.id}.png'
-        self.qr_code.save(filename, File(buffer), save=False)
-        buffer.close()
+        except Exception as e:
+            print(f"❌ Ошибка при создании QR-кода для заявки #{self.id}: {e}")
+            import traceback
 
-        super().save(update_fields=["qr_code"])
-
-    except Exception as e:
-        print(f"❌ Ошибка при создании QR-кода для заявки #{self.id}: {e}")
-        import traceback
-
-        traceback.print_exc()
+            traceback.print_exc()
