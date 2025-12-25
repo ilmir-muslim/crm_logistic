@@ -407,6 +407,7 @@ class PickupOrder(models.Model):
 
             traceback.print_exc()
 
+
     def create_delivery_order(self, user):
         """
         Создаёт заявку на доставку на основе заявки на забор
@@ -414,21 +415,38 @@ class PickupOrder(models.Model):
         if not self.is_convertible_to_delivery:
             return None
 
-        # Создаём заявку на доставку
+        fulfillment_user = None
+        if self.receiving_operator and hasattr(self.receiving_operator, "profile"):
+            if self.receiving_operator.profile.role == "operator":
+                fulfillment_user = self.receiving_operator
+        elif hasattr(user, "profile") and user.profile.role == "operator":
+            fulfillment_user = user
+        else:
+            # Ищем любого оператора в системе
+            from django.contrib.auth.models import User
+            from users.models import Profile
+
+            try:
+                operator_profile = Profile.objects.filter(role="operator").first()
+                if operator_profile:
+                    fulfillment_user = operator_profile.user
+            except:
+                pass
+
+        # Создаём заявку на доставку с актуальными полями
         delivery = DeliveryOrder.objects.create(
             date=self.desired_delivery_date,
-            city=(
-                self.delivery_city
-                if self.delivery_city
-                else self._extract_city_from_delivery_address()
-            ),
-            warehouse=self.receiving_warehouse or "Сборный груз",
-            fulfillment="Фулфилмент Царицыно",
+            # Адрес отправки - берем из адреса забора
+            pickup_address=self.pickup_address,
+            # Адрес доставки - берем из адреса доставки в заявке на забор
+            delivery_address=self.delivery_address,
+            # Фулфилмент оператор (ForeignKey на User)
+            fulfillment=fulfillment_user,
             quantity=self.quantity,
             weight=self.weight or 0,
             volume=self.volume or 0,
             status="submitted",
-            operator=user,
+            operator=user,  # Тот, кто создал доставку
         )
 
         # Связываем заявки
@@ -436,7 +454,6 @@ class PickupOrder(models.Model):
         self.save()
 
         return delivery
-
     def _extract_city_from_delivery_address(self):
         """Извлекает город из адреса доставки"""
         if self.delivery_city:
