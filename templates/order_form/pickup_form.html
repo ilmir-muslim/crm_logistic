@@ -584,6 +584,37 @@
                                 </div>
                             </div>
                             
+                            <!-- Добавьте эти два поля для времени -->
+                            <div class="col-md-3">
+                                <label for="{{ form.pickup_time_from.id_for_label }}" class="form-label">
+                                    Время забора от
+                                </label>
+                                {{ form.pickup_time_from }}
+                                {% if form.pickup_time_from.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.pickup_time_from.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Например: 09:00
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label for="{{ form.pickup_time_to.id_for_label }}" class="form-label">
+                                    Время забора до
+                                </label>
+                                {{ form.pickup_time_to }}
+                                {% if form.pickup_time_to.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.pickup_time_to.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Например: 18:00
+                                </div>
+                            </div>
+                            
                             <div class="col-md-6">
                                 <label for="{{ form.marketplace.id_for_label }}" class="form-label required">
                                     Маркетплейс
@@ -598,6 +629,7 @@
                                     Выберите площадку, с которой заказ
                                 </div>
                             </div>
+
                             
                             <div class="col-md-6">
                                 <label class="form-label required">

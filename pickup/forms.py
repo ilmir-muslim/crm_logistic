@@ -1,26 +1,33 @@
 from django import forms
 from django.utils import timezone
-from warehouses.models import City, Warehouse
 from .models import PickupOrder
-from django.contrib.auth.models import User
 
 
 class PickupOrderForm(forms.ModelForm):
     """Форма для создания и редактирования заявки на забор"""
 
-    pickup_time = forms.TimeField(
+    pickup_time_from = forms.TimeField(
         widget=forms.TimeInput(
             attrs={"type": "time", "class": "form-control"}, format="%H:%M"
         ),
         required=False,
-        label="Время забора",
+        label="Время забора от",
+    )
+
+    pickup_time_to = forms.TimeField(
+        widget=forms.TimeInput(
+            attrs={"type": "time", "class": "form-control"}, format="%H:%M"
+        ),
+        required=False,
+        label="Время забора до",
     )
 
     class Meta:
         model = PickupOrder
         fields = [
             "pickup_date",
-            "pickup_time",
+            "pickup_time_from",
+            "pickup_time_to",
             "pickup_address",
             "contact_person",
             "client_name",

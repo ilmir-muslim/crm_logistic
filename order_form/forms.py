@@ -25,6 +25,21 @@ class ClientPickupForm(forms.ModelForm):
         help_text="Склад, куда будет доставлен груз",
     )
 
+    # Добавлены поля для диапазона времени забора
+    pickup_time_from = forms.TimeField(
+        required=False,
+        label="Время забора от",
+        widget=forms.TimeInput(attrs={"type": "time", "class": "form-control"}),
+        help_text="Начало интервала забора (необязательно)",
+    )
+
+    pickup_time_to = forms.TimeField(
+        required=False,
+        label="Время забора до",
+        widget=forms.TimeInput(attrs={"type": "time", "class": "form-control"}),
+        help_text="Конец интервала забора (необязательно)",
+    )
+
     privacy_policy = forms.BooleanField(
         label="Я согласен на обработку персональных данных *",
         widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -49,6 +64,9 @@ class ClientPickupForm(forms.ModelForm):
             "weight",
             "order_1c_number",
             "cargo_description",
+            # Добавлены поля времени
+            "pickup_time_from",
+            "pickup_time_to",
         ]
 
         widgets = {
@@ -129,6 +147,21 @@ class ClientPickupForm(forms.ModelForm):
                     "placeholder": "Дополнительная информация о грузе, особые требования и т.д.",
                 }
             ),
+            # Добавлены виджеты для времени
+            "pickup_time_from": forms.TimeInput(
+                attrs={
+                    "type": "time",
+                    "class": "form-control",
+                    "placeholder": "Например: 09:00",
+                }
+            ),
+            "pickup_time_to": forms.TimeInput(
+                attrs={
+                    "type": "time",
+                    "class": "form-control",
+                    "placeholder": "Например: 18:00",
+                }
+            ),
         }
 
         labels = {
@@ -147,6 +180,8 @@ class ClientPickupForm(forms.ModelForm):
             "order_1c_number": "№ заказа в 1С",
             "cargo_description": "Комментарий к заказу",
             "receiving_warehouse": "Склад приемки (опционально)",
+            "pickup_time_from": "Время забора от (необязательно)",
+            "pickup_time_to": "Время забора до (необязательно)",
         }
 
         help_texts = {
@@ -160,6 +195,8 @@ class ClientPickupForm(forms.ModelForm):
             "order_1c_number": "Номер заказа в вашей системе 1С (если есть)",
             "cargo_description": "Любая дополнительная информация о заказе",
             "receiving_warehouse": "Если оставить пустым, склад выберет оператор",
+            "pickup_time_from": "Начало интервала забора (например, 09:00)",
+            "pickup_time_to": "Конец интервала забора (например, 18:00)",
         }
 
     def __init__(self, *args, **kwargs):
@@ -189,7 +226,17 @@ class ClientPickupForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        # Убираем проверку графика работы склада
+
+        # Проверка диапазона времени, если указаны оба времени
+        pickup_time_from = cleaned_data.get("pickup_time_from")
+        pickup_time_to = cleaned_data.get("pickup_time_to")
+
+        if pickup_time_from and pickup_time_to:
+            if pickup_time_from >= pickup_time_to:
+                raise ValidationError(
+                    {"pickup_time_to": "Время 'до' должно быть позже времени 'от'"}
+                )
+
         return cleaned_data
 
     def save(self, commit=True):

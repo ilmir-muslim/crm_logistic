@@ -405,6 +405,26 @@
         cursor: help;
     }
 
+    /* Стили для редактирования диапазона времени */
+    .time-range-container {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 6px 0;
+    }
+    
+    .time-separator {
+        color: #666;
+        font-weight: bold;
+        min-width: 10px;
+        text-align: center;
+    }
+    
+    .time-input-wrapper {
+        flex: 1;
+        min-width: 0;
+    }
+    
     /* Адаптивность */
     @media (max-width: 768px) {
         .table th,
@@ -445,6 +465,15 @@
         
         .warehouse-list {
             max-height: 200px;
+        }
+        
+        .time-range-container {
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .time-input-wrapper {
+            width: 100%;
         }
     }
 </style>
@@ -543,8 +572,8 @@
                     Дата забора
                     <span class="sort-icon"></span>
                 </th>
-                <th class="sortable-header {% if sort == 'pickup_time' %}sorted-{{ order }}{% endif %}" 
-                    data-sort="pickup_time">
+                <th class="sortable-header {% if sort == 'pickup_time_from' %}sorted-{{ order }}{% endif %}" 
+                    data-sort="pickup_time_from">
                     Время забора
                     <span class="sort-icon"></span>
                 </th>
@@ -611,13 +640,13 @@
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
-                <td class="editable-cell" data-field="pickup_time" data-original="{{ order.pickup_time|time:'H:i'|default:'' }}" data-type="time">
-                    {% if order.pickup_time %}
-                        {{ order.pickup_time|time:"H:i" }}
-                    {% else %}
-                        <span class="text-muted">-</span>
-                    {% endif %}
-                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                <td class="editable-cell editable-time-range" 
+                    data-field-from="pickup_time_from" 
+                    data-field-to="pickup_time_to"
+                    data-original-from="{{ order.pickup_time_from|time:'H:i'|default:'' }}" 
+                    data-original-to="{{ order.pickup_time_to|time:'H:i'|default:'' }}">
+                    {{ order.pickup_time_range }}
+                    <button class="save-btn" onclick="saveTimeRangeCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
                 <td class="editable-cell" data-field="pickup_address" data-original="{{ order.pickup_address }}" data-full-address="{{ order.pickup_address }}">
@@ -1294,6 +1323,12 @@ function initInlineEditing() {
                 return;
             }
             
+            // Если это ячейка времени - используем специальную функцию
+            if (this.classList.contains('editable-time-range')) {
+                startTimeRangeEditing(this);
+                return;
+            }
+            
             // Для остальных ячеек - двойной клик
             if (e.detail === 2) {
                 startEditing(this);
@@ -1331,10 +1366,253 @@ function loadOperatorsList() {
     });
 }
 
+// ==================== ФУНКЦИИ ДЛЯ РЕДАКТИРОВАНИЯ ДИАПАЗОНА ВРЕМЕНИ ====================
+
+function startTimeRangeEditing(cell) {
+    // Если уже редактируем другую ячейку, сохраняем ее
+    if (editingCell && editingCell !== cell) {
+        if (editingCell.classList.contains('editable-time-range')) {
+            saveTimeRangeCell(editingCell.querySelector('.save-btn'));
+        } else {
+            saveCell(editingCell.querySelector('.save-btn'));
+        }
+    }
+    
+    const originalFrom = cell.getAttribute('data-original-from') || '';
+    const originalTo = cell.getAttribute('data-original-to') || '';
+    
+    // Сохраняем оригинальное содержимое
+    cell.setAttribute('data-original-content', cell.innerHTML);
+    cell.classList.add('editing');
+    editingCell = cell;
+    
+    // Создаем контейнер для двух полей ввода
+    const container = document.createElement('div');
+    container.className = 'time-range-container';
+    
+    // Поле для времени "от"
+    const fromWrapper = document.createElement('div');
+    fromWrapper.className = 'time-input-wrapper';
+    const fromInput = document.createElement('input');
+    fromInput.type = 'time';
+    fromInput.className = 'editable-time';
+    fromInput.value = originalFrom;
+    fromInput.placeholder = '00:00';
+    fromWrapper.appendChild(fromInput);
+    
+    // Разделитель
+    const separator = document.createElement('div');
+    separator.className = 'time-separator';
+    separator.textContent = '—';
+    
+    // Поле для времени "до"
+    const toWrapper = document.createElement('div');
+    toWrapper.className = 'time-input-wrapper';
+    const toInput = document.createElement('input');
+    toInput.type = 'time';
+    toInput.className = 'editable-time';
+    toInput.value = originalTo;
+    toInput.placeholder = '23:59';
+    toWrapper.appendChild(toInput);
+    
+    // Собираем контейнер
+    container.appendChild(fromWrapper);
+    container.appendChild(separator);
+    container.appendChild(toWrapper);
+    
+    // Очищаем ячейку и добавляем контейнер
+    cell.innerHTML = '';
+    cell.appendChild(container);
+    
+    // Фокус на первом поле
+    fromInput.focus();
+    
+    // Сохраняем ссылки на поля для удобства
+    cell._fromInput = fromInput;
+    cell._toInput = toInput;
+    
+    // Обработка нажатия Enter и Escape
+    fromInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            saveTimeRangeCell(cell);
+        } else if (e.key === 'Escape') {
+            cancelTimeRangeEditing(cell);
+        }
+    });
+    
+    toInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            saveTimeRangeCell(cell);
+        } else if (e.key === 'Escape') {
+            cancelTimeRangeEditing(cell);
+        }
+    });
+    
+    // Сохранение при потере фокуса
+    fromInput.addEventListener('blur', function() {
+        setTimeout(() => {
+            if (!cell.contains(document.activeElement)) {
+                saveTimeRangeCell(cell);
+            }
+        }, 100);
+    });
+    
+    toInput.addEventListener('blur', function() {
+        setTimeout(() => {
+            if (!cell.contains(document.activeElement)) {
+                saveTimeRangeCell(cell);
+            }
+        }, 100);
+    });
+}
+
+function saveTimeRangeCell(cellElement) {
+    // Если cellElement - это кнопка, находим родительскую ячейку
+    let cell = cellElement;
+    if (cellElement.tagName === 'BUTTON') {
+        cell = cellElement.parentElement;
+    }
+    
+    const fromValue = cell._fromInput ? cell._fromInput.value : '';
+    const toValue = cell._toInput ? cell._toInput.value : '';
+    const orderId = cell.closest('tr').getAttribute('data-order-id');
+    
+    // Валидация: если указано только одно время, считаем его временем "от"
+    if (fromValue && !toValue) {
+        showNotification('Укажите конечное время или оставьте оба поля пустыми', 'warning');
+        return;
+    }
+    
+    // Если указано время "до", но не указано время "от" - предупреждение
+    if (!fromValue && toValue) {
+        showNotification('Укажите начальное время', 'warning');
+        return;
+    }
+    
+    // Валидация: время "до" должно быть позже времени "от"
+    if (fromValue && toValue) {
+        if (fromValue >= toValue) {
+            showNotification('Время "до" должно быть позже времени "от"', 'error');
+            return;
+        }
+    }
+    
+    // Отправка на сервер
+    saveTimeRangeToServer(orderId, fromValue, toValue, cell);
+}
+
+function saveTimeRangeToServer(orderId, fromValue, toValue, cell) {
+    const url = `{% url 'pickup_order_update_field' 0 %}`.replace('0', orderId);
+    const csrfToken = getCookie('csrftoken');
+    
+    // Показываем индикатор загрузки
+    cell.classList.add('loading');
+    
+    // Сначала обновляем время "от"
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            field: 'pickup_time_from',
+            value: fromValue
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Затем обновляем время "до"
+            return fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    field: 'pickup_time_to',
+                    value: toValue
+                })
+            });
+        } else {
+            throw new Error(data.error || 'Ошибка обновления времени');
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        cell.classList.remove('loading');
+        
+        if (data.success) {
+            // Обновляем отображение в ячейке
+            updateTimeRangeCellDisplay(cell, fromValue, toValue);
+            
+            showNotification('Время забора обновлено', 'success');
+            editingCell = null;
+        } else {
+            showNotification('Ошибка: ' + data.error, 'error');
+            cancelTimeRangeEditing(cell);
+        }
+    })
+    .catch(error => {
+        cell.classList.remove('loading');
+        console.error('Error:', error);
+        showNotification('Ошибка сети при сохранении: ' + error.message, 'error');
+        cancelTimeRangeEditing(cell);
+    });
+}
+
+function updateTimeRangeCellDisplay(cell, fromValue, toValue) {
+    cell.classList.remove('editing');
+    
+    // Формируем отображаемое значение
+    let displayValue = '-';
+    if (fromValue && toValue) {
+        displayValue = `${fromValue}-${toValue}`;
+    } else if (fromValue) {
+        displayValue = `${fromValue}`;
+    } else if (toValue) {
+        displayValue = `${toValue}`;
+    }
+    
+    cell.innerHTML = `
+        ${displayValue}
+        <button class="save-btn" onclick="saveTimeRangeCell(this)">✓</button>
+        <button class="cancel-btn" onclick="cancelTimeRangeEditing(this.parentElement)">✗</button>
+    `;
+    
+    // Обновляем data-атрибуты
+    cell.setAttribute('data-original-from', fromValue || '');
+    cell.setAttribute('data-original-to', toValue || '');
+    
+    // Очищаем временные ссылки
+    delete cell._fromInput;
+    delete cell._toInput;
+}
+
+function cancelTimeRangeEditing(cell) {
+    const originalContent = cell.getAttribute('data-original-content');
+    if (originalContent) {
+        cell.innerHTML = originalContent;
+    }
+    cell.classList.remove('editing');
+    editingCell = null;
+    
+    // Очищаем временные ссылки
+    delete cell._fromInput;
+    delete cell._toInput;
+}
+
+// ==================== ФУНКЦИИ ДЛЯ ОБЫЧНОГО РЕДАКТИРОВАНИЯ ====================
+
 function startEditing(cell) {
     // Если уже редактируем другую ячейку, сохраняем ее
     if (editingCell && editingCell !== cell) {
-        saveCell(editingCell.querySelector('.save-btn'));
+        if (editingCell.classList.contains('editable-time-range')) {
+            saveTimeRangeCell(editingCell.querySelector('.save-btn'));
+        } else {
+            saveCell(editingCell.querySelector('.save-btn'));
+        }
     }
     
     const field = cell.getAttribute('data-field');
@@ -1391,11 +1669,6 @@ function startEditing(cell) {
         inputElement = document.createElement('input');
         inputElement.type = 'date';
         inputElement.className = 'editable-date';
-        inputElement.value = originalValue;
-    } else if (type === 'time') {
-        inputElement = document.createElement('input');
-        inputElement.type = 'time';
-        inputElement.className = 'editable-time';
         inputElement.value = originalValue;
     } else if (type === 'number') {
         inputElement = document.createElement('input');
@@ -1576,13 +1849,6 @@ function updateCellDisplay(cell, field, value, displayValue, type) {
             <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
         `;
         cell.setAttribute('data-original', value);
-    } else if (field === 'pickup_time') {
-        cell.innerHTML = `
-            ${value || '-'}
-            <button class="save-btn" onclick="saveCell(this)">✓</button>
-            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
-        `;
-        cell.setAttribute('data-original', value);
     } else if (field === 'invoice_number') {
         if (!value || value.trim() === '') {
             cell.innerHTML = `
@@ -1649,6 +1915,8 @@ function cancelEditing(cell) {
     editingCell = null;
 }
 
+// ==================== ОБЩИЕ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+
 function showNotification(message, type) {
     // Удаляем старые уведомления
     const oldNotifications = document.querySelectorAll('.notification-alert');
@@ -1713,6 +1981,8 @@ window.saveCell = saveCell;
 window.cancelEditing = cancelEditing;
 window.startEditStatus = startEditStatus;
 window.openAddressModal = openAddressModal;
+window.saveTimeRangeCell = saveTimeRangeCell;
+window.cancelTimeRangeEditing = cancelTimeRangeEditing;
 </script>
 
 {% if is_operator %}

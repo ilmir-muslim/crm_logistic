@@ -1,4 +1,3 @@
-### BEGIN: pickup/admin.py
 from django.contrib import admin
 from .models import PickupOrder
 
@@ -8,7 +7,7 @@ class PickupOrderAdmin(admin.ModelAdmin):
     list_display = [
         "tracking_number",
         "pickup_date",
-        "pickup_time",
+        "pickup_time_range",  # Изменено
         "pickup_address",
         "contact_person",
         "client_name",
@@ -48,7 +47,8 @@ class PickupOrderAdmin(admin.ModelAdmin):
                 "fields": (
                     "tracking_number",
                     "pickup_date",
-                    "pickup_time",
+                    "pickup_time_from",  # Изменено
+                    "pickup_time_to",  # Добавлено
                     "pickup_address",
                     "contact_person",
                 )
@@ -111,3 +111,5 @@ class PickupOrderAdmin(admin.ModelAdmin):
     )
 
     readonly_fields = ["tracking_number", "created_at", "updated_at", "qr_code"]
+
+

@@ -38,11 +38,17 @@ class PickupOrder(models.Model):
         null=True,
         help_text="Дата будет назначена оператором после подтверждения",
     )
-    pickup_time = models.TimeField(
-        verbose_name="Время забора",
+    pickup_time_from = models.TimeField(
+        verbose_name="Время забора от",
         blank=True,
         null=True,
-        help_text="Время, когда нужно забрать груз",
+        help_text="Начало интервала забора",
+    )
+    pickup_time_to = models.TimeField(
+        verbose_name="Время забора до",
+        blank=True,
+        null=True,
+        help_text="Конец интервала забора",
     )
     pickup_address = models.CharField(
         max_length=500,
@@ -241,6 +247,17 @@ class PickupOrder(models.Model):
         """Можно ли преобразовать в заявку на доставку"""
         return self.status == "ready" and not self.delivery_order
 
+    @property
+    def pickup_time_range(self):
+        """Возвращает строку с диапазоном времени"""
+        if self.pickup_time_from and self.pickup_time_to:
+            return f"{self.pickup_time_from.strftime('%H:%M')}-{self.pickup_time_to.strftime('%H:%M')}"
+        elif self.pickup_time_from:
+            return f"{self.pickup_time_from.strftime('%H:%M')}"
+        elif self.pickup_time_to:
+            return f"{self.pickup_time_to.strftime('%H:%M')}"
+        return "-"
+
     def save(self, *args, **kwargs):
         """
         Автоматически управляет QR-кодами:
@@ -260,7 +277,8 @@ class PickupOrder(models.Model):
                 # Проверяем, изменились ли данные, которые влияют на QR
                 qr_relevant_fields = [
                     old.pickup_date != self.pickup_date,
-                    old.pickup_time != self.pickup_time,
+                    old.pickup_time_from != self.pickup_time_from,
+                    old.pickup_time_to != self.pickup_time_to,
                     old.client_company != self.client_company,
                     old.pickup_address != self.pickup_address,
                     old.desired_delivery_date != self.desired_delivery_date,
@@ -349,7 +367,7 @@ class PickupOrder(models.Model):
 Контактное лицо: {self.client_name}
 Контакт для выдачи: {self.contact_person or self.client_name}
 Дата забора: {self.pickup_date}
-Время забора: {self.pickup_time}
+Время забора: {self.pickup_time_range}
 Адрес забора: {self.pickup_address}
 Город доставки: {self.delivery_city.name if self.delivery_city else 'Не указан'}
 Адрес доставки: {self.delivery_address}
@@ -459,7 +477,6 @@ class PickupOrder(models.Model):
 
         return delivery
 
-
     def _extract_city_from_delivery_address(self):
         """Извлекает город из адреса доставки"""
         if self.delivery_city:
@@ -467,3 +484,5 @@ class PickupOrder(models.Model):
 
         parts = self.delivery_address.split(",")
         return parts[0].strip() if parts else "Не указан"
+
+

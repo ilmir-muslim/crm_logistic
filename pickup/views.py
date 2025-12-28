@@ -240,7 +240,8 @@ def update_pickup_order_field(request, pk):
     allowed_fields = [
         "invoice_number",
         "pickup_date",
-        "pickup_time",
+        "pickup_time_from",  # Изменено
+        "pickup_time_to",  # Добавлено
         "pickup_address",
         "contact_person",
         "client_name",
@@ -248,7 +249,7 @@ def update_pickup_order_field(request, pk):
         "quantity",
         "status",
         "operator",
-        "receiving_warehouse",  # Добавлено
+        "receiving_warehouse",
     ]
 
     if field not in allowed_fields:
@@ -262,7 +263,7 @@ def update_pickup_order_field(request, pk):
             value = int(value)
         elif field == "pickup_date" and value:
             value = datetime.strptime(value, "%Y-%m-%d").date()
-        elif field == "pickup_time" and value:
+        elif (field == "pickup_time_from" or field == "pickup_time_to") and value:
             value = datetime.strptime(value, "%H:%M").time()
         elif field == "desired_delivery_date" and value:
             value = datetime.strptime(value, "%Y-%m-%d").date()
@@ -281,7 +282,7 @@ def update_pickup_order_field(request, pk):
             else:
                 value = None  # Если значение пустое, устанавливаем None
 
-        elif field == "receiving_warehouse":  # Добавлена обработка склада
+        elif field == "receiving_warehouse":
             if value:
                 # Получаем объект Warehouse по ID
                 from warehouses.models import Warehouse
@@ -307,12 +308,17 @@ def update_pickup_order_field(request, pk):
                     order.operator.get_full_name() or order.operator.username
                 )
             return JsonResponse({"success": True, "display_value": display_value})
-        elif field == "receiving_warehouse":  # Добавлено для склада
+        elif field == "receiving_warehouse":
             # Для склада возвращаем название для отображения
             display_value = ""
             if order.receiving_warehouse:
                 display_value = f"{order.receiving_warehouse.name} ({order.receiving_warehouse.city.name})"
             return JsonResponse({"success": True, "display_value": display_value})
+        elif field in ["pickup_time_from", "pickup_time_to"]:
+            # Для времени возвращаем диапазон
+            return JsonResponse(
+                {"success": True, "display_value": order.pickup_time_range}
+            )
 
         return JsonResponse({"success": True})
     except Exception as e:

@@ -37,6 +37,10 @@
                         <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
                     </tr>
                     <tr>
+                        <th>Время забора:</th>
+                        <td>{{ order.pickup_time_range }}</td>
+                    </tr>
+                    <tr>
                         <th>Клиент:</th>
                         <td><strong>{{ order.client_name }}</strong></td>
                     </tr>
@@ -51,6 +55,10 @@
                     <tr>
                         <th>Адрес забора:</th>
                         <td>{{ order.pickup_address }}</td>
+                    </tr>
+                    <tr>
+                        <th>Контактное лицо для выдачи:</th>
+                        <td>{{ order.contact_person|default:"Не указано" }}</td>
                     </tr>
                 </table>
                 
@@ -119,12 +127,36 @@
                     <div class="card-body">
                         <table class="table table-sm mb-0">
                             <tr>
+                                <th>Номер накладной:</th>
+                                <td>{{ order.invoice_number|default:"Не указан" }}</td>
+                            </tr>
+                            <tr>
                                 <th>Ответственный оператор:</th>
                                 <td>
                                     {% if order.operator %}
                                         {{ order.operator.get_full_name|default:order.operator.username }}
                                     {% else %}
                                         <span class="text-danger">Не назначен</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Оператор приемки:</th>
+                                <td>
+                                    {% if order.receiving_operator %}
+                                        {{ order.receiving_operator.get_full_name|default:order.receiving_operator.username }}
+                                    {% else %}
+                                        <span class="text-muted">Не назначен</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Склад приемки:</th>
+                                <td>
+                                    {% if order.receiving_warehouse %}
+                                        {{ order.receiving_warehouse.name }} ({{ order.receiving_warehouse.city.name }})
+                                    {% else %}
+                                        <span class="text-muted">Не указан</span>
                                     {% endif %}
                                 </td>
                             </tr>
