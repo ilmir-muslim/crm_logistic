@@ -157,7 +157,10 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="{% url 'logout' %}">
+                                    <form method="post" action="{% url 'logout' %}" id="logout-form" style="display: none;">
+                                        {% csrf_token %}
+                                    </form>
+                                    <a class="dropdown-item" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                                         <i class="bi bi-box-arrow-right"></i> Выйти
                                     </a>
                                 </li>
