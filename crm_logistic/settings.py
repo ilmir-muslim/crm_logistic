@@ -148,7 +148,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-LOGOUT_REDIRECT_URL = "login"  
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = "/static/"
@@ -197,3 +196,8 @@ if IS_PRODUCTION:
     missing = [var for var in required_vars if not os.getenv(var)]
     if missing:
         print(f"⚠️  ВНИМАНИЕ: Отсутствуют переменные окружения: {missing}")
+
+
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/"  
+LOGOUT_REDIRECT_URL = "/accounts/login/"
