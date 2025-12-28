@@ -240,8 +240,8 @@ def update_pickup_order_field(request, pk):
     allowed_fields = [
         "invoice_number",
         "pickup_date",
-        "pickup_time_from",  # Изменено
-        "pickup_time_to",  # Добавлено
+        "pickup_time_from",
+        "pickup_time_to",
         "pickup_address",
         "contact_person",
         "client_name",
@@ -260,19 +260,20 @@ def update_pickup_order_field(request, pk):
     try:
         # Преобразование типов
         if field == "quantity":
-            value = int(value)
+            value = int(value) if value else 1
         elif field == "pickup_date" and value:
             value = datetime.strptime(value, "%Y-%m-%d").date()
-        elif (field == "pickup_time_from" or field == "pickup_time_to") and value:
-            value = datetime.strptime(value, "%H:%M").time()
+        elif field in ["pickup_time_from", "pickup_time_to"]:
+            # Обработка времени - разрешаем пустые значения
+            if value and value.strip():
+                value = datetime.strptime(value, "%H:%M").time()
+            else:
+                value = None  # Явно устанавливаем None для пустых значений
         elif field == "desired_delivery_date" and value:
             value = datetime.strptime(value, "%Y-%m-%d").date()
         elif field == "operator":
             # Обработка поля operator (ForeignKey)
             if value:
-                # Получаем объект User по ID
-                from django.contrib.auth.models import User
-
                 try:
                     value = User.objects.get(id=value)
                 except User.DoesNotExist:
@@ -280,14 +281,12 @@ def update_pickup_order_field(request, pk):
                         {"success": False, "error": "Пользователь не найден"}
                     )
             else:
-                value = None  # Если значение пустое, устанавливаем None
-
+                value = None
         elif field == "receiving_warehouse":
             if value:
-                # Получаем объект Warehouse по ID
-                from warehouses.models import Warehouse
-
                 try:
+                    from warehouses.models import Warehouse
+
                     value = Warehouse.objects.get(id=value)
                 except Warehouse.DoesNotExist:
                     return JsonResponse({"success": False, "error": "Склад не найден"})
@@ -297,11 +296,11 @@ def update_pickup_order_field(request, pk):
         setattr(order, field, value)
         order.save()
 
+        # Возвращаем отображаемое значение
         if field == "status":
             display_value = order.get_status_display()
             return JsonResponse({"success": True, "display_value": display_value})
         elif field == "operator":
-            # Для оператора возвращаем имя для отображения
             display_value = ""
             if order.operator:
                 display_value = (
@@ -309,7 +308,6 @@ def update_pickup_order_field(request, pk):
                 )
             return JsonResponse({"success": True, "display_value": display_value})
         elif field == "receiving_warehouse":
-            # Для склада возвращаем название для отображения
             display_value = ""
             if order.receiving_warehouse:
                 display_value = f"{order.receiving_warehouse.name} ({order.receiving_warehouse.city.name})"
@@ -319,6 +317,40 @@ def update_pickup_order_field(request, pk):
             return JsonResponse(
                 {"success": True, "display_value": order.pickup_time_range}
             )
+        elif field == "pickup_date":
+            display_value = (
+                order.pickup_date.strftime("%d.%m.%Y") if order.pickup_date else ""
+            )
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "desired_delivery_date":
+            display_value = (
+                order.desired_delivery_date.strftime("%d.%m.%Y")
+                if order.desired_delivery_date
+                else ""
+            )
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "invoice_number":
+            display_value = value or ""
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "client_name":
+            display_value = (
+                (value[:20] + "...") if value and len(value) > 20 else (value or "")
+            )
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "contact_person":
+            display_value = (
+                (value[:20] + "...")
+                if value and len(value) > 20
+                else (value or order.client_name or "")
+            )
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "pickup_address":
+            display_value = (
+                (value[:30] + "...") if value and len(value) > 30 else (value or "")
+            )
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "quantity":
+            return JsonResponse({"success": True, "display_value": str(value)})
 
         return JsonResponse({"success": True})
     except Exception as e:

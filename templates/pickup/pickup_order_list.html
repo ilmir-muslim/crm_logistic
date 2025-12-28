@@ -1434,19 +1434,22 @@ function startTimeRangeEditing(cell) {
     // Обработка нажатия Enter и Escape
     fromInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
+            e.preventDefault(); 
             saveTimeRangeCell(cell);
         } else if (e.key === 'Escape') {
             cancelTimeRangeEditing(cell);
         }
     });
-    
+
     toInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
+            e.preventDefault(); 
             saveTimeRangeCell(cell);
         } else if (e.key === 'Escape') {
             cancelTimeRangeEditing(cell);
         }
     });
+
     
     // Сохранение при потере фокуса
     fromInput.addEventListener('blur', function() {
@@ -1983,6 +1986,32 @@ window.startEditStatus = startEditStatus;
 window.openAddressModal = openAddressModal;
 window.saveTimeRangeCell = saveTimeRangeCell;
 window.cancelTimeRangeEditing = cancelTimeRangeEditing;
+
+document.addEventListener('keydown', function(e) {
+    // Если нажат Enter и фокус в поле ввода
+    if (e.key === 'Enter' && 
+        (e.target.type === 'time' || 
+         e.target.classList.contains('editable-time') ||
+         e.target.classList.contains('editable-date') ||
+         e.target.classList.contains('editable-select') ||
+         e.target.classList.contains('editable-input'))) {
+        
+        // Проверяем, находимся ли мы в режиме редактирования
+        const editingCell = e.target.closest('.editable-cell.editing');
+        if (editingCell) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Сохраняем в зависимости от типа ячейки
+            if (editingCell.classList.contains('editable-time-range')) {
+                saveTimeRangeCell(editingCell);
+            } else {
+                saveCell(editingCell);
+            }
+        }
+    }
+});
+
 </script>
 
 {% if is_operator %}

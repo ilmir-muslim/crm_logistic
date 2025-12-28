@@ -7,19 +7,17 @@ class PickupOrderForm(forms.ModelForm):
     """Форма для создания и редактирования заявки на забор"""
 
     pickup_time_from = forms.TimeField(
-        widget=forms.TimeInput(
-            attrs={"type": "time", "class": "form-control"}, format="%H:%M"
-        ),
+        widget=forms.TimeInput(attrs={"type": "time", "class": "form-control"}),
         required=False,
         label="Время забора от",
+        input_formats=["%H:%M"],
     )
 
     pickup_time_to = forms.TimeField(
-        widget=forms.TimeInput(
-            attrs={"type": "time", "class": "form-control"}, format="%H:%M"
-        ),
+        widget=forms.TimeInput(attrs={"type": "time", "class": "form-control"}),
         required=False,
         label="Время забора до",
+        input_formats=["%H:%M"],
     )
 
     class Meta:
@@ -123,6 +121,20 @@ class PickupOrderForm(forms.ModelForm):
             ("payment", "На оплате"),
         ]
 
+    def clean_pickup_time_from(self):
+        """Очистка поля времени"""
+        time = self.cleaned_data.get("pickup_time_from")
+        if isinstance(time, str) and time.strip() == "":
+            return None
+        return time
+
+    def clean_pickup_time_to(self):
+        """Очистка поля времени"""
+        time = self.cleaned_data.get("pickup_time_to")
+        if isinstance(time, str) and time.strip() == "":
+            return None
+        return time
+
     def save(self, commit=True):
         """Сохраняет форму, автоматически заполняя client_company из client_name"""
         instance = super().save(commit=False)
@@ -135,5 +147,3 @@ class PickupOrderForm(forms.ModelForm):
             instance.save()
 
         return instance
-
-
