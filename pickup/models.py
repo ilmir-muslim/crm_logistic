@@ -262,70 +262,22 @@ class PickupOrder(models.Model):
         """
         Автоматически управляет QR-кодами:
         1. Генерирует tracking_number при создании
-        2. Генерирует QR-код при создании
-        3. Автоматически пересоздает QR при изменении важных данных
+        2. Генерирует QR-код при создании (один раз, неизменный)
         """
 
         # Генерируем уникальный номер
         if not self.tracking_number:
             self.tracking_number = self.generate_tracking_number()
 
-        # Если объект уже существует, проверяем изменения
-        if self.pk:
-            try:
-                old = PickupOrder.objects.get(pk=self.pk)
-                # Проверяем, изменились ли данные, которые влияют на QR
-                qr_relevant_fields = [
-                    old.pickup_date != self.pickup_date,
-                    old.pickup_time_from != self.pickup_time_from,
-                    old.pickup_time_to != self.pickup_time_to,
-                    old.client_company != self.client_company,
-                    old.pickup_address != self.pickup_address,
-                    old.desired_delivery_date != self.desired_delivery_date,
-                    old.quantity != self.quantity,
-                    old.weight != self.weight,
-                    old.volume != self.volume,
-                    old.status != self.status,
-                    old.invoice_number != self.invoice_number,
-                    old.receiving_warehouse != self.receiving_warehouse,
-                ]
-
-                if any(qr_relevant_fields):
-                    # Удаляем старый QR-код, если он существует
-                    if self.qr_code:
-                        try:
-                            if os.path.exists(self.qr_code.path):
-                                os.remove(self.qr_code.path)
-                        except (ValueError, FileNotFoundError):
-                            pass  # Файл уже не существует
-                        self.qr_code = None
-            except PickupOrder.DoesNotExist:
-                pass
+        # Определяем, новая ли это запись
+        is_new = self.pk is None
 
         # Сохраняем объект
         super().save(*args, **kwargs)
 
-        # Проверяем и генерируем QR-код если его нет или файл отсутствует
-        self.check_and_generate_qr_code()
-
-    def check_and_generate_qr_code(self):
-        """Проверяет существование QR-кода и создает при необходимости"""
-        # Проверяем, есть ли запись о QR-коде в БД
-        if self.qr_code:
-            # Проверяем, существует ли файл
-            try:
-                if os.path.exists(self.qr_code.path):
-                    return  # Файл существует, ничего не делаем
-                else:
-                    # Файл не существует, очищаем поле и генерируем заново
-                    self.qr_code.delete(save=False)
-                    self.qr_code = None
-            except (ValueError, FileNotFoundError, AttributeError):
-                # Ошибка доступа к файлу, очищаем поле
-                self.qr_code = None
-
-        # Если нет QR-кода или файл не существует, создаем новый
-        self.generate_qr_code()
+        # Если запись новая, генерируем QR-код
+        if is_new:
+            self.generate_qr_code()
 
     def generate_tracking_number(self):
         """Генерирует уникальный сквозной номер заказа"""
@@ -348,8 +300,7 @@ class PickupOrder(models.Model):
         return f"PUP-{year}-{new_num:05d}"
 
     def generate_qr_code(self):
-        """Генерирует QR-код для заявки на забор"""
-        from django.conf import settings
+        """Генерирует QR-код с ссылкой на PDF файл доставки"""
 
         # Если QR-код уже существует и файл есть - ничего не делаем
         if self.qr_code:
@@ -357,34 +308,15 @@ class PickupOrder(models.Model):
                 if os.path.exists(self.qr_code.path):
                     return
             except (ValueError, FileNotFoundError, AttributeError):
-                pass  # Файл не существует, продолжаем создание
+                pass
 
-        # Данные для QR-кода
-        qr_data = f"""
-Забор груза #{self.id}
-Сквозной номер: {self.tracking_number}
-Компания: {self.client_company}
-Контактное лицо: {self.client_name}
-Контакт для выдачи: {self.contact_person or self.client_name}
-Дата забора: {self.pickup_date}
-Время забора: {self.pickup_time_range}
-Адрес забора: {self.pickup_address}
-Город доставки: {self.delivery_city.name if self.delivery_city else 'Не указан'}
-Адрес доставки: {self.delivery_address}
-Дата поставки: {self.desired_delivery_date}
-Номер накладной: {self.invoice_number or 'Не указан'}
-Оператор приемки: {self.receiving_operator.username if self.receiving_operator else 'Не назначен'}
-Склад приемки: {self.receiving_warehouse.name if self.receiving_warehouse else 'Не указан'}
-Маркетплейс: {self.marketplace}
-Места: {self.quantity}
-Вес: {self.weight} кг
-Объем: {self.volume} м³
-Статус: {self.get_status_display()}
-Ссылка: {settings.SITE_URL}{self.get_absolute_url()}
-        """.strip()
+        # Генерируем URL для скачивания PDF
+        pdf_url = f"{settings.SITE_URL}{reverse('delivery_order_pdf', kwargs={'pk': self.pk})}"
+
+        # Создаем QR-код только с ссылкой (без текста)
+        qr_data = pdf_url
 
         try:
-            # Создаем QR-код
             qr = qrcode.QRCode(
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -394,36 +326,47 @@ class PickupOrder(models.Model):
             qr.add_data(qr_data)
             qr.make(fit=True)
 
-            # Создаем изображение
             img = qr.make_image(fill_color="black", back_color="white")
 
-            # Создаем папку, если её нет
-            qr_dir = Path(settings.MEDIA_ROOT) / "qr_codes" / "pickup"
+            qr_dir = Path(settings.MEDIA_ROOT) / "qr_codes" / "delivery"
             qr_dir.mkdir(parents=True, exist_ok=True)
 
-            # Сохраняем в BytesIO
             buffer = BytesIO()
             img.save(buffer, format="PNG")
             buffer.seek(0)
 
-            # Сохраняем в поле модели
-            filename = (
-                f'pickup_qr_{self.tracking_number.replace("/", "_")}_{self.id}.png'
-            )
+            filename = f'delivery_qr_{self.tracking_number.replace("/", "_")}.png'
             self.qr_code.save(filename, File(buffer), save=False)
-
-            # Закрываем буфер
             buffer.close()
 
-            # Сохраняем модель с QR-кодом
             super().save(update_fields=["qr_code"])
-            print(f"✅ QR-код создан для заявки на забор #{self.id}")
+            print(f"✅ QR-код создан для заявки на доставку #{self.id}")
 
         except Exception as e:
-            print(f"❌ Ошибка при создании QR-кода для заявки на забор #{self.id}: {e}")
+            print(f"❌ Ошибка при создании QR-кода для заявки #{self.id}: {e}")
             import traceback
 
             traceback.print_exc()
+
+    def regenerate_qr_code(self):
+        """Принудительно пересоздает QR-код"""
+        try:
+            # Удаляем старый QR-код если есть
+            if self.qr_code:
+                try:
+                    if os.path.exists(self.qr_code.path):
+                        os.remove(self.qr_code.path)
+                except:
+                    pass
+                self.qr_code.delete(save=False)
+                self.qr_code = None
+
+            # Генерируем новый QR-код
+            self.generate_qr_code()
+            return True
+        except Exception as e:
+            print(f"❌ Ошибка при пересоздании QR-кода для заявки #{self.id}: {e}")
+            return False
 
     def create_delivery_order(self, user):
         """
@@ -484,5 +427,3 @@ class PickupOrder(models.Model):
 
         parts = self.delivery_address.split(",")
         return parts[0].strip() if parts else "Не указан"
-
-

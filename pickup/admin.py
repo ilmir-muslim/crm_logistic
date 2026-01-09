@@ -111,5 +111,16 @@ class PickupOrderAdmin(admin.ModelAdmin):
     )
 
     readonly_fields = ["tracking_number", "created_at", "updated_at", "qr_code"]
+    actions = ["regenerate_qr_codes"]
 
+    def regenerate_qr_codes(self, request, queryset):
+        """Действие для перегенерации QR-кодов"""
+        count = 0
+        for order in queryset:
+            if order.regenerate_qr_code():
+                count += 1
+        
+        self.message_user(request, f"Перегенерировано {count} QR-кодов (только ссылка на PDF)")
+    
+    regenerate_qr_codes.short_description = "Перегенерировать QR-коды (ссылка на PDF)"
 

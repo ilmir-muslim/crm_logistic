@@ -52,3 +52,16 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
 
     qr_code_preview.short_description = "Превью QR-кода"
     qr_code_preview.allow_tags = True
+    actions = ["regenerate_qr_codes"]
+
+    def regenerate_qr_codes(self, request, queryset):
+        """Действие для перегенерации QR-кодов"""
+        count = 0
+        for order in queryset:
+            if order.regenerate_qr_code():
+                count += 1
+        
+        self.message_user(request, f"Перегенерировано {count} QR-кодов (только ссылка на PDF)")
+    
+    regenerate_qr_codes.short_description = "Перегенерировать QR-коды (ссылка на PDF)"
+

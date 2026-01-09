@@ -34,7 +34,7 @@ IS_PRODUCTION = str_to_bool(os.getenv("DJANGO_PRODUCTION", "False"))
 if IS_PRODUCTION:
     # Продакшен настройки
     DEBUG = False
-    ALLOWED_HOSTS = ["crm.gulnar8f.beget.tech", "www.crm.gulnar8f.beget.tech"]
+    ALLOWED_HOSTS = ["crm.gulnar8f.beget.tech", "www.crm.gulnar8f.beget.tech", "fftzar-crm.ru"]
     print("⚙️  Загружены ПРОДАКШЕН настройки")
 else:
     # Разработка настройки
@@ -169,7 +169,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 if IS_PRODUCTION:
     SITE_URL = "https://crm.gulnar8f.beget.tech"
 else:
-    SITE_URL = "http://localhost:8000"
+    SITE_URL = "http://localhost:8001"
 
 print(f"🌐 SITE_URL: {SITE_URL}")
 
