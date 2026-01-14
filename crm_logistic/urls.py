@@ -30,6 +30,7 @@ urlpatterns = [
         name="logout",
     ),
     path("warehouses/", include("warehouses.urls")),
+    path("counterparties/", include("counterparties.urls")),
 ]
 
 if settings.DEBUG:

@@ -597,9 +597,9 @@
                     Статус
                     <span class="sort-icon"></span>
                 </th>
-                <th class="sortable-header {% if sort == 'client_name' %}sorted-{{ order }}{% endif %}" 
-                    data-sort="client_name">
-                    Клиент
+                <th class="sortable-header {% if sort == 'sender__name' %}sorted-{{ order }}{% endif %}" 
+                    data-sort="sender__name">
+                    Клиент (Отправитель)
                     <span class="sort-icon"></span>
                 </th>
                 <th class="sortable-header {% if sort == 'operator' %}sorted-{{ order }}{% endif %}" 
@@ -657,8 +657,8 @@
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
-                <td class="editable-cell" data-field="contact_person" data-original="{{ order.contact_person|default:order.client_name }}">
-                    {{ order.contact_person|default:order.client_name|truncatechars:20 }}
+                <td class="editable-cell" data-field="contact_person" data-original="{{ order.contact_person|default:order.get_client_name }}">
+                    {{ order.contact_person|default:order.get_client_name|truncatechars:20 }}
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
@@ -678,8 +678,11 @@
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
-                <td class="editable-cell" data-field="client_name" data-original="{{ order.client_name }}">
-                    {{ order.client_name|truncatechars:20 }}
+                <td class="editable-cell" data-field="client_name" data-original="{{ order.get_client_name }}">
+                    {{ order.get_client_name|truncatechars:20 }}
+                    {% if order.sender and order.sender.inn %}
+                        <br><small class="text-muted">ИНН: {{ order.sender.inn }}</small>
+                    {% endif %}
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>

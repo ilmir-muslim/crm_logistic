@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "pickup.apps.PickupConfig",
     "order_form.apps.OrderFormConfig",
     "warehouses.apps.WarehousesConfig",
+    "counterparties.apps.CounterpartiesConfig",
 ]
 
 MIDDLEWARE = [

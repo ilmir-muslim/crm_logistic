@@ -26,4 +26,5 @@ urlpatterns = [
         name="pickup_order_update_field",
     ),
     path("api/operators/", views.get_operators, name="get_operators"),
+    path("<int:pk>/qr-pdf/", views.pickup_order_qr_pdf, name="pickup_order_qr_pdf"),
 ]

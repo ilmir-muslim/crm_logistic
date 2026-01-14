@@ -1,6 +1,7 @@
 from django import forms
 from django.utils import timezone
 from .models import PickupOrder
+from counterparties.models import Counterparty
 
 
 class PickupOrderForm(forms.ModelForm):
@@ -20,6 +21,22 @@ class PickupOrderForm(forms.ModelForm):
         input_formats=["%H:%M"],
     )
 
+    sender = forms.ModelChoiceField(
+        queryset=Counterparty.objects.filter(is_active=True),
+        required=True,
+        widget=forms.Select(attrs={"class": "form-select"}),
+        label="Отправитель *",
+        help_text="Контрагент, который отправляет груз",
+    )
+
+    recipient = forms.ModelChoiceField(
+        queryset=Counterparty.objects.filter(is_active=True),
+        required=True,
+        widget=forms.Select(attrs={"class": "form-select"}),
+        label="Получатель *",
+        help_text="Контрагент, который получает груз",
+    )
+
     class Meta:
         model = PickupOrder
         fields = [
@@ -28,9 +45,8 @@ class PickupOrderForm(forms.ModelForm):
             "pickup_time_to",
             "pickup_address",
             "contact_person",
-            "client_name",
-            "client_phone",
-            "client_email",
+            "sender",  # Добавлено
+            "recipient",  # Добавлено
             "marketplace",
             "desired_delivery_date",
             "invoice_number",
@@ -50,9 +66,10 @@ class PickupOrderForm(forms.ModelForm):
             "pickup_address": forms.Textarea(
                 attrs={
                     "class": "form-control",
-                    "rows": 2,
-                    "readonly": "readonly",
+                    "rows": 3,
                     "id": "pickupAddress",
+                    "placeholder": "Нажмите кнопку 'Выбрать адрес' для заполнения",
+                    "required": "required", 
                 }
             ),
             "contact_person": forms.TextInput(
@@ -61,16 +78,6 @@ class PickupOrderForm(forms.ModelForm):
                     "placeholder": "ФИО лица для выдачи груза",
                 }
             ),
-            "client_name": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Имя компании или ФИО клиента",
-                }
-            ),
-            "client_phone": forms.TextInput(
-                attrs={"class": "form-control", "type": "tel"}
-            ),
-            "client_email": forms.EmailInput(attrs={"class": "form-control"}),
             "marketplace": forms.Select(attrs={"class": "form-select"}),
             "desired_delivery_date": forms.DateInput(
                 attrs={"type": "date", "class": "form-control"}
@@ -108,13 +115,6 @@ class PickupOrderForm(forms.ModelForm):
             "%Y-%m-%d"
         )
 
-        # Устанавливаем начальные значения
-        if not self.instance.pk:  # Только для создания
-            self.fields["pickup_date"].initial = today
-            self.fields["desired_delivery_date"].initial = today + timezone.timedelta(
-                days=1
-            )
-
         # Статусы
         self.fields["status"].choices = [
             ("ready", "Готов к выдаче"),
@@ -136,14 +136,6 @@ class PickupOrderForm(forms.ModelForm):
         return time
 
     def save(self, commit=True):
-        """Сохраняет форму, автоматически заполняя client_company из client_name"""
-        instance = super().save(commit=False)
-
-        # Автоматически заполняем поле client_company из client_name
-        if instance.client_name:
-            instance.client_company = instance.client_name
-
-        if commit:
-            instance.save()
-
+        """Сохраняет форму"""
+        instance = super().save(commit=commit)
         return instance

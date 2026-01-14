@@ -13,6 +13,9 @@ from django.contrib.auth.decorators import login_required
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.views.decorators.http import require_POST
 
+from counterparties.models import Counterparty
+from utils.pdf_generator import generate_qr_code_pdf
+
 
 from .models import PickupOrder
 from .filters import PickupOrderFilter
@@ -135,6 +138,14 @@ class PickupOrderCreateView(LoginRequiredMixin, CreateView):
     template_name = "pickup/pickup_order_form.html"
     form_class = PickupOrderForm
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Добавляем список контрагентов в контекст
+        context["counterparties"] = Counterparty.objects.filter(
+            is_active=True
+        ).order_by("name")
+        return context
+
     def form_valid(self, form):
         form.instance.operator = self.request.user
         response = super().form_valid(form)
@@ -149,6 +160,14 @@ class PickupOrderUpdateView(LoginRequiredMixin, UpdateView):
     model = PickupOrder
     template_name = "pickup/pickup_order_form.html"
     form_class = PickupOrderForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Добавляем список контрагентов в контекст
+        context["counterparties"] = Counterparty.objects.filter(
+            is_active=True
+        ).order_by("name")
+        return context
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -456,3 +475,32 @@ def get_operators(request):
         )
 
     return JsonResponse(operators_list, safe=False)
+
+
+def pickup_order_qr_pdf(request, pk):
+    """Скачать QR-код заявки на забор в PDF формате"""
+    order = get_object_or_404(PickupOrder, pk=pk)
+
+    if hasattr(request.user, "profile") and request.user.profile.is_operator:
+        if order.operator != request.user:
+            messages.error(request, "У вас нет доступа к этой заявке")
+            return redirect("pickup_order_list")
+
+    # Если QR-кода нет, пытаемся сгенерировать
+    if not order.qr_code:
+        order.generate_qr_code()
+
+    if not order.qr_code:
+        messages.error(request, "QR-код недоступен")
+        return redirect("pickup_order_detail", pk=pk)
+
+    pdf = generate_qr_code_pdf(order, order_type="pickup")
+
+    if pdf:
+        response = HttpResponse(pdf, content_type="application/pdf")
+        filename = f"pickup_qr_{order.tracking_number or order.id}.pdf"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+    else:
+        messages.error(request, "Ошибка при генерации PDF")
+        return redirect("pickup_order_detail", pk=pk)

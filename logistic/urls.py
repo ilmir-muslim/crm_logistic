@@ -39,4 +39,5 @@ urlpatterns = [
         views.update_delivery_order_field,
         name="delivery_order_update_field",
     ),
+    path("<int:pk>/qr-pdf/", views.delivery_order_qr_pdf, name="delivery_order_qr_pdf"),
 ]

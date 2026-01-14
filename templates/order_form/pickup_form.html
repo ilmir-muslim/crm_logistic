@@ -100,6 +100,10 @@
             border-left: 5px solid var(--info-teal);
         }
         
+        .counterparties-card {
+            border-left: 5px solid #ff6b6b;
+        }
+        
         .card-header {
             background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
             border-bottom: 2px solid rgba(0,0,0,0.05);
@@ -146,6 +150,10 @@
         
         .privacy-card .card-icon {
             color: var(--info-teal);
+        }
+        
+        .counterparties-card .card-icon {
+            color: #ff6b6b;
         }
         
         .card-body {
@@ -410,6 +418,29 @@
         .pulse {
             animation: pulse 1.5s infinite;
         }
+        
+        .counterparty-fields-section {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+        }
+        
+        .counterparty-fields-section h6 {
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .counterparty-type-fields {
+            border: 1px dashed #adb5bd;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            background-color: white;
+        }
     </style>
 </head>
 <body>
@@ -562,6 +593,187 @@
                 <input type="hidden" name="delivery_city" id="id_delivery_city_hidden">
                 <input type="hidden" name="receiving_warehouse" id="id_receiving_warehouse_hidden">
                 
+                <!-- Добавлен блок Контрагенты -->
+                <div class="info-card counterparties-card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-people card-icon"></i>
+                        <h5 class="card-title">Контрагенты</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <!-- Отправитель -->
+                            <div class="col-md-6">
+                                <div class="counterparty-fields-section">
+                                    <h6>Отправитель</h6>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label required">Тип отправителя *</label>
+                                        <select class="form-select" name="sender_type" id="senderType" onchange="changeCounterpartyFields('sender')" required>
+                                            <option value="legal">Юридическое лицо (ООО, АО)</option>
+                                            <option value="entrepreneur">Индивидуальный предприниматель (ИП)</option>
+                                            <option value="individual">Физическое лицо</option>
+                                            <option value="self_employed">Самозанятый</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label required">Наименование/ФИО *</label>
+                                        <input type="text" class="form-control" name="sender_name" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">ИНН</label>
+                                        <input type="text" class="form-control" name="sender_inn">
+                                    </div>
+                                    
+                                    <!-- Поля для юридического лица -->
+                                    <div id="senderLegalFields" class="counterparty-type-fields" style="display: none;">
+                                        <div class="mb-3">
+                                            <label class="form-label">КПП</label>
+                                            <input type="text" class="form-control" name="sender_kpp">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">ОГРН</label>
+                                            <input type="text" class="form-control" name="sender_ogrn">
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Поля для физического лица -->
+                                    <div id="senderIndividualFields" class="counterparty-type-fields" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Серия паспорта</label>
+                                                    <input type="text" class="form-control" name="sender_passport_series">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Номер паспорта</label>
+                                                    <input type="text" class="form-control" name="sender_passport_number">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Кем выдан паспорт</label>
+                                            <textarea class="form-control" name="sender_passport_issued_by" rows="2"></textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Дата выдачи паспорта</label>
+                                            <input type="date" class="form-control" name="sender_passport_issued_date">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label required">Адрес *</label>
+                                        <textarea class="form-control" name="sender_address" rows="2" required></textarea>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Телефон</label>
+                                        <input type="text" class="form-control" name="sender_phone">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" class="form-control" name="sender_email">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Контактное лицо</label>
+                                        <input type="text" class="form-control" name="sender_contact_person">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Получатель -->
+                            <div class="col-md-6">
+                                <div class="counterparty-fields-section">
+                                    <h6>Получатель</h6>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label required">Тип получателя *</label>
+                                        <select class="form-select" name="recipient_type" id="recipientType" onchange="changeCounterpartyFields('recipient')" required>
+                                            <option value="legal">Юридическое лицо (ООО, АО)</option>
+                                            <option value="entrepreneur">Индивидуальный предприниматель (ИП)</option>
+                                            <option value="individual">Физическое лицо</option>
+                                            <option value="self_employed">Самозанятый</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label required">Наименование/ФИО *</label>
+                                        <input type="text" class="form-control" name="recipient_name" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">ИНН</label>
+                                        <input type="text" class="form-control" name="recipient_inn">
+                                    </div>
+                                    
+                                    <!-- Поля для юридического лица -->
+                                    <div id="recipientLegalFields" class="counterparty-type-fields" style="display: none;">
+                                        <div class="mb-3">
+                                            <label class="form-label">КПП</label>
+                                            <input type="text" class="form-control" name="recipient_kpp">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">ОГРН</label>
+                                            <input type="text" class="form-control" name="recipient_ogrn">
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Поля для физического лица -->
+                                    <div id="recipientIndividualFields" class="counterparty-type-fields" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Серия паспорта</label>
+                                                    <input type="text" class="form-control" name="recipient_passport_series">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Номер паспорта</label>
+                                                    <input type="text" class="form-control" name="recipient_passport_number">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Кем выдан паспорт</label>
+                                            <textarea class="form-control" name="recipient_passport_issued_by" rows="2"></textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Дата выдачи паспорта</label>
+                                            <input type="date" class="form-control" name="recipient_passport_issued_date">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label required">Адрес *</label>
+                                        <textarea class="form-control" name="recipient_address" rows="2" required></textarea>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Телефон</label>
+                                        <input type="text" class="form-control" name="recipient_phone">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" class="form-control" name="recipient_email">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Контактное лицо</label>
+                                        <input type="text" class="form-control" name="recipient_contact_person">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="info-card delivery-card mb-4">
                     <div class="card-header">
                         <i class="bi bi-geo-alt card-icon"></i>
@@ -584,7 +796,7 @@
                                 </div>
                             </div>
                             
-                            <!-- Добавьте эти два поля для времени -->
+                            <!-- Добавлены поля для времени -->
                             <div class="col-md-3">
                                 <label for="{{ form.pickup_time_from.id_for_label }}" class="form-label">
                                     Время забора от
@@ -928,6 +1140,33 @@
             let currentCity = null;
             let selectedWarehouseId = null;
             let selectedWarehouseName = null;
+            
+            // Инициализация полей контрагентов
+            function initCounterpartyFields() {
+                changeCounterpartyFields('sender');
+                changeCounterpartyFields('recipient');
+            }
+            
+            function changeCounterpartyFields(type) {
+                const typeSelect = document.getElementById(`${type}Type`);
+                const legalFields = document.getElementById(`${type}LegalFields`);
+                const individualFields = document.getElementById(`${type}IndividualFields`);
+                
+                if (!typeSelect || !legalFields || !individualFields) return;
+                
+                const selectedType = typeSelect.value;
+                
+                // Скрываем все поля
+                legalFields.style.display = 'none';
+                individualFields.style.display = 'none';
+                
+                // Показываем нужные поля в зависимости от типа
+                if (selectedType === 'legal') {
+                    legalFields.style.display = 'block';
+                } else if (selectedType === 'individual') {
+                    individualFields.style.display = 'block';
+                }
+            }
             
             function displayCityInfo(cityId) {
                 const city = citiesData.find(c => c.id == cityId);
@@ -1328,62 +1567,67 @@
                 });
             }
             
-            function showAlertMessage(message, type) {
-                const oldNotifications = document.querySelectorAll('.notification-alert');
-                oldNotifications.forEach(alert => {
-                    const bsAlert = new bootstrap.Alert(alert);
-                    bsAlert.close();
-                });
-                
-                const alertDiv = document.createElement('div');
-                alertDiv.className = `alert alert-${type} alert-dismissible fade show notification-alert`;
-                alertDiv.style.cssText = `
-                    position: fixed;
-                    top: 100px;
-                    right: 20px;
-                    z-index: 9999;
-                    min-width: 300px;
-                    max-width: 400px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                `;
-                alertDiv.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        ${type === 'success' ? 
-                            '<i class="bi bi-check-circle-fill me-2 fs-5"></i>' : 
-                            type === 'warning' ? 
-                            '<i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>' :
-                            '<i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>'
-                        }
-                        <div>${message}</div>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                
-                document.body.appendChild(alertDiv);
-                
-                setTimeout(() => {
-                    if (alertDiv.parentNode) {
-                        const bsAlert = new bootstrap.Alert(alertDiv);
-                        bsAlert.close();
-                    }
-                }, 5000);
-            }
-            
-            setTimeout(function() {
-                const alerts = document.querySelectorAll('.alert');
-                alerts.forEach(function(alert) {
-                    const bsAlert = new bootstrap.Alert(alert);
-                    bsAlert.close();
-                });
-            }, 5000);
-            
-            window.addEventListener('pageshow', function(event) {
-                if (submitButton) {
-                    submitButton.disabled = false;
-                    submitButton.innerHTML = '<i class="bi bi-send-check me-2"></i> Отправить заявку';
-                }
-            });
+            // Инициализируем поля контрагентов при загрузке
+            initCounterpartyFields();
         });
+        
+        function showAlertMessage(message, type) {
+            const oldNotifications = document.querySelectorAll('.notification-alert');
+            oldNotifications.forEach(alert => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show notification-alert`;
+            alertDiv.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                z-index: 9999;
+                min-width: 300px;
+                max-width: 400px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            `;
+            alertDiv.innerHTML = `
+                <div class="d-flex align-items-center">
+                    ${type === 'success' ? 
+                        '<i class="bi bi-check-circle-fill me-2 fs-5"></i>' : 
+                        type === 'warning' ? 
+                        '<i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>' :
+                        '<i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>'
+                    }
+                    <div>${message}</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    const bsAlert = new bootstrap.Alert(alertDiv);
+                    bsAlert.close();
+                }
+            }, 5000);
+        }
+        
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+        
+        window.addEventListener('pageshow', function(event) {
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="bi bi-send-check me-2"></i> Отправить заявку';
+            }
+        });
+        
+        window.changeCounterpartyFields = changeCounterpartyFields;
     </script>
 </body>
 </html>

@@ -7,10 +7,11 @@ class PickupOrderAdmin(admin.ModelAdmin):
     list_display = [
         "tracking_number",
         "pickup_date",
-        "pickup_time_range",  # Изменено
+        "pickup_time_range",
         "pickup_address",
         "contact_person",
-        "client_name",
+        "get_sender_display",  # Изменено: метод для отображения отправителя
+        "get_recipient_display",  # Изменено: метод для отображения получателя
         "desired_delivery_date",
         "status",
         "invoice_number",
@@ -29,12 +30,14 @@ class PickupOrderAdmin(admin.ModelAdmin):
     ]
     search_fields = [
         "tracking_number",
-        "client_name",
+        "sender__name",  # Изменено: поиск по имени отправителя
+        "sender__inn",  # Изменено: поиск по ИНН отправителя
+        "recipient__name",  # Изменено: поиск по имени получателя
+        "recipient__inn",  # Изменено: поиск по ИНН получателя
         "contact_person",
         "pickup_address",
-        "client_phone",
         "invoice_number",
-        "receiving_warehouse",
+        "receiving_warehouse__name",  # Изменено: поиск по названию склада
         "cargo_description",
     ]
     list_per_page = 50
@@ -47,21 +50,19 @@ class PickupOrderAdmin(admin.ModelAdmin):
                 "fields": (
                     "tracking_number",
                     "pickup_date",
-                    "pickup_time_from",  # Изменено
-                    "pickup_time_to",  # Добавлено
+                    "pickup_time_from",
+                    "pickup_time_to",
                     "pickup_address",
                     "contact_person",
                 )
             },
         ),
         (
-            "Информация о клиенте",
+            "Информация о контрагентах",  # Изменено название секции
             {
                 "fields": (
-                    "client_name",
-                    "client_company",
-                    "client_phone",
-                    "client_email",
+                    "sender",
+                    "recipient",
                     "marketplace",
                 )
             },
@@ -71,8 +72,10 @@ class PickupOrderAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "desired_delivery_date",
+                    "delivery_city",
                     "delivery_address",
                     "invoice_number",
+                    "order_1c_number",
                 )
             },
         ),
@@ -113,14 +116,31 @@ class PickupOrderAdmin(admin.ModelAdmin):
     readonly_fields = ["tracking_number", "created_at", "updated_at", "qr_code"]
     actions = ["regenerate_qr_codes"]
 
+    def get_sender_display(self, obj):
+        """Отображение отправителя в списке"""
+        if obj.sender:
+            return obj.sender.name
+        return "Не указан"
+
+    get_sender_display.short_description = "Отправитель"
+
+    def get_recipient_display(self, obj):
+        """Отображение получателя в списке"""
+        if obj.recipient:
+            return obj.recipient.name
+        return "Не указан"
+
+    get_recipient_display.short_description = "Получатель"
+
     def regenerate_qr_codes(self, request, queryset):
         """Действие для перегенерации QR-кодов"""
         count = 0
         for order in queryset:
             if order.regenerate_qr_code():
                 count += 1
-        
-        self.message_user(request, f"Перегенерировано {count} QR-кодов (только ссылка на PDF)")
-    
-    regenerate_qr_codes.short_description = "Перегенерировать QR-коды (ссылка на PDF)"
 
+        self.message_user(
+            request, f"Перегенерировано {count} QR-кодов (только ссылка на PDF)"
+        )
+
+    regenerate_qr_codes.short_description = "Перегенерировать QR-коды (ссылка на PDF)"

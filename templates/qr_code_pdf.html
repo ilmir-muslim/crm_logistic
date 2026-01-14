@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ title }}</h1>
+        <p>Дата генерации: {{ now|date:"d.m.Y H:i" }}</p>
+    </div>
+    
+    <div class="qr-container">
+        <div class="qr-image">
+            {% if qr_code_url %}
+                <img src="{{ qr_code_url }}" alt="QR-код заявки {{ order.tracking_number }}">
+            {% else %}
+                <p style="color: red;">QR-код недоступен</p>
+            {% endif %}
+        </div>
+        
+        <div class="qr-info">
+            <p><strong>QR-код содержит информацию о заявке</strong></p>
+            <p>Отсканируйте код для быстрого доступа к заявке</p>
+        </div>
+    </div>
+    
+    <div class="order-info">
+        <h2>Информация о заявке</h2>
+        
+        {% if order_type == "pickup" %}
+        <table>
+            <tr>
+                <th>Номер заявки:</th>
+                <td>{{ order.tracking_number }}</td>
+            </tr>
+            <tr>
+                <th>Дата забора:</th>
+                <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
+            </tr>
+            <tr>
+                <th>Клиент:</th>
+                <td>{{ order.get_client_name }}</td>
+            </tr>
+            <tr>
+                <th>Адрес забора:</th>
+                <td>{{ order.pickup_address|truncatechars:50 }}</td>
+            </tr>
+            <tr>
+                <th>Статус:</th>
+                <td>{{ order.get_status_display }}</td>
+            </tr>
+        </table>
+        {% else %}
+        <table>
+            <tr>
+                <th>Номер заявки:</th>
+                <td>{{ order.tracking_number }}</td>
+            </tr>
+            <tr>
+                <th>Дата доставки:</th>
+                <td>{{ order.date|date:"d.m.Y" }}</td>
+            </tr>
+            <tr>
+                <th>Отправитель:</th>
+                <td>{{ order.get_sender_display|truncatechars:50 }}</td>
+            </tr>
+            <tr>
+                <th>Получатель:</th>
+                <td>{{ order.get_recipient_display|truncatechars:50 }}</td>
+            </tr>
+            <tr>
+                <th>Статус:</th>
+                <td>{{ order.get_status_display }}</td>
+            </tr>
+        </table>
+        {% endif %}
+    </div>
+    
+    <div class="footer">
+        <p>Сгенерировано системой CRM Логистика</p>
+        <p>Для сканирования используйте камеру смартфона или QR-сканер</p>
+    </div>
+</body>
+</html>

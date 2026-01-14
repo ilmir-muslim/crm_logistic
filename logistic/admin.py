@@ -7,8 +7,8 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
     list_display = [
         "tracking_number",
         "date",
-        "pickup_address",
-        "delivery_address",
+        "sender_display",
+        "recipient_display",
         "status",
         "quantity",
         "driver_name",
@@ -16,12 +16,20 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
     list_filter = ["status", "date"]
     search_fields = [
         "tracking_number",
-        "pickup_address",
-        "delivery_address",
+        "sender__name",
+        "sender_address",
+        "recipient__name",
+        "recipient_address",
         "driver_name",
         "vehicle",
     ]
-    readonly_fields = ["qr_code_preview", "created_at", "tracking_number"]
+    readonly_fields = [
+        "qr_code_preview",
+        "created_at",
+        "tracking_number",
+        "sender_display",
+        "recipient_display",
+    ]
     fieldsets = (
         (
             "Основная информация",
@@ -29,8 +37,10 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
                 "fields": (
                     "tracking_number",
                     "date",
-                    "pickup_address",
-                    "delivery_address",
+                    "sender",
+                    "sender_address",
+                    "recipient",
+                    "recipient_address",
                     "fulfillment",
                     "status",
                 )
@@ -44,6 +54,34 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
         ("QR-код", {"fields": ("qr_code_preview", "qr_code")}),
         ("Системная информация", {"fields": ("created_at",), "classes": ("collapse",)}),
     )
+
+    def sender_display(self, obj):
+        """Отображение отправителя в списке"""
+        if obj.sender:
+            return f"{obj.sender.name} ({obj.sender.get_type_display()})"
+        elif obj.sender_address:
+            return (
+                obj.sender_address[:50] + "..."
+                if len(obj.sender_address) > 50
+                else obj.sender_address
+            )
+        return "Не указан"
+
+    sender_display.short_description = "Отправитель"
+
+    def recipient_display(self, obj):
+        """Отображение получателя в списке"""
+        if obj.recipient:
+            return f"{obj.recipient.name} ({obj.recipient.get_type_display()})"
+        elif obj.recipient_address:
+            return (
+                obj.recipient_address[:50] + "..."
+                if len(obj.recipient_address) > 50
+                else obj.recipient_address
+            )
+        return "Не указан"
+
+    recipient_display.short_description = "Получатель"
 
     def qr_code_preview(self, obj):
         if obj.qr_code:
@@ -60,8 +98,9 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
         for order in queryset:
             if order.regenerate_qr_code():
                 count += 1
-        
-        self.message_user(request, f"Перегенерировано {count} QR-кодов (только ссылка на PDF)")
-    
-    regenerate_qr_codes.short_description = "Перегенерировать QR-коды (ссылка на PDF)"
 
+        self.message_user(
+            request, f"Перегенерировано {count} QR-кодов (только ссылка на PDF)"
+        )
+
+    regenerate_qr_codes.short_description = "Перегенерировать QR-коды (ссылка на PDF)"

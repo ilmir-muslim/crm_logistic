@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from logistic.models import DeliveryOrder
 from warehouses.models import City, Warehouse
+from counterparties.models import Counterparty
 
 
 class DailyReportForm(forms.Form):
@@ -123,12 +124,71 @@ class EmailSettingsForm(forms.Form):
 class DeliveryOrderCreateForm(forms.ModelForm):
     """Форма для создания новой заявки на доставку"""
 
+    # Поля для быстрого создания контрагентов
+    new_sender_name = forms.CharField(
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Введите наименование нового отправителя",
+            }
+        ),
+        label="Новый отправитель",
+    )
+    new_sender_type = forms.ChoiceField(
+        required=False,
+        choices=[("", "Выберите тип")] + Counterparty.TYPE_CHOICES,
+        widget=forms.Select(attrs={"class": "form-select"}),
+        label="Тип нового отправителя",
+    )
+    new_sender_address = forms.CharField(
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "rows": 2,
+                "placeholder": "Адрес нового отправителя",
+            }
+        ),
+        label="Адрес нового отправителя",
+    )
+
+    new_recipient_name = forms.CharField(
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Введите наименование нового получателя",
+            }
+        ),
+        label="Новый получатель",
+    )
+    new_recipient_type = forms.ChoiceField(
+        required=False,
+        choices=[("", "Выберите тип")] + Counterparty.TYPE_CHOICES,
+        widget=forms.Select(attrs={"class": "form-select"}),
+        label="Тип нового получателя",
+    )
+    new_recipient_address = forms.CharField(
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "rows": 2,
+                "placeholder": "Адрес нового получателя",
+            }
+        ),
+        label="Адрес нового получателя",
+    )
+
     class Meta:
         model = DeliveryOrder
         fields = [
             "date",
-            "pickup_address",
-            "delivery_address",
+            "sender",
+            "sender_address",
+            "recipient",
+            "recipient_address",
             "fulfillment",
             "quantity",
             "weight",
@@ -143,20 +203,30 @@ class DeliveryOrderCreateForm(forms.ModelForm):
             "date": forms.DateInput(
                 attrs={"type": "date", "class": "form-control", "required": "required"}
             ),
-            "pickup_address": forms.Textarea(
+            "sender": forms.Select(
                 attrs={
-                    "class": "form-control",
-                    "rows": 3,
-                    "placeholder": "Адрес отправки груза",
-                    "required": "required",
+                    "class": "form-select counterparty-select",
+                    "data-counterparty-type": "sender",
                 }
             ),
-            "delivery_address": forms.Textarea(
+            "sender_address": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 3,
-                    "placeholder": "Адрес доставки груза",
-                    "required": "required",
+                    "placeholder": "Адрес отправки (если отправитель не выбран)",
+                }
+            ),
+            "recipient": forms.Select(
+                attrs={
+                    "class": "form-select counterparty-select",
+                    "data-counterparty-type": "recipient",
+                }
+            ),
+            "recipient_address": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "Адрес доставки (если получатель не выбран)",
                 }
             ),
             "fulfillment": forms.Select(attrs={"class": "form-select"}),
@@ -196,6 +266,18 @@ class DeliveryOrderCreateForm(forms.ModelForm):
                 attrs={"class": "form-control", "placeholder": "Данные пропуска"}
             ),
         }
+        labels = {
+            "sender": "Отправитель (контрагент)",
+            "sender_address": "Адрес отправки (вручную)",
+            "recipient": "Получатель (контрагент)",
+            "recipient_address": "Адрес доставки (вручную)",
+        }
+        help_texts = {
+            "sender": "Выберите существующего контрагента или создайте нового ниже",
+            "recipient": "Выберите существующего контрагента или создайте нового ниже",
+            "sender_address": "Заполняется, если отправитель не выбран из списка контрагентов",
+            "recipient_address": "Заполняется, если получатель не выбран из списка контрагентов",
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -206,46 +288,94 @@ class DeliveryOrderCreateForm(forms.ModelForm):
             profile__role="operator"
         ).order_by("first_name", "last_name", "username")
 
+        # Фильтруем активных контрагентов
+        self.fields["sender"].queryset = Counterparty.objects.filter(
+            is_active=True
+        ).order_by("name")
+        self.fields["recipient"].queryset = Counterparty.objects.filter(
+            is_active=True
+        ).order_by("name")
+
     def clean(self):
         cleaned_data = super().clean()
-        city = cleaned_data.get("city")
-        warehouse = cleaned_data.get("warehouse")
-        receiving_warehouse = cleaned_data.get("receiving_warehouse")
-        delivery_address = cleaned_data.get("delivery_address")
 
-        # Проверка, что склады принадлежат выбранному городу
-        if city:
-            if warehouse and warehouse.city != city:
+        sender = cleaned_data.get("sender")
+        sender_address = cleaned_data.get("sender_address")
+        new_sender_name = cleaned_data.get("new_sender_name")
+        new_sender_type = cleaned_data.get("new_sender_type")
+        new_sender_address = cleaned_data.get("new_sender_address")
+
+        recipient = cleaned_data.get("recipient")
+        recipient_address = cleaned_data.get("recipient_address")
+        new_recipient_name = cleaned_data.get("new_recipient_name")
+        new_recipient_type = cleaned_data.get("new_recipient_type")
+        new_recipient_address = cleaned_data.get("new_recipient_address")
+
+        # Проверка отправителя
+        if not sender and not sender_address and not new_sender_name:
+            raise forms.ValidationError(
+                "Укажите отправителя: выберите существующего контрагента, "
+                "введите адрес вручную или создайте нового контрагента."
+            )
+
+        if new_sender_name:
+            if not new_sender_type:
                 raise forms.ValidationError(
-                    "Выбранный склад отправки не принадлежит выбранному городу."
+                    "Для нового отправителя необходимо указать тип контрагента."
                 )
-            if receiving_warehouse and receiving_warehouse.city != city:
+            if not new_sender_address:
                 raise forms.ValidationError(
-                    "Выбранный склад приемки не принадлежит выбранному городу."
+                    "Для нового отправителя необходимо указать адрес."
                 )
 
-        # Проверка, что если выбран город, то должен быть выбран склад отправки
-        if city and not warehouse:
+        # Проверка получателя
+        if not recipient and not recipient_address and not new_recipient_name:
             raise forms.ValidationError(
-                "При выборе города необходимо выбрать склад отправки."
+                "Укажите получателя: выберите существующего контрагента, "
+                "введите адрес вручную или создайте нового контрагента."
             )
 
-        # Проверка: либо склад приемки, либо адрес доставки
-        if not receiving_warehouse and not delivery_address:
-            raise forms.ValidationError(
-                "Укажите либо склад приемки, либо адрес доставки."
-            )
-
-        # Проверка, что не выбраны одновременно склад приемки и адрес доставки
-        if receiving_warehouse and delivery_address:
-            raise forms.ValidationError(
-                "Выберите либо склад приемки, либо адрес доставки, но не оба варианта одновременно."
-            )
-
-        # Проверка, что склады отправки и приемки не одинаковые
-        if warehouse and receiving_warehouse and warehouse.id == receiving_warehouse.id:
-            raise forms.ValidationError(
-                "Склад отправки и склад приемки не могут быть одинаковыми."
-            )
+        if new_recipient_name:
+            if not new_recipient_type:
+                raise forms.ValidationError(
+                    "Для нового получателя необходимо указать тип контрагента."
+                )
+            if not new_recipient_address:
+                raise forms.ValidationError(
+                    "Для нового получателя необходимо указать адрес."
+                )
 
         return cleaned_data
+
+    def save(self, commit=True, user=None):
+        """Сохраняет форму, создавая новых контрагентов при необходимости"""
+        instance = super().save(commit=False)
+
+        # Создаем нового отправителя, если указано
+        new_sender_name = self.cleaned_data.get("new_sender_name")
+        if new_sender_name:
+            sender = Counterparty.objects.create(
+                type=self.cleaned_data["new_sender_type"],
+                name=new_sender_name,
+                address=self.cleaned_data["new_sender_address"],
+                created_by=user,
+            )
+            instance.sender = sender
+            instance.sender_address = ""
+
+        # Создаем нового получателя, если указано
+        new_recipient_name = self.cleaned_data.get("new_recipient_name")
+        if new_recipient_name:
+            recipient = Counterparty.objects.create(
+                type=self.cleaned_data["new_recipient_type"],
+                name=new_recipient_name,
+                address=self.cleaned_data["new_recipient_address"],
+                created_by=user,
+            )
+            instance.recipient = recipient
+            instance.recipient_address = ""
+
+        if commit:
+            instance.save()
+
+        return instance

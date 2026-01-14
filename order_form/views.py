@@ -309,35 +309,15 @@ class DeliveryOrderFormView(FormView):
 
         return context
 
-
     def form_valid(self, form):
-        """Сохранение заявки на забор"""
+        """Сохранение заявки на доставку"""
         try:
             # Сохраняем форму с данными
             order = form.save(commit=False)
 
             # Устанавливаем дополнительные поля
-            order.pickup_date = timezone.now().date()
-            order.status = "ready"
-            order.notes = f'Заявка создана через веб-форму. Маркетплейс: {form.cleaned_data["marketplace"]}'
+            order.status = "submitted"
             order.operator = None  # Будет назначен позже
-
-            # Устанавливаем время забора из формы
-            pickup_time_from = form.cleaned_data.get("pickup_time_from")
-            pickup_time_to = form.cleaned_data.get("pickup_time_to")
-
-            if pickup_time_from:
-                order.pickup_time_from = pickup_time_from
-            if pickup_time_to:
-                order.pickup_time_to = pickup_time_to
-
-            # Получаем warehouse и устанавливаем оператора
-            warehouse = form.cleaned_data.get("receiving_warehouse")
-            if warehouse:
-                if warehouse.manager:
-                    order.operator = warehouse.manager
-                    order.receiving_operator = warehouse.manager
-                order.receiving_warehouse = warehouse
 
             # Сохраняем в базе данных (это сгенерирует tracking_number)
             order.save()
@@ -346,14 +326,20 @@ class DeliveryOrderFormView(FormView):
             order.refresh_from_db()
 
             print(
-                f"✅ Заявка на забор создана: ID={order.id}, Tracking={order.tracking_number}"
+                f"✅ Заявка на доставку создана: ID={order.id}, Tracking={order.tracking_number}"
             )
-            print(f"   Время забора: {order.pickup_time_range}")
 
             # Отправляем email клиенту
             try:
-                self.send_confirmation_email(order)
-                print(f"✅ Email отправлен клиенту: {order.client_email}")
+                client_email = form.cleaned_data.get("client_email")
+                if client_email:
+                    self.send_confirmation_email(
+                        order,
+                        form.cleaned_data["client_company"],
+                        form.cleaned_data["client_name"],
+                        client_email,
+                    )
+                    print(f"✅ Email отправлен клиенту: {client_email}")
             except Exception as e:
                 print(f"❌ Ошибка при отправке email клиенту: {e}")
 
@@ -367,7 +353,7 @@ class DeliveryOrderFormView(FormView):
             # Сохраняем данные в сессии
             self.request.session["order_id"] = order.id
             self.request.session["tracking_number"] = order.tracking_number
-            self.request.session["order_type"] = "pickup"
+            self.request.session["order_type"] = "delivery"
 
             # Принудительно сохраняем сессию
             self.request.session.modified = True
@@ -378,7 +364,7 @@ class DeliveryOrderFormView(FormView):
         except Exception as e:
             import traceback
 
-            print(f"❌ Ошибка при сохранении заявки на забор: {e}")
+            print(f"❌ Ошибка при сохранении заявки на доставку: {e}")
             print(traceback.format_exc())
             messages.error(
                 self.request,

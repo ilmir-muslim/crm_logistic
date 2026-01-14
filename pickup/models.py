@@ -5,6 +5,7 @@ from django.conf import settings
 from django.utils import timezone
 from logistic.models import DeliveryOrder
 from warehouses.models import Warehouse, City
+from counterparties.models import Counterparty  # Добавляем импорт
 import qrcode
 import os
 from io import BytesIO
@@ -66,29 +67,25 @@ class PickupOrder(models.Model):
         help_text="ФИО лица, которое будет выдавать груз",
     )
 
-    # Информация о клиенте
-    client_name = models.CharField(
-        max_length=200,
-        verbose_name="Контактное лицо",
-        help_text="ФИО контактного лица",
-        default="Не указано",
+    # Убраны поля клиента - теперь используем контрагентов
+    sender = models.ForeignKey(
+        Counterparty,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Отправитель",
+        related_name="sent_pickup_orders",
+        help_text="Контрагент, который отправляет груз",
     )
-    client_company = models.CharField(
-        max_length=200,
-        verbose_name="Наименование компании",
-        help_text="Полное наименование компании/ИП",
-        default="Не указано",
-    )
-    client_phone = models.CharField(
-        max_length=20,
-        verbose_name="Телефон клиента",
-        help_text="Телефон для связи",
-        default="Не указан",
-    )
-    client_email = models.EmailField(
-        verbose_name="Email клиента",
-        help_text="Email для отправки подтверждения",
-        default="noemail@example.com",
+
+    recipient = models.ForeignKey(
+        Counterparty,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Получатель",
+        related_name="received_pickup_orders",
+        help_text="Контрагент, который получает груз",
     )
 
     # Данные о заказе
@@ -136,7 +133,7 @@ class PickupOrder(models.Model):
         related_name="receiving_orders",
     )
 
-    # Обновлено: ForeignKey вместо CharField
+    # ForeignKey вместо CharField
     receiving_warehouse = models.ForeignKey(
         Warehouse,
         on_delete=models.SET_NULL,
@@ -147,7 +144,7 @@ class PickupOrder(models.Model):
         help_text="Склад, куда будет доставлен груз",
     )
 
-    # Новое поле: город доставки
+    # Город доставки
     delivery_city = models.ForeignKey(
         City,
         on_delete=models.SET_NULL,
@@ -183,7 +180,7 @@ class PickupOrder(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default="new",
+        default="ready",  # Изменено с 'new' на 'ready'
         verbose_name="Статус заявки",
     )
     operator = models.ForeignKey(
@@ -212,7 +209,7 @@ class PickupOrder(models.Model):
         verbose_name="Внутренние заметки", blank=True, null=True, default=""
     )
 
-    # Новые поля для этапа 3
+    # Новые поля
     tracking_number = models.CharField(
         max_length=50, unique=True, blank=True, verbose_name="Сквозной номер заказа"
     )
@@ -227,8 +224,14 @@ class PickupOrder(models.Model):
 
     def __str__(self):
         if self.tracking_number:
-            return f"{self.tracking_number} - {self.client_company} на {self.desired_delivery_date}"
-        return f"Забор от {self.client_company} на {self.desired_delivery_date}"
+            return f"{self.tracking_number} - {self.get_client_name()} на {self.desired_delivery_date}"
+        return f"Забор от {self.get_client_name()} на {self.desired_delivery_date}"
+
+    def get_client_name(self):
+        """Возвращает имя клиента из отправителя"""
+        if self.sender:
+            return self.sender.name
+        return "Не указано"
 
     def get_absolute_url(self):
         """Возвращает URL для просмотра деталей заявки"""
@@ -300,9 +303,7 @@ class PickupOrder(models.Model):
         return f"PUP-{year}-{new_num:05d}"
 
     def generate_qr_code(self):
-        """Генерирует QR-код с ссылкой на PDF файл доставки"""
-
-        # Если QR-код уже существует и файл есть - ничего не делаем
+        """Генерирует QR-код с ссылкой на PDF файл заявки"""
         if self.qr_code:
             try:
                 if os.path.exists(self.qr_code.path):
@@ -311,9 +312,11 @@ class PickupOrder(models.Model):
                 pass
 
         # Генерируем URL для скачивания PDF
-        pdf_url = f"{settings.SITE_URL}{reverse('delivery_order_pdf', kwargs={'pk': self.pk})}"
+        pdf_url = (
+            f"{settings.SITE_URL}{reverse('pickup_order_pdf', kwargs={'pk': self.pk})}"
+        )
 
-        # Создаем QR-код только с ссылкой (без текста)
+        # Создаем QR-код только с ссылкой
         qr_data = pdf_url
 
         try:
@@ -328,19 +331,19 @@ class PickupOrder(models.Model):
 
             img = qr.make_image(fill_color="black", back_color="white")
 
-            qr_dir = Path(settings.MEDIA_ROOT) / "qr_codes" / "delivery"
+            qr_dir = Path(settings.MEDIA_ROOT) / "qr_codes" / "pickup"
             qr_dir.mkdir(parents=True, exist_ok=True)
 
             buffer = BytesIO()
             img.save(buffer, format="PNG")
             buffer.seek(0)
 
-            filename = f'delivery_qr_{self.tracking_number.replace("/", "_")}.png'
+            filename = f'pickup_qr_{self.tracking_number.replace("/", "_")}.png'
             self.qr_code.save(filename, File(buffer), save=False)
             buffer.close()
 
             super().save(update_fields=["qr_code"])
-            print(f"✅ QR-код создан для заявки на доставку #{self.id}")
+            print(f"✅ QR-код создан для заявки на забор #{self.id}")
 
         except Exception as e:
             print(f"❌ Ошибка при создании QR-кода для заявки #{self.id}: {e}")
@@ -419,11 +422,3 @@ class PickupOrder(models.Model):
         self.save()
 
         return delivery
-
-    def _extract_city_from_delivery_address(self):
-        """Извлекает город из адреса доставки"""
-        if self.delivery_city:
-            return self.delivery_city
-
-        parts = self.delivery_address.split(",")
-        return parts[0].strip() if parts else "Не указан"

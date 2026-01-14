@@ -18,6 +18,8 @@ import zipfile
 
 from django.views.decorators.http import require_POST
 
+from utils.pdf_generator import generate_qr_code_pdf
+
 from .models import DeliveryOrder
 from pickup.models import PickupOrder
 from .pdf_utils import create_delivery_order_pdf, create_daily_report_pdf
@@ -208,11 +210,10 @@ def update_delivery_order_field(request, pk):
 
     # Разрешенные поля для редактирования
     allowed_fields = [
-        "city",
-        "warehouse",
-        "receiving_warehouse",
-        "delivery_address",
-        "pickup_address",  
+        "sender",
+        "sender_address",
+        "recipient",
+        "recipient_address",
         "quantity",
         "weight",
         "volume",
@@ -253,29 +254,19 @@ def update_delivery_order_field(request, pk):
                     )
             else:
                 value = None
-        elif field == "city":
+        elif field in ["sender", "recipient"]:
             if value:
-                from warehouses.models import City
+                from counterparties.models import Counterparty
 
                 try:
-                    value = City.objects.get(id=value)
-                except City.DoesNotExist:
-                    return JsonResponse({"success": False, "error": "Город не найден"})
+                    value = Counterparty.objects.get(id=value)
+                except Counterparty.DoesNotExist:
+                    return JsonResponse(
+                        {"success": False, "error": "Контрагент не найден"}
+                    )
             else:
                 value = None
-        elif field in ["warehouse", "receiving_warehouse"]:
-            if value:
-                from warehouses.models import Warehouse
-
-                try:
-                    value = Warehouse.objects.get(id=value)
-                except Warehouse.DoesNotExist:
-                    return JsonResponse({"success": False, "error": "Склад не найден"})
-            else:
-                value = None
-
-        # ДЛЯ АДРЕСОВ - просто сохраняем текст
-        elif field in ["delivery_address", "pickup_address"]:
+        elif field in ["sender_address", "recipient_address"]:
             # Значение уже в виде строки, никаких преобразований не нужно
             pass
 
@@ -292,20 +283,13 @@ def update_delivery_order_field(request, pk):
         elif field == "fulfillment":
             display_value = order.get_fulfillment_display()
             return JsonResponse({"success": True, "display_value": display_value})
-        elif field == "city":
-            display_value = order.city.name if order.city else "Не указан"
+        elif field == "sender":
+            display_value = order.get_sender_display()
             return JsonResponse({"success": True, "display_value": display_value})
-        elif field == "warehouse":
-            display_value = order.warehouse.name if order.warehouse else "Не указан"
+        elif field == "recipient":
+            display_value = order.get_recipient_display()
             return JsonResponse({"success": True, "display_value": display_value})
-        elif field == "receiving_warehouse":
-            display_value = (
-                order.receiving_warehouse.name
-                if order.receiving_warehouse
-                else "Не указан"
-            )
-            return JsonResponse({"success": True, "display_value": display_value})
-        elif field in ["delivery_address", "pickup_address"]:  
+        elif field in ["sender_address", "recipient_address"]:
             display_value = value if value else ""
             return JsonResponse({"success": True, "display_value": display_value})
 
@@ -1022,3 +1006,32 @@ def get_operators(request):
         )
 
     return JsonResponse(operators_list, safe=False)
+
+
+def delivery_order_qr_pdf(request, pk):
+    """Скачать QR-код заявки на доставку в PDF формате"""
+    order = get_object_or_404(DeliveryOrder, pk=pk)
+
+    if hasattr(request.user, "profile") and request.user.profile.is_operator:
+        if order.operator != request.user:
+            messages.error(request, "У вас нет доступа к этой заявке")
+            return redirect("delivery_order_list")
+
+    # Если QR-кода нет, пытаемся сгенерировать
+    if not order.qr_code:
+        order.generate_qr_code()
+
+    if not order.qr_code:
+        messages.error(request, "QR-код недоступен")
+        return redirect("delivery_order_detail", pk=pk)
+
+    pdf = generate_qr_code_pdf(order, order_type="delivery")
+
+    if pdf:
+        response = HttpResponse(pdf, content_type="application/pdf")
+        filename = f"delivery_qr_{order.tracking_number or order.id}.pdf"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+    else:
+        messages.error(request, "Ошибка при генерации PDF")
+        return redirect("delivery_order_detail", pk=pk)

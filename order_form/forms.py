@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from pickup.models import PickupOrder
 from logistic.models import DeliveryOrder
 from warehouses.models import City, Warehouse
+from counterparties.models import Counterparty  # Добавляю импорт
 
 
 class ClientPickupForm(forms.ModelForm):
@@ -40,6 +41,91 @@ class ClientPickupForm(forms.ModelForm):
         help_text="Конец интервала забора (необязательно)",
     )
 
+    # Поля для отправителя
+    sender_type = forms.ChoiceField(
+        choices=[
+            ("legal", "Юридическое лицо (ООО, АО)"),
+            ("entrepreneur", "Индивидуальный предприниматель (ИП)"),
+            ("individual", "Физическое лицо"),
+            ("self_employed", "Самозанятый"),
+        ],
+        label="Тип отправителя *",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    sender_name = forms.CharField(
+        label="Наименование/ФИО отправителя *",
+        max_length=200,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+
+    sender_inn = forms.CharField(
+        label="ИНН отправителя",
+        max_length=12,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+
+    sender_address = forms.CharField(
+        label="Адрес отправителя *",
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+    )
+
+    sender_phone = forms.CharField(
+        label="Телефон отправителя *",
+        max_length=20,
+        widget=forms.TextInput(attrs={"class": "form-control", "type": "tel"}),
+    )
+
+    sender_email = forms.EmailField(
+        label="Email отправителя",
+        required=False,
+        widget=forms.EmailInput(attrs={"class": "form-control"}),
+    )
+
+    # Поля для получателя
+    recipient_type = forms.ChoiceField(
+        choices=[
+            ("legal", "Юридическое лицо (ООО, АО)"),
+            ("entrepreneur", "Индивидуальный предприниматель (ИП)"),
+            ("individual", "Физическое лицо"),
+            ("self_employed", "Самозанятый"),
+        ],
+        label="Тип получателя *",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    recipient_name = forms.CharField(
+        label="Наименование/ФИО получателя *",
+        max_length=200,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+
+    recipient_inn = forms.CharField(
+        label="ИНН получателя",
+        max_length=12,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+
+    recipient_address = forms.CharField(
+        label="Адрес получателя *",
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+    )
+
+    recipient_phone = forms.CharField(
+        label="Телефон получателя",
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "type": "tel"}),
+    )
+
+    recipient_email = forms.EmailField(
+        label="Email получателя",
+        required=False,
+        widget=forms.EmailInput(attrs={"class": "form-control"}),
+    )
+
     privacy_policy = forms.BooleanField(
         label="Я согласен на обработку персональных данных *",
         widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -55,10 +141,6 @@ class ClientPickupForm(forms.ModelForm):
             "marketplace",
             "desired_delivery_date",
             "pickup_address",
-            "client_company",
-            "client_name",
-            "client_phone",
-            "client_email",
             "quantity",
             "volume",
             "weight",
@@ -92,25 +174,6 @@ class ClientPickupForm(forms.ModelForm):
                 }
             ),
             "marketplace": forms.Select(attrs={"class": "form-select"}),
-            "client_company": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": 'Например: ООО "Ромашка"',
-                }
-            ),
-            "client_name": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "ФИО контактного лица"}
-            ),
-            "client_phone": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "+7 (999) 123-45-67",
-                    "type": "tel",
-                }
-            ),
-            "client_email": forms.EmailInput(
-                attrs={"class": "form-control", "placeholder": "email@example.com"}
-            ),
             "quantity": forms.NumberInput(
                 attrs={
                     "class": "form-control",
@@ -170,10 +233,6 @@ class ClientPickupForm(forms.ModelForm):
             "marketplace": "Маркетплейс *",
             "desired_delivery_date": "Желаемая дата поставки *",
             "pickup_address": "Адрес забора груза *",
-            "client_company": "Наименование контрагента *",
-            "client_name": "Контактное лицо *",
-            "client_phone": "Телефон для связи *",
-            "client_email": "Email",
             "quantity": "Количество мест *",
             "volume": "Общий объем (м³) *",
             "weight": "Общий вес (кг) *",
@@ -188,7 +247,6 @@ class ClientPickupForm(forms.ModelForm):
             "delivery_city": "Выберите город доставки из списка",
             "pickup_address": "Укажите город, улицу, дом, этаж, наличие лифта",
             "delivery_address": "Укажите улицу, дом, квартиру/офис",
-            "client_email": "На этот email будет отправлено подтверждение заявки",
             "quantity": "Общее количество коробок/мест",
             "volume": "Укажите общий объем груза в кубических метрах",
             "weight": "Укажите общий вес груза в килограммах",
@@ -273,6 +331,21 @@ class ClientDeliveryForm(forms.ModelForm):
         help_text="Склад, откуда будет отправлен груз",
     )
 
+    # Поля для контрагентов
+    sender = forms.ModelChoiceField(
+        queryset=Counterparty.objects.filter(is_active=True),
+        required=False,
+        widget=forms.HiddenInput(),
+        label="Отправитель",
+    )
+
+    recipient = forms.ModelChoiceField(
+        queryset=Counterparty.objects.filter(is_active=True),
+        required=False,
+        widget=forms.HiddenInput(),
+        label="Получатель",
+    )
+
     # Поля клиента
     client_company = forms.CharField(
         label="Наименование компании *",
@@ -338,6 +411,8 @@ class ClientDeliveryForm(forms.ModelForm):
             "weight",
             "volume",
             "driver_pass_info",
+            "sender",  # Добавляю
+            "recipient",  # Добавляю
         ]
 
         widgets = {
@@ -397,6 +472,8 @@ class ClientDeliveryForm(forms.ModelForm):
             "weight": "Вес (кг) *",
             "volume": "Объем (м³) *",
             "driver_pass_info": "Данные пропуска",
+            "sender": "Отправитель",
+            "recipient": "Получатель",
         }
 
         help_texts = {
@@ -408,6 +485,8 @@ class ClientDeliveryForm(forms.ModelForm):
             "weight": "Общий вес груза в килограммах",
             "volume": "Общий объем груза в кубических метрах",
             "driver_pass_info": "Номер пропуска, серия, срок действия",
+            "sender": "Контрагент, который отправляет груз",
+            "recipient": "Контрагент, который получает груз",
         }
 
     def __init__(self, *args, **kwargs):
@@ -429,9 +508,16 @@ class ClientDeliveryForm(forms.ModelForm):
             lambda obj: f"{obj.name} ({obj.city.name})"
         )
 
+        # Устанавливаем queryset для контрагентов
+        self.fields["sender"].queryset = Counterparty.objects.filter(
+            is_active=True
+        ).order_by("name")
+        self.fields["recipient"].queryset = Counterparty.objects.filter(
+            is_active=True
+        ).order_by("name")
+
     def clean(self):
         cleaned_data = super().clean()
-        # Убираем проверку графика работы склада
         return cleaned_data
 
     def save(self, commit=True):

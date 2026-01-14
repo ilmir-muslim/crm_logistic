@@ -181,3 +181,131 @@ table td {
     font-size: 14px;
 }
 """
+
+
+def generate_qr_code_pdf(order, order_type="pickup"):
+    """
+    Генерация PDF с QR-кодом для заявки
+    """
+    try:
+        # Определяем заголовок в зависимости от типа заявки
+        if order_type == "pickup":
+            title = f"QR-код для заявки на забор #{order.tracking_number}"
+            template_name = "qr_code_pdf.html"
+        else:
+            title = f"QR-код для заявки на доставку #{order.tracking_number}"
+            template_name = "qr_code_pdf.html"
+
+        # Получаем абсолютный URL QR-кода
+        if order.qr_code and hasattr(order.qr_code, "url"):
+            qr_code_url = order.qr_code.url
+            if not qr_code_url.startswith("http"):
+                # Если относительный URL, добавляем домен
+                qr_code_url = f"{settings.SITE_URL}{qr_code_url}"
+        else:
+            qr_code_url = None
+
+        context = {
+            "order": order,
+            "title": title,
+            "now": datetime.now(),
+            "qr_code_url": qr_code_url,
+            "order_type": order_type,
+            "MEDIA_URL": settings.MEDIA_URL,
+        }
+
+        # Используем специальный CSS для QR-кода
+        qr_css = """
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        body {
+            font-family: "DejaVu Sans", "Liberation Sans", Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #000000;
+            text-align: center;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .qr-container {
+            margin: 30px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            display: inline-block;
+            background-color: #fff;
+        }
+        
+        .qr-image {
+            width: 300px;
+            height: 300px;
+            margin: 0 auto 20px;
+        }
+        
+        .qr-image img {
+            width: 100%;
+            height: auto;
+        }
+        
+        .order-info {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .order-info table {
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+            border-collapse: collapse;
+        }
+        
+        .order-info th,
+        .order-info td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        
+        .order-info th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+        
+        h2 {
+            color: #34495e;
+            margin: 20px 0 10px 0;
+            font-size: 16px;
+            text-align: center;
+        }
+        """
+
+        # Генерируем PDF
+        return generate_pdf_from_template(template_name, context, qr_css)
+
+    except Exception as e:
+        print(f"❌ Ошибка при генерации QR-кода PDF: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return None

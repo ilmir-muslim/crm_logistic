@@ -18,18 +18,37 @@ class DeliveryOrder(models.Model):
 
     date = models.DateField(verbose_name="Дата доставки")
 
-    # Адрес отправки
-    pickup_address = models.TextField(
+    # Контрагенты вместо текстовых адресов
+    sender = models.ForeignKey(
+        "counterparties.Counterparty",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sent_deliveries",
+        verbose_name="Отправитель",
+        help_text="Контрагент, который отправляет груз",
+    )
+    sender_address = models.TextField(
         verbose_name="Адрес отправки",
         blank=True,
         null=True,
+        help_text="Можно указать вручную, если отправитель не выбран",
     )
 
-    # Адрес доставки (приемки)
-    delivery_address = models.TextField(
+    recipient = models.ForeignKey(
+        "counterparties.Counterparty",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="received_deliveries",
+        verbose_name="Получатель",
+        help_text="Контрагент, который получает груз",
+    )
+    recipient_address = models.TextField(
         verbose_name="Адрес доставки",
         blank=True,
         null=True,
+        help_text="Можно указать вручную, если получатель не выбран",
     )
 
     # Остальные поля остаются без изменений
@@ -88,11 +107,51 @@ class DeliveryOrder(models.Model):
 
     def __str__(self):
         if self.tracking_number:
-            return f"{self.tracking_number} - {self.pickup_address} → {self.delivery_address}"
+            return f"{self.tracking_number} - {self.get_sender_display()} → {self.get_recipient_display()}"
         return f"Доставка #{self.id} от {self.date}"
 
     def get_absolute_url(self):
         return reverse("delivery_order_detail", kwargs={"pk": self.pk})
+
+    def get_sender_display(self):
+        """Возвращает отображаемое имя отправителя"""
+        if self.sender:
+            return self.sender.name
+        elif self.sender_address:
+            return (
+                self.sender_address[:50] + "..."
+                if len(self.sender_address) > 50
+                else self.sender_address
+            )
+        return "Не указан"
+
+    def get_recipient_display(self):
+        """Возвращает отображаемое имя получателя"""
+        if self.recipient:
+            return self.recipient.name
+        elif self.recipient_address:
+            return (
+                self.recipient_address[:50] + "..."
+                if len(self.recipient_address) > 50
+                else self.recipient_address
+            )
+        return "Не указан"
+
+    def get_full_sender_info(self):
+        """Возвращает полную информацию об отправителе"""
+        if self.sender:
+            return self.sender.get_full_info()
+        elif self.sender_address:
+            return f"Адрес отправки:\n{self.sender_address}"
+        return "Отправитель не указан"
+
+    def get_full_recipient_info(self):
+        """Возвращает полную информацию о получателе"""
+        if self.recipient:
+            return self.recipient.get_full_info()
+        elif self.recipient_address:
+            return f"Адрес доставки:\n{self.recipient_address}"
+        return "Получатель не указан"
 
     def save(self, *args, **kwargs):
         """Сохраняет заявку и генерирует QR-код при создании"""
@@ -130,7 +189,6 @@ class DeliveryOrder(models.Model):
 
         return f"FFC-{year}-{new_num:05d}"
 
-
     def generate_qr_code(self):
         """Генерирует QR-код с ссылкой на PDF файл заявки"""
         from django.conf import settings
@@ -144,9 +202,7 @@ class DeliveryOrder(models.Model):
                 pass  # Файл не существует, продолжаем создание
 
         # Генерируем URL для скачивания PDF
-        pdf_url = (
-            f"{settings.SITE_URL}{reverse('pickup_order_pdf', kwargs={'pk': self.pk})}"
-        )
+        pdf_url = f"{settings.SITE_URL}{reverse('delivery_order_pdf', kwargs={'pk': self.pk})}"
 
         # Создаем QR-код только с ссылкой (без текста)
         qr_data = pdf_url
@@ -166,7 +222,7 @@ class DeliveryOrder(models.Model):
             img = qr.make_image(fill_color="black", back_color="white")
 
             # Создаем папку, если её нет
-            qr_dir = Path(settings.MEDIA_ROOT) / "qr_codes" / "pickup"
+            qr_dir = Path(settings.MEDIA_ROOT) / "qr_codes" / "delivery"
             qr_dir.mkdir(parents=True, exist_ok=True)
 
             # Сохраняем в BytesIO
@@ -175,7 +231,7 @@ class DeliveryOrder(models.Model):
             buffer.seek(0)
 
             # Сохраняем в поле модели
-            filename = f'pickup_qr_{self.tracking_number.replace("/", "_")}.png'
+            filename = f'delivery_qr_{self.tracking_number.replace("/", "_")}.png'
             self.qr_code.save(filename, File(buffer), save=False)
 
             # Закрываем буфер
@@ -183,13 +239,16 @@ class DeliveryOrder(models.Model):
 
             # Сохраняем модель с QR-кодом
             super().save(update_fields=["qr_code"])
-            print(f"✅ QR-код создан для заявки на забор #{self.id}")
+            print(f"✅ QR-код создан для заявки на доставку #{self.id}")
 
         except Exception as e:
-            print(f"❌ Ошибка при создании QR-кода для заявки на забор #{self.id}: {e}")
+            print(
+                f"❌ Ошибка при создании QR-кода для заявки на доставку #{self.id}: {e}"
+            )
             import traceback
 
             traceback.print_exc()
+
     def regenerate_qr_code(self):
         """Принудительно пересоздает QR-код"""
         try:

@@ -11,23 +11,19 @@
                     {% else %}
                         Заявка на забор #{{ order.id }}
                     {% endif %}
-                    - {{ order.client_name }}
+                    - {{ order.get_client_name }}
                 </h4>
                 <small class="text-muted">Создано: {{ order.created_at|date:"d.m.Y H:i" }}</small>
             </div>
             <div class="text-end">
-                <span class="badge bg-{% if order.status == 'new' %}secondary{% elif order.status == 'confirmed' %}warning{% elif order.status == 'picked_up' %}success{% else %}danger{% endif %} fs-6">
+                <span class="badge bg-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% else %}secondary{% endif %} fs-6">
                     {{ order.get_status_display }}
                 </span>
-                {% if order.qr_code %}
-                <a href="{{ order.qr_code.url }}" class="btn btn-sm btn-outline-primary ms-2" download>
-                    <i class="bi bi-qr-code"></i> QR-код
-                </a>
-                {% endif %}
             </div>
         </div>
     </div>
     <div class="card-body">
+
         <div class="row">
             <div class="col-md-7">
                 <h5 class="border-bottom pb-2 mb-3">Основная информация</h5>
@@ -41,16 +37,30 @@
                         <td>{{ order.pickup_time_range }}</td>
                     </tr>
                     <tr>
-                        <th>Клиент:</th>
-                        <td><strong>{{ order.client_name }}</strong></td>
+                        <th>Отправитель:</th>
+                        <td>
+                            {% if order.sender %}
+                                <strong>{{ order.sender.name }}</strong><br>
+                                {% if order.sender.phone %}<small>Телефон: {{ order.sender.phone }}</small><br>{% endif %}
+                                {% if order.sender.email %}<small>Email: {{ order.sender.email }}</small><br>{% endif %}
+                                {% if order.sender.inn %}<small>ИНН: {{ order.sender.inn }}</small>{% endif %}
+                            {% else %}
+                                Не указан
+                            {% endif %}
+                        </td>
                     </tr>
                     <tr>
-                        <th>Телефон:</th>
-                        <td>{{ order.client_phone|default:"Не указан" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Email:</th>
-                        <td>{{ order.client_email|default:"Не указан" }}</td>
+                        <th>Получатель:</th>
+                        <td>
+                            {% if order.recipient %}
+                                <strong>{{ order.recipient.name }}</strong><br>
+                                {% if order.recipient.phone %}<small>Телефон: {{ order.recipient.phone }}</small><br>{% endif %}
+                                {% if order.recipient.email %}<small>Email: {{ order.recipient.email }}</small><br>{% endif %}
+                                {% if order.recipient.inn %}<small>ИНН: {{ order.recipient.inn }}</small>{% endif %}
+                            {% else %}
+                                Не указан
+                            {% endif %}
+                        </td>
                     </tr>
                     <tr>
                         <th>Адрес забора:</th>
@@ -59,6 +69,31 @@
                     <tr>
                         <th>Контактное лицо для выдачи:</th>
                         <td>{{ order.contact_person|default:"Не указано" }}</td>
+                    </tr>
+                </table>
+                
+                <!-- Добавлен блок Контрагенты -->
+                <h5 class="border-bottom pb-2 mb-3 mt-4">Контрагенты</h5>
+                <table class="table table-bordered">
+                    <tr>
+                        <th style="width: 40%">Отправитель:</th>
+                        <td>
+                            {% if order.sender %}
+                                {{ order.sender.get_short_info|default:"Не указан" }}
+                            {% else %}
+                                Не указан
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Получатель:</th>
+                        <td>
+                            {% if order.recipient %}
+                                {{ order.recipient.get_short_info|default:"Не указан" }}
+                            {% else %}
+                                Не указан
+                            {% endif %}
+                        </td>
                     </tr>
                 </table>
                 
@@ -103,13 +138,19 @@
                             Содержит основную информацию о заявке
                         </p>
                         <div class="d-grid gap-2">
+                            <!-- Кнопка для скачивания PNG -->
                             <a href="{{ order.qr_code.url }}" 
                                class="btn btn-outline-primary" 
                                download="QR_{{ order.tracking_number }}.png">
-                                <i class="bi bi-download"></i> Скачать QR-код
+                                <i class="bi bi-download"></i> Скачать PNG
                             </a>
                             
-                            <!-- Добавлена кнопка PDF -->
+                            <!-- Новая кнопка для скачивания PDF -->
+                            <a href="{% url 'pickup_order_qr_pdf' order.pk %}" 
+                               class="btn btn-outline-danger">
+                                <i class="bi bi-file-pdf"></i> Скачать PDF
+                            </a>
+                            
                             <a href="{% url 'pickup_order_pdf' order.pk %}" 
                                class="btn btn-danger">
                                 <i class="bi bi-file-pdf"></i> Скачать заявку (PDF)
@@ -118,6 +159,7 @@
                     </div>
                 </div>
                 {% endif %}
+
                 
                 <!-- Информация о статусе и операторе -->
                 <div class="card mb-4">
