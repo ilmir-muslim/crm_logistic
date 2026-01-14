@@ -34,7 +34,12 @@ IS_PRODUCTION = str_to_bool(os.getenv("DJANGO_PRODUCTION", "False"))
 if IS_PRODUCTION:
     # Продакшен настройки
     DEBUG = False
-    ALLOWED_HOSTS = ["crm.gulnar8f.beget.tech", "www.crm.gulnar8f.beget.tech", "fftzar-crm.ru"]
+    ALLOWED_HOSTS = [
+        "crm.gulnar8f.beget.tech",
+        "www.crm.gulnar8f.beget.tech",
+        "fftzar-crm.ru",
+        "www.fftzar-crm.ru",
+    ]
     print("⚙️  Загружены ПРОДАКШЕН настройки")
 else:
     # Разработка настройки
@@ -168,9 +173,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # URL сайта для QR-кодов и ссылок
 if IS_PRODUCTION:
-    SITE_URL = "https://crm.gulnar8f.beget.tech"
+    SITE_URL = "https://fftzar-crm.ru"
 else:
-    SITE_URL = "http://localhost:8001"
+    SITE_URL = "http://localhost:8000"
 
 print(f"🌐 SITE_URL: {SITE_URL}")
 
@@ -184,7 +189,7 @@ if IS_PRODUCTION:
     EMAIL_USE_SSL = False
     EMAIL_HOST_USER = ""
     EMAIL_HOST_PASSWORD = ""
-    DEFAULT_FROM_EMAIL = "noreply@crm.gulnar8f.beget.tech"
+    DEFAULT_FROM_EMAIL = "noreply@fftzar-crm.ru"
     print("📧 Email: SMTP (продакшен)")
 else:
     # Разработка настройки email (консоль для отладки)
@@ -200,5 +205,6 @@ if IS_PRODUCTION:
 
 
 LOGIN_URL = "/accounts/login/"
-LOGIN_REDIRECT_URL = "/"  
+LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
+
