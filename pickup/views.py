@@ -1,4 +1,6 @@
+import base64
 import json
+import os
 import zipfile
 from io import BytesIO
 from datetime import datetime
@@ -12,6 +14,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.views.decorators.http import require_POST
+from weasyprint import HTML
 
 from counterparties.models import Counterparty
 from utils.pdf_generator import generate_qr_code_pdf
@@ -478,7 +481,7 @@ def get_operators(request):
 
 
 def pickup_order_qr_pdf(request, pk):
-    """Скачать QR-код заявки на забор в PDF формате"""
+    """Скачать QR-код заявки на забор в PDF формате (только QR-код)"""
     order = get_object_or_404(PickupOrder, pk=pk)
 
     if hasattr(request.user, "profile") and request.user.profile.is_operator:
@@ -486,7 +489,7 @@ def pickup_order_qr_pdf(request, pk):
             messages.error(request, "У вас нет доступа к этой заявке")
             return redirect("pickup_order_list")
 
-    # Если QR-кода нет, пытаемся сгенерировать
+    # Проверяем наличие QR-кода
     if not order.qr_code:
         order.generate_qr_code()
 
@@ -494,13 +497,62 @@ def pickup_order_qr_pdf(request, pk):
         messages.error(request, "QR-код недоступен")
         return redirect("pickup_order_detail", pk=pk)
 
-    pdf = generate_qr_code_pdf(order, order_type="pickup")
+    # Получаем полный путь к файлу QR-кода
+    try:
+        qr_code_path = order.qr_code.path
+        if not os.path.exists(qr_code_path):
+            messages.error(request, "Файл QR-кода не найден")
+            return redirect("pickup_order_detail", pk=pk)
 
-    if pdf:
-        response = HttpResponse(pdf, content_type="application/pdf")
-        filename = f"pickup_qr_{order.tracking_number or order.id}.pdf"
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        return response
-    else:
-        messages.error(request, "Ошибка при генерации PDF")
+        # Генерируем простой PDF с QR-кодом
+        with open(qr_code_path, "rb") as f:
+            qr_image_data = base64.b64encode(f.read()).decode("utf-8")
+
+        # Создаем простой HTML с QR-кодом
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                @page {{
+                    size: 80mm 80mm;
+                    margin: 0;
+                }}
+                body {{
+                    margin: 0;
+                    padding: 0;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                }}
+                img {{
+                    width: 70mm;
+                    height: 70mm;
+                }}
+            </style>
+        </head>
+        <body>
+            <img src="data:image/png;base64,{qr_image_data}" />
+        </body>
+        </html>
+        """
+
+        # Генерируем PDF
+        html = HTML(string=html_content)
+        pdf = html.write_pdf()
+
+        if pdf:
+            response = HttpResponse(pdf, content_type="application/pdf")
+            filename = f"pickup_qr_{order.tracking_number or order.id}.pdf"
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            return response
+        else:
+            messages.error(request, "Ошибка при генерации PDF")
+            return redirect("pickup_order_detail", pk=pk)
+
+    except Exception as e:
+        print(f"❌ Ошибка при создании PDF QR-кода: {e}")
+        messages.error(request, f"Ошибка при создании PDF: {str(e)}")
         return redirect("pickup_order_detail", pk=pk)
