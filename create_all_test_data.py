@@ -244,7 +244,6 @@ for wh_data in warehouses_data:
                 closing_time=closing,
                 pickup_cutoff_time=time(16, 0),
                 delivery_cutoff_time=time(17, 0),
-                max_daily_pickups=20,
                 max_daily_deliveries=30,
             )
 

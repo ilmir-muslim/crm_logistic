@@ -1,0 +1,406 @@
+<!-- templates/order_form/client_info_component.html -->
+{% load static %}
+
+<div class="counterparty-fields-section" data-type="{{ client_type }}">
+    <h6>
+        {% if client_type == 'sender' %}Отправитель{% endif %}
+        {% if client_type == 'recipient' %}Получатель{% endif %}
+        {% if client_type == 'client' %}Клиент{% endif %}
+    </h6>
+    
+    <!-- Поле поиска существующего клиента -->
+    <div class="mb-3">
+        <label class="form-label">Поиск существующего клиента</label>
+        <div class="input-group">
+            <input type="text" 
+                   class="form-control" 
+                   id="{{ client_type }}_search"
+                   placeholder="Начните вводить ИНН, название компании или ФИО..."
+                   data-client-type="{{ client_type }}">
+            <button class="btn btn-outline-primary" type="button" 
+                    onclick="searchClient('{{ client_type }}')">
+                <i class="bi bi-search"></i> Найти
+            </button>
+        </div>
+        <div class="form-text small">
+            Если вы уже работали с нами, начните вводить ваши данные для автозаполнения
+        </div>
+        
+        <!-- Результаты поиска -->
+        <div id="{{ client_type }}_search_results" class="search-results mt-2" style="display: none;">
+            <div class="list-group">
+                <!-- Результаты будут загружаться здесь -->
+            </div>
+        </div>
+        
+        <!-- Кнопка "Новый клиент" -->
+        <div class="mt-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    onclick="clearClientSearch('{{ client_type }}')">
+                <i class="bi bi-plus-circle"></i> Заполнить как нового клиента
+            </button>
+        </div>
+    </div>
+    
+    <!-- Скрытое поле для ID контрагента -->
+    <input type="hidden" name="{{ client_type }}_counterparty_id" id="{{ client_type }}_counterparty_id" value="">
+    
+    <!-- Основные поля клиента -->
+    <div class="mb-3">
+        <label class="form-label required">Тип клиента *</label>
+        <select class="form-select" name="{{ client_type }}_type" id="{{ client_type }}Type" 
+                onchange="changeCounterpartyFields('{{ client_type }}')" required>
+            <option value="legal">Юридическое лицо (ООО, АО)</option>
+            <option value="entrepreneur">Индивидуальный предприниматель (ИП)</option>
+            <option value="individual">Физическое лицо</option>
+            <option value="self_employed">Самозанятый</option>
+        </select>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label required">Наименование/ФИО *</label>
+        <input type="text" class="form-control" name="{{ client_type }}_name" 
+               id="{{ client_type }}_name" required>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">ИНН</label>
+        <input type="text" class="form-control" name="{{ client_type }}_inn" 
+               id="{{ client_type }}_inn">
+        <div class="form-text small">10 цифр для юр. лиц, 12 цифр для ИП и физ. лиц</div>
+    </div>
+    
+    <!-- Поля для юридического лица -->
+    <div id="{{ client_type }}LegalFields" class="counterparty-type-fields" style="display: none;">
+        <div class="mb-3">
+            <label class="form-label">КПП</label>
+            <input type="text" class="form-control" name="{{ client_type }}_kpp" 
+                   id="{{ client_type }}_kpp">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">ОГРН</label>
+            <input type="text" class="form-control" name="{{ client_type }}_ogrn" 
+                   id="{{ client_type }}_ogrn">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">ФИО руководителя</label>
+            <input type="text" class="form-control" name="{{ client_type }}_director_name" 
+                   id="{{ client_type }}_director_name">
+        </div>
+    </div>
+    
+    <!-- Поля для физического лица -->
+    <div id="{{ client_type }}IndividualFields" class="counterparty-type-fields" style="display: none;">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Серия паспорта</label>
+                    <input type="text" class="form-control" name="{{ client_type }}_passport_series" 
+                           id="{{ client_type }}_passport_series" maxlength="4">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Номер паспорта</label>
+                    <input type="text" class="form-control" name="{{ client_type }}_passport_number" 
+                           id="{{ client_type }}_passport_number" maxlength="6">
+                </div>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Кем выдан паспорт</label>
+            <textarea class="form-control" name="{{ client_type }}_passport_issued_by" 
+                      id="{{ client_type }}_passport_issued_by" rows="2"></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Дата выдачи паспорта</label>
+            <input type="date" class="form-control" name="{{ client_type }}_passport_issued_date" 
+                   id="{{ client_type }}_passport_issued_date">
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label required">Адрес *</label>
+        <textarea class="form-control" name="{{ client_type }}_address" 
+                  id="{{ client_type }}_address" rows="2" required></textarea>
+        <div class="form-text small">Юридический адрес для юр. лиц, адрес регистрации для физ. лиц</div>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label required">Телефон для связи *</label>
+        <input type="tel" class="form-control" name="{{ client_type }}_phone" 
+               id="{{ client_type }}_phone" required>
+        <div class="form-text small">Формат: +7 (999) 123-45-67</div>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" name="{{ client_type }}_email" 
+               id="{{ client_type }}_email">
+        <div class="form-text small">На этот email придет подтверждение заявки</div>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">Контактное лицо</label>
+        <input type="text" class="form-control" name="{{ client_type }}_contact_person" 
+               id="{{ client_type }}_contact_person">
+        <div class="form-text small">Лицо, ответственное за отправку/получение груза</div>
+    </div>
+    
+    <!-- Банковские реквизиты -->
+    <div class="counterparty-type-fields">
+        <div class="mb-3">
+            <label class="form-label">Банк</label>
+            <input type="text" class="form-control" name="{{ client_type }}_bank_name" 
+                   id="{{ client_type }}_bank_name">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Расчетный счет</label>
+            <input type="text" class="form-control" name="{{ client_type }}_bank_account" 
+                   id="{{ client_type }}_bank_account">
+        </div>
+    </div>
+</div>
+
+<style>
+.search-results {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+    z-index: 1000;
+    position: relative;
+}
+
+.search-results .list-group-item {
+    border: none;
+    border-bottom: 1px solid #f1f1f1;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 10px 15px;
+}
+
+.search-results .list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+.search-results .list-group-item:last-child {
+    border-bottom: none;
+}
+
+.search-results .counterparty-info {
+    font-size: 0.9rem;
+}
+
+.search-results .counterparty-info strong {
+    color: #0d6efd;
+}
+
+.search-results .counterparty-type {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.counterparty-type-fields {
+    border: 1px dashed #adb5bd;
+    border-radius: 6px;
+    padding: 15px;
+    margin-top: 15px;
+    background-color: rgba(248, 249, 250, 0.5);
+}
+</style>
+
+<script>
+// Функция для поиска клиента
+async function searchClient(clientType) {
+    const searchInput = document.getElementById(`${clientType}_search`);
+    const searchTerm = searchInput.value.trim();
+    const resultsContainer = document.getElementById(`${clientType}_search_results`);
+    
+    if (searchTerm.length < 2) {
+        showAlertMessage('Введите хотя бы 2 символа для поиска', 'warning');
+        return;
+    }
+    
+    // Показываем индикатор загрузки
+    resultsContainer.innerHTML = `
+        <div class="text-center p-3">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <span class="ms-2">Поиск клиентов...</span>
+        </div>
+    `;
+    resultsContainer.style.display = 'block';
+    
+    try {
+        // AJAX запрос к API
+        const response = await fetch(`/counterparties/api/public/search/?search=${encodeURIComponent(searchTerm)}`);
+        const clients = await response.json();
+        
+        if (clients.length === 0) {
+            resultsContainer.innerHTML = `
+                <div class="list-group-item text-muted text-center">
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    Клиенты не найдены
+                </div>
+            `;
+            return;
+        }
+        
+        // Отображаем результаты
+        let html = '';
+        clients.forEach(client => {
+            html += `
+                <a href="#" class="list-group-item list-group-item-action" 
+                   onclick="selectClient('${clientType}', ${client.id}); return false;">
+                    <div class="counterparty-info">
+                        <strong>${client.name}</strong>
+                        <div class="counterparty-type">
+                            ${client.type === 'legal' ? 'Юридическое лицо' : 
+                              client.type === 'entrepreneur' ? 'ИП' : 
+                              client.type === 'individual' ? 'Физическое лицо' : 'Самозанятый'}
+                        </div>
+                        ${client.inn ? `<div><small>ИНН: ${client.inn}</small></div>` : ''}
+                        ${client.phone ? `<div><small>Телефон: ${client.phone}</small></div>` : ''}
+                        ${client.address ? `<div><small>Адрес: ${client.address.substring(0, 50)}${client.address.length > 50 ? '...' : ''}</small></div>` : ''}
+                    </div>
+                </a>
+            `;
+        });
+        
+        resultsContainer.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Ошибка при поиске клиентов:', error);
+        resultsContainer.innerHTML = `
+            <div class="list-group-item text-danger text-center">
+                <i class="bi bi-x-circle me-2"></i>
+                Ошибка при поиске. Попробуйте еще раз
+            </div>
+        `;
+    }
+}
+
+// Функция для выбора клиента из результатов
+async function selectClient(clientType, counterpartyId) {
+    try {
+        // Получаем детальную информацию о клиенте
+        const response = await fetch(`/counterparties/api/public/${counterpartyId}/`);
+        const client = await response.json();
+        
+        if (client.error) {
+            showAlertMessage('Клиент не найден', 'danger');
+            return;
+        }
+        
+        // Заполняем форму данными клиента
+        document.getElementById(`${clientType}_counterparty_id`).value = client.id;
+        document.getElementById(`${clientType}Type`).value = client.type;
+        document.getElementById(`${clientType}_name`).value = client.name;
+        document.getElementById(`${clientType}_inn`).value = client.inn;
+        document.getElementById(`${clientType}_kpp`).value = client.kpp;
+        document.getElementById(`${clientType}_ogrn`).value = client.ogrn;
+        document.getElementById(`${clientType}_address`).value = client.address;
+        document.getElementById(`${clientType}_phone`).value = client.phone;
+        document.getElementById(`${clientType}_email`).value = client.email;
+        document.getElementById(`${clientType}_contact_person`).value = client.contact_person;
+        document.getElementById(`${clientType}_director_name`).value = client.director_name;
+        document.getElementById(`${clientType}_passport_series`).value = client.passport_series;
+        document.getElementById(`${clientType}_passport_number`).value = client.passport_number;
+        document.getElementById(`${clientType}_passport_issued_by`).value = client.passport_issued_by;
+        document.getElementById(`${clientType}_passport_issued_date`).value = client.passport_issued_date;
+        document.getElementById(`${clientType}_bank_name`).value = client.bank_name;
+        document.getElementById(`${clientType}_bank_account`).value = client.bank_account;
+        
+        // Обновляем видимость полей в зависимости от типа
+        changeCounterpartyFields(clientType);
+        
+        // Показываем сообщение об успешной загрузке
+        showAlertMessage(`Данные клиента "${client.name}" загружены`, 'success');
+        
+        // Скрываем результаты поиска
+        document.getElementById(`${clientType}_search_results`).style.display = 'none';
+        
+    } catch (error) {
+        console.error('Ошибка при загрузке данных клиента:', error);
+        showAlertMessage('Ошибка при загрузке данных клиента', 'danger');
+    }
+}
+
+// Функция для очистки поиска и подготовки к вводу нового клиента
+function clearClientSearch(clientType) {
+    document.getElementById(`${clientType}_search`).value = '';
+    document.getElementById(`${clientType}_counterparty_id`).value = '';
+    document.getElementById(`${clientType}_search_results`).style.display = 'none';
+    
+    // Очищаем все поля формы
+    const fields = [
+        'name', 'inn', 'kpp', 'ogrn', 'address', 'phone', 'email', 
+        'contact_person', 'director_name', 'passport_series', 
+        'passport_number', 'passport_issued_by', 'passport_issued_date',
+        'bank_name', 'bank_account'
+    ];
+    
+    fields.forEach(field => {
+        const element = document.getElementById(`${clientType}_${field}`);
+        if (element) element.value = '';
+    });
+    
+    showAlertMessage('Готово к вводу данных нового клиента', 'info');
+}
+
+// Функция для изменения видимости полей в зависимости от типа клиента
+function changeCounterpartyFields(clientType) {
+    const typeSelect = document.getElementById(`${clientType}Type`);
+    const legalFields = document.getElementById(`${clientType}LegalFields`);
+    const individualFields = document.getElementById(`${clientType}IndividualFields`);
+    
+    if (!typeSelect || !legalFields || !individualFields) return;
+    
+    const selectedType = typeSelect.value;
+    
+    // Скрываем все поля
+    legalFields.style.display = 'none';
+    individualFields.style.display = 'none';
+    
+    // Показываем нужные поля в зависимости от типа
+    if (selectedType === 'legal') {
+        legalFields.style.display = 'block';
+    } else if (selectedType === 'entrepreneur') {
+        // Для ИП показываем поле ОГРН вместо КПП
+        legalFields.style.display = 'block';
+    } else if (selectedType === 'individual') {
+        individualFields.style.display = 'block';
+    } else if (selectedType === 'self_employed') {
+        individualFields.style.display = 'block';
+    }
+}
+
+// Автопоиск при вводе (с задержкой)
+let searchTimeout = null;
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация полей для каждого типа клиента
+    const clientTypes = ['sender', 'recipient', 'client'];
+    clientTypes.forEach(type => {
+        const element = document.getElementById(`${type}Type`);
+        if (element) {
+            changeCounterpartyFields(type);
+        }
+        
+        // Навешиваем обработчик на поле поиска
+        const searchInput = document.getElementById(`${type}_search`);
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    if (this.value.trim().length >= 2) {
+                        searchClient(type);
+                    }
+                }, 500);
+            });
+        }
+    });
+});
+</script>

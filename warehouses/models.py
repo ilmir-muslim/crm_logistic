@@ -312,16 +312,7 @@ class WarehouseSchedule(models.Model):
     delivery_cutoff_time = models.TimeField(
         verbose_name="Крайний срок приема заявок на доставку"
     )
-    max_daily_pickups = models.IntegerField(
-        verbose_name="Максимум заборов в день",
-        default=20,
-        validators=[MinValueValidator(1)],
-    )
-    max_daily_deliveries = models.IntegerField(
-        verbose_name="Максимум доставок в день",
-        default=30,
-        validators=[MinValueValidator(1)],
-    )
+
 
     class Meta:
         verbose_name = "График работы по дням"

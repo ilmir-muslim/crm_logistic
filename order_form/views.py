@@ -11,6 +11,7 @@ from django.db.models import Prefetch
 
 from .forms import ClientPickupForm, ClientDeliveryForm
 from warehouses.models import City, ContainerType, WarehouseSchedule
+from counterparties.models import Counterparty
 
 
 class PickupOrderFormView(FormView):
@@ -53,7 +54,6 @@ class PickupOrderFormView(FormView):
                             "delivery_cutoff_time": schedule.delivery_cutoff_time.strftime(
                                 "%H:%M"
                             ),
-                            "max_daily_pickups": schedule.max_daily_pickups,
                         }
                     )
 
@@ -111,7 +111,7 @@ class PickupOrderFormView(FormView):
         return context
 
     def form_valid(self, form):
-        """Сохранение заявки на забор"""
+        """Сохранение заявки на забор с обработкой контрагентов"""
         try:
             # Сохраняем форму с данными
             order = form.save(commit=False)
@@ -119,8 +119,6 @@ class PickupOrderFormView(FormView):
             # Устанавливаем дополнительные поля
             order.pickup_date = timezone.now().date()
             order.status = "ready"
-            order.notes = f'Заявка создана через веб-форму. Маркетплейс: {form.cleaned_data["marketplace"]}'
-            order.operator = None  # Будет назначен позже
 
             # Получаем warehouse и устанавливаем оператора
             warehouse = form.cleaned_data.get("receiving_warehouse")
@@ -130,18 +128,20 @@ class PickupOrderFormView(FormView):
                     order.receiving_operator = warehouse.manager
                 order.receiving_warehouse = warehouse
 
-            # Сохраняем в базе данных (это сгенерирует tracking_number)
+            # Сохраняем в базе данных
             order.save()
-            
-            # Перезагружаем объект из базы, чтобы получить tracking_number
+
+            # Перезагружаем объект из базы
             order.refresh_from_db()
 
-            print(f"✅ Заявка на забор создана: ID={order.id}, Tracking={order.tracking_number}")
+            print(
+                f"✅ Заявка на забор создана: ID={order.id}, Tracking={order.tracking_number}"
+            )
 
             # Отправляем email клиенту
             try:
                 self.send_confirmation_email(order)
-                print(f"✅ Email отправлен клиенту: {order.client_email}")
+                print(f"✅ Email отправлен клиенту")
             except Exception as e:
                 print(f"❌ Ошибка при отправке email клиенту: {e}")
 
@@ -156,7 +156,7 @@ class PickupOrderFormView(FormView):
             self.request.session["order_id"] = order.id
             self.request.session["tracking_number"] = order.tracking_number
             self.request.session["order_type"] = "pickup"
-            
+
             # Принудительно сохраняем сессию
             self.request.session.modified = True
             self.request.session.save()
@@ -165,6 +165,7 @@ class PickupOrderFormView(FormView):
 
         except Exception as e:
             import traceback
+
             print(f"❌ Ошибка при сохранении заявки на забор: {e}")
             print(traceback.format_exc())
             messages.error(
@@ -310,7 +311,7 @@ class DeliveryOrderFormView(FormView):
         return context
 
     def form_valid(self, form):
-        """Сохранение заявки на доставку"""
+        """Сохранение заявки на доставку с обработкой клиента"""
         try:
             # Сохраняем форму с данными
             order = form.save(commit=False)
@@ -448,8 +449,10 @@ def order_success_view(request):
     order_id = request.session.get("order_id")
     tracking_number = request.session.get("tracking_number")
     order_type = request.session.get("order_type", "delivery")
-    
-    print(f"🔍 order_success_view вызван: order_id={order_id}, tracking_number={tracking_number}, order_type={order_type}")
+
+    print(
+        f"🔍 order_success_view вызван: order_id={order_id}, tracking_number={tracking_number}, order_type={order_type}"
+    )
 
     context = {
         "order_id": order_id,

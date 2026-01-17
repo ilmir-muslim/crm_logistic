@@ -138,5 +138,4 @@ class WarehouseScheduleAdmin(admin.ModelAdmin):
         ("Рабочие часы", {"fields": ("opening_time", "closing_time")}),
         ("Перерыв", {"fields": ("break_start", "break_end")}),
         ("Крайние сроки", {"fields": ("pickup_cutoff_time", "delivery_cutoff_time")}),
-        ("Ограничения", {"fields": ("max_daily_pickups", "max_daily_deliveries")}),
     )

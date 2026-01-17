@@ -100,10 +100,6 @@
             border-left: 5px solid var(--info-teal);
         }
         
-        .counterparties-card {
-            border-left: 5px solid #ff6b6b;
-        }
-        
         .card-header {
             background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
             border-bottom: 2px solid rgba(0,0,0,0.05);
@@ -150,10 +146,6 @@
         
         .privacy-card .card-icon {
             color: var(--info-teal);
-        }
-        
-        .counterparties-card .card-icon {
-            color: #ff6b6b;
         }
         
         .card-body {
@@ -441,6 +433,74 @@
             margin-top: 15px;
             background-color: white;
         }
+        
+        .date-availability-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin-left: 10px;
+        }
+        
+        .date-available {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .date-unavailable {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .date-checking {
+            background-color: #e7f3ff;
+            color: #0d6efd;
+            border: 1px solid #b3d7ff;
+        }
+        
+        /* Стили для поиска клиентов */
+        .search-results {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+            z-index: 1000;
+            position: relative;
+        }
+        
+        .search-results .list-group-item {
+            border: none;
+            border-bottom: 1px solid #f1f1f1;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 10px 15px;
+        }
+        
+        .search-results .list-group-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .search-results .list-group-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-results .counterparty-info {
+            font-size: 0.9rem;
+        }
+        
+        .search-results .counterparty-info strong {
+            color: #0d6efd;
+        }
+        
+        .search-results .counterparty-type {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -499,10 +559,10 @@
             <div class="info-card city-selection-card mb-4">
                 <div class="card-header">
                     <i class="bi bi-geo-alt card-icon"></i>
-                    <h5 class="card-title">Выберите город приема заявки</h5>
+                    <h5 class="card-title">Выберите город получения груза</h5>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted mb-4">Выберите город для просмотра доступных складов и условий приема заявок.</p>
+                    <p class="text-muted mb-4">Выберите город для просмотра доступных складов.</p>
                     
                     <div class="city-buttons">
                         {% for city in cities_data %}
@@ -590,185 +650,236 @@
             <form method="post" novalidate class="mb-4" id="orderForm">
                 {% csrf_token %}
                 
+                <!-- Скрытые поля -->
                 <input type="hidden" name="delivery_city" id="id_delivery_city_hidden">
                 <input type="hidden" name="receiving_warehouse" id="id_receiving_warehouse_hidden">
+                <input type="hidden" name="client_counterparty_id" id="client_counterparty_id" value="">
                 
-                <!-- Добавлен блок Контрагенты -->
-                <div class="info-card counterparties-card mb-4">
+                <!-- Блок данных клиента -->
+                <div class="info-card client-card mb-4">
                     <div class="card-header">
-                        <i class="bi bi-people card-icon"></i>
-                        <h5 class="card-title">Контрагенты</h5>
+                        <i class="bi bi-person-badge card-icon"></i>
+                        <h5 class="card-title">Информация о клиенте</h5>
                     </div>
                     <div class="card-body">
-                        <div class="row g-3">
-                            <!-- Отправитель -->
-                            <div class="col-md-6">
-                                <div class="counterparty-fields-section">
-                                    <h6>Отправитель</h6>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label required">Тип отправителя *</label>
-                                        <select class="form-select" name="sender_type" id="senderType" onchange="changeCounterpartyFields('sender')" required>
-                                            <option value="legal">Юридическое лицо (ООО, АО)</option>
-                                            <option value="entrepreneur">Индивидуальный предприниматель (ИП)</option>
-                                            <option value="individual">Физическое лицо</option>
-                                            <option value="self_employed">Самозанятый</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label required">Наименование/ФИО *</label>
-                                        <input type="text" class="form-control" name="sender_name" required>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">ИНН</label>
-                                        <input type="text" class="form-control" name="sender_inn">
-                                    </div>
-                                    
-                                    <!-- Поля для юридического лица -->
-                                    <div id="senderLegalFields" class="counterparty-type-fields" style="display: none;">
-                                        <div class="mb-3">
-                                            <label class="form-label">КПП</label>
-                                            <input type="text" class="form-control" name="sender_kpp">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">ОГРН</label>
-                                            <input type="text" class="form-control" name="sender_ogrn">
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Поля для физического лица -->
-                                    <div id="senderIndividualFields" class="counterparty-type-fields" style="display: none;">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Серия паспорта</label>
-                                                    <input type="text" class="form-control" name="sender_passport_series">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Номер паспорта</label>
-                                                    <input type="text" class="form-control" name="sender_passport_number">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Кем выдан паспорт</label>
-                                            <textarea class="form-control" name="sender_passport_issued_by" rows="2"></textarea>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Дата выдачи паспорта</label>
-                                            <input type="date" class="form-control" name="sender_passport_issued_date">
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label required">Адрес *</label>
-                                        <textarea class="form-control" name="sender_address" rows="2" required></textarea>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">Телефон</label>
-                                        <input type="text" class="form-control" name="sender_phone">
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">Email</label>
-                                        <input type="email" class="form-control" name="sender_email">
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">Контактное лицо</label>
-                                        <input type="text" class="form-control" name="sender_contact_person">
-                                    </div>
+                        <!-- Поле поиска существующего клиента -->
+                        <div class="mb-3">
+                            <label class="form-label">Поиск существующего клиента</label>
+                            <div class="input-group">
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="client_search"
+                                       placeholder="Начните вводить ИНН, название компании или ФИО..."
+                                       data-client-type="client">
+                                <button class="btn btn-outline-primary" type="button" 
+                                        onclick="searchClient('client')">
+                                    <i class="bi bi-search"></i> Найти
+                                </button>
+                            </div>
+                            <div class="form-text small">
+                                Если вы уже работали с нами, начните вводить ваши данные для автозаполнения
+                            </div>
+                            
+                            <!-- Результаты поиска -->
+                            <div id="client_search_results" class="search-results mt-2" style="display: none;">
+                                <div class="list-group">
+                                    <!-- Результаты будут загружаться здесь -->
                                 </div>
                             </div>
                             
-                            <!-- Получатель -->
-                            <div class="col-md-6">
-                                <div class="counterparty-fields-section">
-                                    <h6>Получатель</h6>
-                                    
+                            <!-- Кнопка "Новый клиент" -->
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        onclick="clearClientSearch('client')">
+                                    <i class="bi bi-plus-circle"></i> Заполнить как нового клиента
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Основные поля клиента -->
+                        <div class="mb-3">
+                            <label class="form-label required">Тип клиента *</label>
+                            {{ form.client_type }}
+                            {% if form.client_type.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_type.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label required">Наименование компании *</label>
+                            {{ form.client_company }}
+                            {% if form.client_company.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_company.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Полное наименование компании или ИП</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label required">Контактное лицо *</label>
+                            {{ form.client_name }}
+                            {% if form.client_name.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_name.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">ФИО ответственного лица</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">ИНН</label>
+                            {{ form.client_inn }}
+                            {% if form.client_inn.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_inn.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text small">10 цифр для юр. лиц, 12 цифр для ИП и физ. лиц</div>
+                        </div>
+                        
+                        <!-- Поля для юридического лица -->
+                        <div id="clientLegalFields" class="counterparty-type-fields" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">КПП</label>
+                                {{ form.client_kpp }}
+                                {% if form.client_kpp.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_kpp.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">ОГРН</label>
+                                {{ form.client_ogrn }}
+                                {% if form.client_ogrn.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_ogrn.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">ФИО руководителя</label>
+                                {{ form.client_director_name }}
+                                {% if form.client_director_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_director_name.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Поля для физического лица -->
+                        <div id="clientIndividualFields" class="counterparty-type-fields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label required">Тип получателя *</label>
-                                        <select class="form-select" name="recipient_type" id="recipientType" onchange="changeCounterpartyFields('recipient')" required>
-                                            <option value="legal">Юридическое лицо (ООО, АО)</option>
-                                            <option value="entrepreneur">Индивидуальный предприниматель (ИП)</option>
-                                            <option value="individual">Физическое лицо</option>
-                                            <option value="self_employed">Самозанятый</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label required">Наименование/ФИО *</label>
-                                        <input type="text" class="form-control" name="recipient_name" required>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">ИНН</label>
-                                        <input type="text" class="form-control" name="recipient_inn">
-                                    </div>
-                                    
-                                    <!-- Поля для юридического лица -->
-                                    <div id="recipientLegalFields" class="counterparty-type-fields" style="display: none;">
-                                        <div class="mb-3">
-                                            <label class="form-label">КПП</label>
-                                            <input type="text" class="form-control" name="recipient_kpp">
+                                        <label class="form-label">Серия паспорта</label>
+                                        {{ form.client_passport_series }}
+                                        {% if form.client_passport_series.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.client_passport_series.errors.0 }}
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">ОГРН</label>
-                                            <input type="text" class="form-control" name="recipient_ogrn">
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Поля для физического лица -->
-                                    <div id="recipientIndividualFields" class="counterparty-type-fields" style="display: none;">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Серия паспорта</label>
-                                                    <input type="text" class="form-control" name="recipient_passport_series">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Номер паспорта</label>
-                                                    <input type="text" class="form-control" name="recipient_passport_number">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Кем выдан паспорт</label>
-                                            <textarea class="form-control" name="recipient_passport_issued_by" rows="2"></textarea>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Дата выдачи паспорта</label>
-                                            <input type="date" class="form-control" name="recipient_passport_issued_date">
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label required">Адрес *</label>
-                                        <textarea class="form-control" name="recipient_address" rows="2" required></textarea>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">Телефон</label>
-                                        <input type="text" class="form-control" name="recipient_phone">
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">Email</label>
-                                        <input type="email" class="form-control" name="recipient_email">
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">Контактное лицо</label>
-                                        <input type="text" class="form-control" name="recipient_contact_person">
+                                        {% endif %}
                                     </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Номер паспорта</label>
+                                        {{ form.client_passport_number }}
+                                        {% if form.client_passport_number.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.client_passport_number.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Кем выдан паспорт</label>
+                                {{ form.client_passport_issued_by }}
+                                {% if form.client_passport_issued_by.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_passport_issued_by.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Дата выдачи паспорта</label>
+                                {{ form.client_passport_issued_date }}
+                                {% if form.client_passport_issued_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_passport_issued_date.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label required">Адрес *</label>
+                            {{ form.client_address }}
+                            {% if form.client_address.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_address.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text small">Юридический адрес для юр. лиц, адрес регистрации для физ. лиц</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label required">Телефон для связи *</label>
+                            {{ form.client_phone }}
+                            {% if form.client_phone.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_phone.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text small">Формат: +7 (999) 123-45-67</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            {{ form.client_email }}
+                            {% if form.client_email.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_email.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text small">На этот email придет подтверждение заявки</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Контактное лицо (дополнительно)</label>
+                            {{ form.client_contact_person }}
+                            {% if form.client_contact_person.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_contact_person.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text small">Лицо, ответственное за отправку/получение груза</div>
+                        </div>
+                        
+                        <!-- Банковские реквизиты -->
+                        <div class="counterparty-type-fields">
+                            <div class="mb-3">
+                                <label class="form-label">Банк</label>
+                                {{ form.client_bank_name }}
+                                {% if form.client_bank_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_bank_name.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Расчетный счет</label>
+                                {{ form.client_bank_account }}
+                                {% if form.client_bank_account.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_bank_account.errors.0 }}
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -785,18 +896,23 @@
                                 <label for="{{ form.desired_delivery_date.id_for_label }}" class="form-label required">
                                     Желаемая дата поставки
                                 </label>
-                                {{ form.desired_delivery_date }}
+                                <div class="input-group">
+                                    {{ form.desired_delivery_date }}
+                                    <div id="date-availability-indicator" class="date-availability-indicator hidden">
+                                        <i class="bi bi-clock"></i>
+                                        <span>Проверка...</span>
+                                    </div>
+                                </div>
                                 {% if form.desired_delivery_date.errors %}
                                 <div class="invalid-feedback d-block">
                                     {{ form.desired_delivery_date.errors.0 }}
                                 </div>
                                 {% endif %}
-                                <div class="form-text">
+                                <div class="form-text" id="date-availability-message">
                                     Выберите дату доставки с учетом графика работы складов
                                 </div>
                             </div>
                             
-                            <!-- Добавлены поля для времени -->
                             <div class="col-md-3">
                                 <label for="{{ form.pickup_time_from.id_for_label }}" class="form-label">
                                     Время забора от
@@ -841,10 +957,9 @@
                                     Выберите площадку, с которой заказ
                                 </div>
                             </div>
-
                             
                             <div class="col-md-6">
-                                <label class="form-label required">
+                                <label class="form-label">
                                     Склад приемки
                                 </label>
                                 <div id="warehouse-selection">
@@ -900,76 +1015,6 @@
                                 {% endif %}
                                 <div class="form-text">
                                     Улица, дом, квартира/офис, этаж
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="info-card client-card mb-4">
-                    <div class="card-header">
-                        <i class="bi bi-person-badge card-icon"></i>
-                        <h5 class="card-title">Информация о клиенте</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="{{ form.client_company.id_for_label }}" class="form-label required">
-                                    Наименование компании
-                                </label>
-                                {{ form.client_company }}
-                                {% if form.client_company.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.client_company.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    Полное наименование компании или ИП
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <label for="{{ form.client_name.id_for_label }}" class="form-label required">
-                                    Контактное лицо
-                                </label>
-                                {{ form.client_name }}
-                                {% if form.client_name.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.client_name.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    ФИО ответственного лица
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <label for="{{ form.client_phone.id_for_label }}" class="form-label required">
-                                    Телефон для связи
-                                </label>
-                                {{ form.client_phone }}
-                                {% if form.client_phone.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.client_phone.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    Номер для оперативной связи
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <label for="{{ form.client_email.id_for_label }}" class="form-label">
-                                    Email (необязательно)
-                                </label>
-                                {{ form.client_email }}
-                                {% if form.client_email.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.client_email.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    На этот email придет подтверждение (если указан)
                                 </div>
                             </div>
                         </div>
@@ -1134,6 +1179,9 @@
             const citySelectionDisplay = document.getElementById('city-selection-display');
             const form = document.getElementById('orderForm');
             const submitButton = document.getElementById('submitButton');
+            const dateAvailabilityIndicator = document.getElementById('date-availability-indicator');
+            const dateAvailabilityMessage = document.getElementById('date-availability-message');
+            const dateInput = document.querySelector('#id_desired_delivery_date');
             
             const citiesData = JSON.parse('{{ cities_data_json|escapejs }}' || '[]');
             
@@ -1141,16 +1189,11 @@
             let selectedWarehouseId = null;
             let selectedWarehouseName = null;
             
-            // Инициализация полей контрагентов
-            function initCounterpartyFields() {
-                changeCounterpartyFields('sender');
-                changeCounterpartyFields('recipient');
-            }
-            
-            function changeCounterpartyFields(type) {
-                const typeSelect = document.getElementById(`${type}Type`);
-                const legalFields = document.getElementById(`${type}LegalFields`);
-                const individualFields = document.getElementById(`${type}IndividualFields`);
+            // Функция для изменения видимости полей в зависимости от типа клиента
+            function changeCounterpartyFields(clientType) {
+                const typeSelect = document.getElementById('id_client_type');
+                const legalFields = document.getElementById('clientLegalFields');
+                const individualFields = document.getElementById('clientIndividualFields');
                 
                 if (!typeSelect || !legalFields || !individualFields) return;
                 
@@ -1163,9 +1206,166 @@
                 // Показываем нужные поля в зависимости от типа
                 if (selectedType === 'legal') {
                     legalFields.style.display = 'block';
+                } else if (selectedType === 'entrepreneur') {
+                    // Для ИП показываем поле ОГРН вместо КПП
+                    legalFields.style.display = 'block';
                 } else if (selectedType === 'individual') {
                     individualFields.style.display = 'block';
+                } else if (selectedType === 'self_employed') {
+                    individualFields.style.display = 'block';
                 }
+            }
+            
+            // Инициализация полей клиента
+            function initClientFields() {
+                changeCounterpartyFields('client');
+                
+                // Навешиваем обработчик на поле поиска
+                const searchInput = document.getElementById('client_search');
+                if (searchInput) {
+                    searchInput.addEventListener('input', function() {
+                        clearTimeout(window.searchTimeout);
+                        window.searchTimeout = setTimeout(() => {
+                            if (this.value.trim().length >= 2) {
+                                searchClient('client');
+                            }
+                        }, 500);
+                    });
+                }
+                
+                // Навешиваем обработчик на изменение типа клиента
+                const typeSelect = document.getElementById('id_client_type');
+                if (typeSelect) {
+                    typeSelect.addEventListener('change', function() {
+                        changeCounterpartyFields('client');
+                    });
+                }
+            }
+            
+            // Функция для поиска клиента
+            async function searchClient(clientType) {
+                const searchInput = document.getElementById(`${clientType}_search`);
+                const searchTerm = searchInput.value.trim();
+                const resultsContainer = document.getElementById(`${clientType}_search_results`);
+                
+                if (searchTerm.length < 2) {
+                    showAlertMessage('Введите хотя бы 2 символа для поиска', 'warning');
+                    return;
+                }
+                
+                // Показываем индикатор загрузки
+                resultsContainer.innerHTML = `
+                    <div class="text-center p-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <span class="ms-2">Поиск клиентов...</span>
+                    </div>
+                `;
+                resultsContainer.style.display = 'block';
+                
+                try {
+                    // AJAX запрос к API
+                    const response = await fetch(`/counterparties/api/public/search/?search=${encodeURIComponent(searchTerm)}`);
+                    const clients = await response.json();
+                    
+                    if (clients.length === 0) {
+                        resultsContainer.innerHTML = `
+                            <div class="list-group-item text-muted text-center">
+                                <i class="bi bi-exclamation-circle me-2"></i>
+                                Клиенты не найдены
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Отображаем результаты
+                    let html = '';
+                    clients.forEach(client => {
+                        html += `
+                            <a href="#" class="list-group-item list-group-item-action" 
+                               onclick="selectClient('${clientType}', ${client.id}); return false;">
+                                <div class="counterparty-info">
+                                    <strong>${client.name}</strong>
+                                    <div class="counterparty-type">
+                                        ${client.type === 'legal' ? 'Юридическое лицо' : 
+                                          client.type === 'entrepreneur' ? 'ИП' : 
+                                          client.type === 'individual' ? 'Физическое лицо' : 'Самозанятый'}
+                                    </div>
+                                    ${client.inn ? `<div><small>ИНН: ${client.inn}</small></div>` : ''}
+                                    ${client.phone ? `<div><small>Телефон: ${client.phone}</small></div>` : ''}
+                                    ${client.address ? `<div><small>Адрес: ${client.address.substring(0, 50)}${client.address.length > 50 ? '...' : ''}</small></div>` : ''}
+                                </div>
+                            </a>
+                        `;
+                    });
+                    
+                    resultsContainer.innerHTML = html;
+                    
+                } catch (error) {
+                    console.error('Ошибка при поиске клиентов:', error);
+                    resultsContainer.innerHTML = `
+                        <div class="list-group-item text-danger text-center">
+                            <i class="bi bi-x-circle me-2"></i>
+                            Ошибка при поиске. Попробуйте еще раз
+                        </div>
+                    `;
+                }
+            }
+            
+            // Функция для выбора клиента из результатов
+            window.selectClient = async function(clientType, counterpartyId) {
+                try {
+                    // Получаем детальную информацию о клиенте
+                    const response = await fetch(`/counterparties/api/public/${counterpartyId}/`);
+                    const client = await response.json();
+                    
+                    if (client.error) {
+                        showAlertMessage('Клиент не найден', 'danger');
+                        return;
+                    }
+                    
+                    // Заполняем форму данными клиента
+                    document.getElementById('client_counterparty_id').value = client.id;
+                    document.getElementById('id_client_type').value = client.type;
+                    document.getElementById('id_client_company').value = client.name;
+                    document.getElementById('id_client_inn').value = client.inn;
+                    document.getElementById('id_client_kpp').value = client.kpp;
+                    document.getElementById('id_client_ogrn').value = client.ogrn;
+                    document.getElementById('id_client_address').value = client.address;
+                    document.getElementById('id_client_phone').value = client.phone;
+                    document.getElementById('id_client_email').value = client.email;
+                    document.getElementById('id_client_contact_person').value = client.contact_person;
+                    document.getElementById('id_client_director_name').value = client.director_name;
+                    document.getElementById('id_client_passport_series').value = client.passport_series;
+                    document.getElementById('id_client_passport_number').value = client.passport_number;
+                    document.getElementById('id_client_passport_issued_by').value = client.passport_issued_by;
+                    document.getElementById('id_client_passport_issued_date').value = client.passport_issued_date;
+                    document.getElementById('id_client_bank_name').value = client.bank_name;
+                    document.getElementById('id_client_bank_account').value = client.bank_account;
+                    
+                    // Обновляем видимость полей в зависимости от типа
+                    changeCounterpartyFields(clientType);
+                    
+                    // Показываем сообщение об успешной загрузке
+                    showAlertMessage(`Данные клиента "${client.name}" загружены`, 'success');
+                    
+                    // Скрываем результаты поиска
+                    document.getElementById(`${clientType}_search_results`).style.display = 'none';
+                    
+                } catch (error) {
+                    console.error('Ошибка при загрузке данных клиента:', error);
+                    showAlertMessage('Ошибка при загрузке данных клиента', 'danger');
+                }
+            }
+            
+            // Функция для очистки поиска и подготовки к вводу нового клиента
+            window.clearClientSearch = function(clientType) {
+                document.getElementById(`${clientType}_search`).value = '';
+                document.getElementById('client_counterparty_id').value = '';
+                document.getElementById(`${clientType}_search_results`).style.display = 'none';
+                
+                showAlertMessage('Готово к вводу данных нового клиента', 'info');
             }
             
             function displayCityInfo(cityId) {
@@ -1278,9 +1478,6 @@
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <small class="text-muted">
-                                            Максимум заборов в день: ${schedules[0]?.max_daily_pickups || '20'}
-                                        </small>
                                     </div>
                                 ` : '<p class="text-warning"><i class="bi bi-exclamation-triangle"></i> График приема заявок не указан</p>'}
                             </div>
@@ -1342,6 +1539,11 @@
                         </div>
                     `;
                 }
+                
+                // Проверяем доступность текущей выбранной даты
+                if (dateInput && dateInput.value) {
+                    checkDateAvailability();
+                }
             }
             
             function loadDeliveryCities(cityId) {
@@ -1400,6 +1602,56 @@
                             Нет доступных городов доставки.
                         </div>
                     `;
+                }
+            }
+            
+            // Функция для проверки доступности даты
+            async function checkDateAvailability() {
+                if (!selectedWarehouseId || !dateInput || !dateInput.value) {
+                    return;
+                }
+                
+                // Показываем индикатор проверки
+                dateAvailabilityIndicator.classList.remove('hidden');
+                dateAvailabilityIndicator.classList.remove('date-available');
+                dateAvailabilityIndicator.classList.remove('date-unavailable');
+                dateAvailabilityIndicator.classList.add('date-checking');
+                dateAvailabilityIndicator.innerHTML = '<i class="bi bi-clock"></i><span>Проверка доступности...</span>';
+                
+                try {
+                    // Симуляция проверки доступности даты
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Здесь будет реальный AJAX запрос к API
+                    // const response = await fetch(`/api/check-date-availability/?warehouse_id=${selectedWarehouseId}&date=${dateInput.value}`);
+                    // const data = await response.json();
+                    
+                    // Временная заглушка: проверяем день недели (суббота, воскресенье - нерабочие)
+                    const selectedDate = new Date(dateInput.value);
+                    const dayOfWeek = selectedDate.getDay(); // 0 - воскресенье, 6 - суббота
+                    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                    
+                    if (isWeekend) {
+                        dateAvailabilityIndicator.classList.remove('date-checking');
+                        dateAvailabilityIndicator.classList.add('date-unavailable');
+                        dateAvailabilityIndicator.innerHTML = '<i class="bi bi-x-circle"></i><span>Склад не работает в выходные</span>';
+                        dateAvailabilityMessage.innerHTML = 'Выбран выходной день. Пожалуйста, выберите рабочий день (понедельник-пятница)';
+                        dateAvailabilityMessage.style.color = '#dc3545';
+                    } else {
+                        dateAvailabilityIndicator.classList.remove('date-checking');
+                        dateAvailabilityIndicator.classList.add('date-available');
+                        dateAvailabilityIndicator.innerHTML = '<i class="bi bi-check-circle"></i><span>День доступен</span>';
+                        dateAvailabilityMessage.innerHTML = 'Дата доступна для бронирования';
+                        dateAvailabilityMessage.style.color = '#198754';
+                    }
+                    
+                } catch (error) {
+                    console.error('Ошибка проверки даты:', error);
+                    dateAvailabilityIndicator.classList.remove('date-checking');
+                    dateAvailabilityIndicator.classList.add('date-unavailable');
+                    dateAvailabilityIndicator.innerHTML = '<i class="bi bi-exclamation-triangle"></i><span>Ошибка проверки</span>';
+                    dateAvailabilityMessage.innerHTML = 'Не удалось проверить доступность даты';
+                    dateAvailabilityMessage.style.color = '#dc3545';
                 }
             }
             
@@ -1494,12 +1746,23 @@
                 });
             }
             
+            // Добавляем обработчик для проверки даты при изменении
+            if (dateInput) {
+                dateInput.addEventListener('change', function() {
+                    if (selectedWarehouseId) {
+                        checkDateAvailability();
+                    } else {
+                        showAlertMessage('Сначала выберите склад для проверки доступности даты', 'warning');
+                    }
+                });
+            }
+            
             if (form) {
                 form.addEventListener('submit', function(e) {
                     e.preventDefault();
                     
                     if (!selectedCityId.value) {
-                        showAlertMessage('Пожалуйста, выберите город приема заявки', 'warning');
+                        showAlertMessage('Пожалуйста, выберите город получения груза', 'warning');
                         document.querySelector('.city-selection-card').scrollIntoView({ 
                             behavior: 'smooth', 
                             block: 'center' 
@@ -1523,6 +1786,26 @@
                             citySection.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }
                         return false;
+                    }
+                    
+                    // Проверяем доступность даты перед отправкой
+                    if (dateInput && dateInput.value) {
+                        const selectedDate = new Date(dateInput.value);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        
+                        if (selectedDate < today) {
+                            showAlertMessage('Нельзя выбрать дату в прошлом', 'warning');
+                            dateInput.focus();
+                            return false;
+                        }
+                        
+                        const dayOfWeek = selectedDate.getDay();
+                        if (dayOfWeek === 0 || dayOfWeek === 6) {
+                            showAlertMessage('Склад не работает в выходные дни. Пожалуйста, выберите рабочий день (понедельник-пятница)', 'warning');
+                            dateInput.focus();
+                            return false;
+                        }
                     }
                     
                     let isValid = true;
@@ -1567,18 +1850,16 @@
                 });
             }
             
-            // Инициализируем поля контрагентов при загрузке
-            initCounterpartyFields();
+            // Инициализируем поля клиента при загрузке
+            initClientFields();
         });
         
         function showAlertMessage(message, type) {
-            const oldNotifications = document.querySelectorAll('.notification-alert');
-            oldNotifications.forEach(alert => {
-                const bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            });
+            // Создаем уникальный ID для уведомления
+            const notificationId = 'notification-' + Date.now();
             
             const alertDiv = document.createElement('div');
+            alertDiv.id = notificationId;
             alertDiv.className = `alert alert-${type} alert-dismissible fade show notification-alert`;
             alertDiv.style.cssText = `
                 position: fixed;
@@ -1595,19 +1876,22 @@
                         '<i class="bi bi-check-circle-fill me-2 fs-5"></i>' : 
                         type === 'warning' ? 
                         '<i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>' :
+                        type === 'info' ?
+                        '<i class="bi bi-info-circle-fill me-2 fs-5"></i>' :
                         '<i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>'
                     }
                     <div>${message}</div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <button type="button" class="btn-close" onclick="document.getElementById('${notificationId}').remove()"></button>
             `;
             
             document.body.appendChild(alertDiv);
             
+            // Автоматическое удаление через 5 секунд
             setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    const bsAlert = new bootstrap.Alert(alertDiv);
-                    bsAlert.close();
+                const element = document.getElementById(notificationId);
+                if (element) {
+                    element.remove();
                 }
             }, 5000);
         }
@@ -1626,8 +1910,6 @@
                 submitButton.innerHTML = '<i class="bi bi-send-check me-2"></i> Отправить заявку';
             }
         });
-        
-        window.changeCounterpartyFields = changeCounterpartyFields;
     </script>
 </body>
 </html>

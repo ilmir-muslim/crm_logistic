@@ -19,7 +19,6 @@ urlpatterns = [
     ),
     path("<int:pk>/pdf/", views.pickup_order_pdf, name="pickup_order_pdf"),
     path("bulk-pdf/", views.pickup_orders_bulk_pdf, name="pickup_orders_bulk_pdf"),
-    # Добавлен новый путь для инлайн-редактирования
     path(
         "<int:pk>/update-field/",
         views.update_pickup_order_field,

@@ -183,7 +183,7 @@ print(f"🌐 SITE_URL: {SITE_URL}")
 if IS_PRODUCTION:
     # Продакшен настройки email
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = "localhost"  # Beget использует локальный sendmail
+    EMAIL_HOST = "localhost" 
     EMAIL_PORT = 25
     EMAIL_USE_TLS = False
     EMAIL_USE_SSL = False

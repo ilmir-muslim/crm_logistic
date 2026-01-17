@@ -430,6 +430,34 @@
             background-color: #e8f4f8;
             border: 2px solid var(--primary-blue) !important;
         }
+        
+        .date-availability-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin-left: 10px;
+        }
+        
+        .date-available {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .date-unavailable {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .date-checking {
+            background-color: #e7f3ff;
+            color: #0d6efd;
+            border: 1px solid #b3d7ff;
+        }
     </style>
 </head>
 <body>
@@ -603,14 +631,20 @@
                                 <label for="{{ form.date.id_for_label }}" class="form-label required">
                                     Дата отправки *
                                 </label>
-                                {{ form.date }}
+                                <div class="input-group">
+                                    {{ form.date }}
+                                    <div id="date-availability-indicator" class="date-availability-indicator hidden">
+                                        <i class="bi bi-clock"></i>
+                                        <span>Проверка...</span>
+                                    </div>
+                                </div>
                                 {% if form.date.errors %}
                                 <div class="invalid-feedback d-block">
                                     {{ form.date.errors.0 }}
                                 </div>
                                 {% endif %}
-                                <div class="form-text">
-                                    Выберите желаемую дату отправки груза
+                                <div class="form-text" id="date-availability-message">
+                                    Выберите дату отправки с учетом графика работы складов
                                 </div>
                             </div>
                             
@@ -740,67 +774,7 @@
                         <h5 class="card-title">Информация о клиенте</h5>
                     </div>
                     <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="{{ form.client_company.id_for_label }}" class="form-label required">
-                                    Наименование компании *
-                                </label>
-                                {{ form.client_company }}
-                                {% if form.client_company.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.client_company.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    Полное наименование компании или ИП
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <label for="{{ form.client_name.id_for_label }}" class="form-label required">
-                                    Контактное лицо *
-                                </label>
-                                {{ form.client_name }}
-                                {% if form.client_name.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.client_name.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    ФИО ответственного лица
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <label for="{{ form.client_phone.id_for_label }}" class="form-label required">
-                                    Телефон для связи *
-                                </label>
-                                {{ form.client_phone }}
-                                {% if form.client_phone.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.client_phone.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    Номер для оперативной связи
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <label for="{{ form.client_email.id_for_label }}" class="form-label">
-                                    Email (необязательно)
-                                </label>
-                                {{ form.client_email }}
-                                {% if form.client_email.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.client_email.errors.0 }}
-                                </div>
-                                {% endif %}
-                                <div class="form-text">
-                                    На этот email придет подтверждение (если указан)
-                                </div>
-                            </div>
-                        </div>
+                        {% include "order_form/client_info_component.html" with client_type="client" %}
                     </div>
                 </div>
                 
@@ -881,6 +855,9 @@
             const citySelectionDisplay = document.getElementById('city-selection-display');
             const form = document.getElementById('orderForm');
             const submitButton = document.getElementById('submitButton');
+            const dateAvailabilityIndicator = document.getElementById('date-availability-indicator');
+            const dateAvailabilityMessage = document.getElementById('date-availability-message');
+            const dateInput = document.querySelector('#id_date');
             
             // Данные из контекста Django
             const citiesData = JSON.parse('{{ cities_data_json|escapejs }}' || '[]');
@@ -1062,6 +1039,61 @@
                         </div>
                     `;
                 }
+                
+                // Проверяем доступность текущей выбранной даты
+                if (dateInput && dateInput.value) {
+                    checkDateAvailability();
+                }
+            }
+            
+            // Функция для проверки доступности даты
+            async function checkDateAvailability() {
+                if (!selectedWarehouseId || !dateInput || !dateInput.value) {
+                    return;
+                }
+                
+                // Показываем индикатор проверки
+                dateAvailabilityIndicator.classList.remove('hidden');
+                dateAvailabilityIndicator.classList.remove('date-available');
+                dateAvailabilityIndicator.classList.remove('date-unavailable');
+                dateAvailabilityIndicator.classList.add('date-checking');
+                dateAvailabilityIndicator.innerHTML = '<i class="bi bi-clock"></i><span>Проверка доступности...</span>';
+                
+                try {
+                    // Симуляция проверки доступности даты
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Здесь будет реальный AJAX запрос к API
+                    // const response = await fetch(`/api/check-date-availability/?warehouse_id=${selectedWarehouseId}&date=${dateInput.value}`);
+                    // const data = await response.json();
+                    
+                    // Временная заглушка: проверяем день недели (суббота, воскресенье - нерабочие)
+                    const selectedDate = new Date(dateInput.value);
+                    const dayOfWeek = selectedDate.getDay(); // 0 - воскресенье, 6 - суббота
+                    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                    
+                    if (isWeekend) {
+                        dateAvailabilityIndicator.classList.remove('date-checking');
+                        dateAvailabilityIndicator.classList.add('date-unavailable');
+                        dateAvailabilityIndicator.innerHTML = '<i class="bi bi-x-circle"></i><span>Склад не работает в выходные</span>';
+                        dateAvailabilityMessage.innerHTML = 'Выбран выходной день. Пожалуйста, выберите рабочий день (понедельник-пятница)';
+                        dateAvailabilityMessage.style.color = '#dc3545';
+                    } else {
+                        dateAvailabilityIndicator.classList.remove('date-checking');
+                        dateAvailabilityIndicator.classList.add('date-available');
+                        dateAvailabilityIndicator.innerHTML = '<i class="bi bi-check-circle"></i><span>День доступен</span>';
+                        dateAvailabilityMessage.innerHTML = 'Дата доступна для бронирования';
+                        dateAvailabilityMessage.style.color = '#198754';
+                    }
+                    
+                } catch (error) {
+                    console.error('Ошибка проверки даты:', error);
+                    dateAvailabilityIndicator.classList.remove('date-checking');
+                    dateAvailabilityIndicator.classList.add('date-unavailable');
+                    dateAvailabilityIndicator.innerHTML = '<i class="bi bi-exclamation-triangle"></i><span>Ошибка проверки</span>';
+                    dateAvailabilityMessage.innerHTML = 'Не удалось проверить доступность даты';
+                    dateAvailabilityMessage.style.color = '#dc3545';
+                }
             }
             
             // Обработчики для кнопок выбора города
@@ -1092,6 +1124,17 @@
                     }, 300);
                 });
             });
+            
+            // Добавляем обработчик для проверки даты при изменении
+            if (dateInput) {
+                dateInput.addEventListener('change', function() {
+                    if (selectedWarehouseId) {
+                        checkDateAvailability();
+                    } else {
+                        showAlertMessage('Сначала выберите склад для проверки доступности даты', 'warning');
+                    }
+                });
+            }
             
             // Автоматически выбираем первый город при загрузке
             const firstCityBtn = document.querySelector('.city-btn');
@@ -1124,6 +1167,26 @@
                             block: 'center' 
                         });
                         return false;
+                    }
+                    
+                    // Проверяем доступность даты перед отправкой
+                    if (dateInput && dateInput.value) {
+                        const selectedDate = new Date(dateInput.value);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        
+                        if (selectedDate < today) {
+                            showAlertMessage('Нельзя выбрать дату в прошлом', 'warning');
+                            dateInput.focus();
+                            return false;
+                        }
+                        
+                        const dayOfWeek = selectedDate.getDay();
+                        if (dayOfWeek === 0 || dayOfWeek === 6) {
+                            showAlertMessage('Склад не работает в выходные дни. Пожалуйста, выберите рабочий день (понедельник-пятница)', 'warning');
+                            dateInput.focus();
+                            return false;
+                        }
                     }
                     
                     // Проверяем обязательные поля формы Django
@@ -1174,15 +1237,11 @@
             
             // Функция для показа сообщений
             function showAlertMessage(message, type) {
-                // Удаляем старые уведомления
-                const oldNotifications = document.querySelectorAll('.notification-alert');
-                oldNotifications.forEach(alert => {
-                    const bsAlert = new bootstrap.Alert(alert);
-                    bsAlert.close();
-                });
+                // Создаем уникальный ID для уведомления
+                const notificationId = 'notification-' + Date.now();
                 
-                // Создаем новое уведомление
                 const alertDiv = document.createElement('div');
+                alertDiv.id = notificationId;
                 alertDiv.className = `alert alert-${type} alert-dismissible fade show notification-alert`;
                 alertDiv.style.cssText = `
                     position: fixed;
@@ -1199,22 +1258,26 @@
                             '<i class="bi bi-check-circle-fill me-2 fs-5"></i>' : 
                             type === 'warning' ? 
                             '<i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>' :
+                            type === 'info' ?
+                            '<i class="bi bi-info-circle-fill me-2 fs-5"></i>' :
                             '<i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>'
                         }
                         <div>${message}</div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <button type="button" class="btn-close" onclick="document.getElementById('${notificationId}').remove()"></button>
                 `;
                 
                 document.body.appendChild(alertDiv);
                 
+                // Автоматическое удаление через 5 секунд
                 setTimeout(() => {
-                    if (alertDiv.parentNode) {
-                        const bsAlert = new bootstrap.Alert(alertDiv);
-                        bsAlert.close();
+                    const element = document.getElementById(notificationId);
+                    if (element) {
+                        element.remove();
                     }
                 }, 5000);
             }
+
             
             // Автоматическое закрытие сообщений
             setTimeout(function() {

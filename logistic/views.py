@@ -12,7 +12,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import date, datetime, timedelta
-from django.db.models import Count, Sum, Avg, Q
+from django.db.models import Count, Sum, Q
 from django.http import HttpResponse, JsonResponse
 import pandas as pd
 from io import BytesIO
@@ -21,7 +21,6 @@ import zipfile
 from django.views.decorators.http import require_POST
 from weasyprint import HTML
 
-from utils.pdf_generator import generate_qr_code_pdf
 
 from .models import DeliveryOrder
 from pickup.models import PickupOrder

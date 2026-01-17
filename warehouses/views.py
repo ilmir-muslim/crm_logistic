@@ -1,7 +1,9 @@
+from datetime import datetime
+import json
 from django.http import JsonResponse
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from django.contrib.auth.decorators import login_required
-from .models import City, Warehouse, WarehouseContainer
+from .models import City, Warehouse, WarehouseContainer, WarehouseSchedule
 
 
 @require_GET
@@ -80,3 +82,82 @@ def get_warehouses_json(request):
     warehouses = Warehouse.objects.all().order_by("name")
     data = [{"id": wh.id, "name": f"{wh.name} ({wh.city.name})"} for wh in warehouses]
     return JsonResponse(data, safe=False)
+
+
+@require_POST
+def check_date_availability_json(request, warehouse_id):
+    """Проверяет доступность даты для указанного склада"""
+    try:
+        data = json.loads(request.body)
+        date_str = data.get("date")
+
+        if not date_str:
+            return JsonResponse({"error": "Дата не указана"}, status=400)
+
+        try:
+            check_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return JsonResponse({"error": "Неверный формат даты"}, status=400)
+
+        # Получаем день недели
+        day_of_week = check_date.isoweekday()  # 1-понедельник, 7-воскресенье
+
+        try:
+            schedule = WarehouseSchedule.objects.get(
+                warehouse_id=warehouse_id, day_of_week=day_of_week
+            )
+
+            is_available = schedule.is_working
+
+            # Если сегодня, проверяем не прошло ли время
+            from django.utils import timezone
+
+            if check_date == timezone.now().date() and is_available:
+                current_time = timezone.now().time()
+                if (
+                    schedule.pickup_cutoff_time
+                    and current_time > schedule.pickup_cutoff_time
+                ):
+                    is_available = False
+
+            return JsonResponse(
+                {
+                    "date": date_str,
+                    "warehouse_id": warehouse_id,
+                    "is_available": is_available,
+                    "day_of_week": schedule.get_day_of_week_display(),
+                    "opening_time": (
+                        schedule.opening_time.strftime("%H:%M")
+                        if schedule.opening_time
+                        else None
+                    ),
+                    "closing_time": (
+                        schedule.closing_time.strftime("%H:%M")
+                        if schedule.closing_time
+                        else None
+                    ),
+                    "pickup_cutoff_time": (
+                        schedule.pickup_cutoff_time.strftime("%H:%M")
+                        if schedule.pickup_cutoff_time
+                        else None
+                    ),
+                    "message": (
+                        "День доступен"
+                        if is_available
+                        else "Склад не работает в этот день"
+                    ),
+                }
+            )
+
+        except WarehouseSchedule.DoesNotExist:
+            return JsonResponse(
+                {
+                    "date": date_str,
+                    "warehouse_id": warehouse_id,
+                    "is_available": False,
+                    "message": "Склад не работает в этот день",
+                }
+            )
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
