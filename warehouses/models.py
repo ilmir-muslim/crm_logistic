@@ -103,6 +103,11 @@ class Warehouse(models.Model):
         """Возвращает строку с графиком работы"""
         if self.is_24h:
             return "24/7"
+
+        # Проверяем, что времена не None
+        if not self.opening_time or not self.closing_time:
+            return "График работы не указан"
+
         return f"{self.opening_time.strftime('%H:%M')} - {self.closing_time.strftime('%H:%M')}, {self.work_days}"
 
     def get_available_capacity_percentage(self):
@@ -110,6 +115,7 @@ class Warehouse(models.Model):
         if self.total_area > 0:
             return round((self.available_area / self.total_area) * 100, 1)
         return 0
+
 
     @property
     def is_open_now(self):
@@ -120,6 +126,10 @@ class Warehouse(models.Model):
         now = timezone.now()
         current_time = now.time()
         current_day = now.strftime("%a").lower()
+
+        # Проверяем, что времена не None
+        if not self.opening_time or not self.closing_time:
+            return False
 
         # Простая проверка времени
         if current_time < self.opening_time or current_time > self.closing_time:
