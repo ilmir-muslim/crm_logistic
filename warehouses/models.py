@@ -68,27 +68,7 @@ class Warehouse(models.Model):
         null=True,
     )
 
-    # График работы
-    opening_time = models.TimeField(
-        verbose_name="Время открытия",
-        default=timezone.datetime.strptime("09:00", "%H:%M").time(),
-        blank=True,
-        null=True,
-    )
-    closing_time = models.TimeField(
-        verbose_name="Время закрытия",
-        default=timezone.datetime.strptime("18:00", "%H:%M").time(),
-        blank=True,
-        null=True,
-    )
-    work_days = models.CharField(
-        max_length=100,
-        verbose_name="Рабочие дни",
-        default="пн-пт",
-        help_text="пн-пт, сб, вс",
-        blank=True,
-        null=True,
-    )
+    # Круглосуточный режим
     is_24h = models.BooleanField(verbose_name="Круглосуточный", default=False)
 
     class Meta:
@@ -100,90 +80,86 @@ class Warehouse(models.Model):
         return f"{self.name} ({self.city.name})"
 
     def get_working_hours(self):
-        """Возвращает строку с графиком работы"""
-        if self.is_24h:
-            return "24/7"
-
-        # Проверяем, что времена не None
-        if not self.opening_time or not self.closing_time:
+        """Возвращает строку с графиком работы на основе расписания по дням"""
+        # Используем детальное расписание
+        working_schedules = self.schedules.filter(is_working=True).order_by(
+            "day_of_week"
+        )
+        if not working_schedules.exists():
             return "График работы не указан"
 
-        return f"{self.opening_time.strftime('%H:%M')} - {self.closing_time.strftime('%H:%M')}, {self.work_days}"
-
-    def get_available_capacity_percentage(self):
-        """Возвращает процент доступной площади"""
-        if self.total_area > 0:
-            return round((self.available_area / self.total_area) * 100, 1)
-        return 0
-
-
-    @property
-    def is_open_now(self):
-        """Проверяет, работает ли склад сейчас"""
-        if self.is_24h:
-            return True
-
-        now = timezone.now()
-        current_time = now.time()
-        current_day = now.strftime("%a").lower()
-
-        # Проверяем, что времена не None
-        if not self.opening_time or not self.closing_time:
-            return False
-
-        # Простая проверка времени
-        if current_time < self.opening_time or current_time > self.closing_time:
-            return False
-
-        # Проверка дней недели
-        if "пн-пт" in self.work_days and current_day in ["sat", "sun"]:
-            return False
-
-        return True
-    
-    def get_detailed_working_hours(self):
-        """Возвращает детальный график работы на основе расписания"""
-        if self.is_24h:
-            return "Круглосуточно"
-        
-        schedules = self.schedules.filter(is_working=True).order_by('day_of_week')
-        if not schedules.exists():
-            return "График работы не указан"
-        
-        # Группируем по одинаковому времени работы
+        # Группируем дни с одинаковым временем работы
         schedule_dict = {}
-        for schedule in schedules:
+        for schedule in working_schedules:
             key = f"{schedule.opening_time.strftime('%H:%M')}-{schedule.closing_time.strftime('%H:%M')}"
             if key not in schedule_dict:
                 schedule_dict[key] = []
             schedule_dict[key].append(schedule.get_day_of_week_display())
-        
+
         result = []
         for time_range, days in schedule_dict.items():
             if len(days) == 7:
                 result.append(f"Ежедневно: {time_range}")
-            elif len(days) == 5 and all(day in days for day in ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница"]):
+            elif len(days) == 5 and all(
+                day in days
+                for day in ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница"]
+            ):
                 result.append(f"Пн-Пт: {time_range}")
-            elif len(days) == 2 and all(day in days for day in ["Суббота", "Воскресенье"]):
+            elif len(days) == 2 and all(
+                day in days for day in ["Суббота", "Воскресенье"]
+            ):
                 result.append(f"Сб-Вс: {time_range}")
             else:
                 days_str = ", ".join(days)
                 result.append(f"{days_str}: {time_range}")
-        
+
         return "; ".join(result)
 
-    def is_working_day(self, date):
-        """Проверяет, работает ли склад в указанную дату"""
-        day_of_week = date.isoweekday()
+    def get_available_capacity_percentage(self):
+        """Возвращает процент доступной площади"""
+        if self.total_area and self.total_area > 0:
+            return round((self.available_area / self.total_area) * 100, 1)
+        return 0
+
+    @property
+    def is_open_now(self):
+        """Проверяет, работает ли склад сейчас на основе расписания по дням"""
+        now = timezone.now()
+        current_day = now.isoweekday()  # 1=понедельник, 7=воскресенье
+        current_time = now.time()
+
         try:
-            schedule = WarehouseSchedule.objects.get(
-                warehouse=self, 
-                day_of_week=day_of_week
-            )
-            return schedule.is_working
-        except WarehouseSchedule.DoesNotExist:
+            schedule = self.schedules.get(day_of_week=current_day)
+            if not schedule.is_working:
+                return False
+
+            # Если склад круглосуточный
+            if self.is_24h:
+                return True
+
+            # Проверяем время работы
+            if schedule.opening_time and schedule.closing_time:
+                # Проверяем, не перерыв ли сейчас
+                if schedule.break_start and schedule.break_end:
+                    if schedule.break_start <= current_time <= schedule.break_end:
+                        return False
+
+                # Проверяем рабочие часы
+                if schedule.opening_time <= current_time <= schedule.closing_time:
+                    return True
+
             return False
 
+        except WarehouseSchedule.DoesNotExist:
+            # Если нет расписания на этот день, считаем что склад закрыт
+            return False
+
+    def get_schedule_for_day(self, day_of_week):
+        """Возвращает расписание для указанного дня недели"""
+        try:
+            return self.schedules.get(day_of_week=day_of_week)
+        except WarehouseSchedule.DoesNotExist:
+            return None
 
 
 class ContainerType(models.Model):
@@ -367,19 +343,21 @@ class WarehouseSchedule(models.Model):
         verbose_name="Крайний срок приема заявок на доставку"
     )
 
-
     class Meta:
         verbose_name = "График работы по дням"
         verbose_name_plural = "Графики работы по дням"
         unique_together = ["warehouse", "day_of_week"]
+        ordering = ["warehouse", "day_of_week"]
 
     def __str__(self):
-        return f"{self.get_day_of_week_display()} - {self.warehouse.name}"
+        return f"{self.warehouse.name} - {self.get_day_of_week_display()}"
 
     @property
     def working_hours(self):
         """Возвращает рабочие часы"""
-        return f"{self.opening_time.strftime('%H:%M')}-{self.closing_time.strftime('%H:%M')}"
+        if self.is_working:
+            return f"{self.opening_time.strftime('%H:%M')}-{self.closing_time.strftime('%H:%M')}"
+        return "Выходной"
 
     def is_available_for_time(self, time):
         """Проверяет доступность в указанное время"""
