@@ -59,7 +59,6 @@
             letter-spacing: 1px;
         }
         
-        /* Стили для карточек */
         .info-card {
             border: none;
             border-radius: 12px;
@@ -153,7 +152,6 @@
             padding: 1.5rem;
         }
         
-        /* Кнопки выбора города */
         .city-buttons {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -200,7 +198,6 @@
             font-size: 0.9rem;
         }
         
-        /* Стили для информации о складах */
         .warehouse-info {
             border: 1px solid #dee2e6;
             border-radius: 10px;
@@ -212,7 +209,6 @@
             box-shadow: 0 4px 15px rgba(13, 110, 253, 0.1);
         }
         
-        /* Таблицы */
         .custom-table {
             border-radius: 8px;
             overflow: hidden;
@@ -236,7 +232,6 @@
             background-color: rgba(13, 110, 253, 0.05);
         }
         
-        /* Форма */
         .form-label {
             font-weight: 600;
             color: #495057;
@@ -266,7 +261,6 @@
             margin-top: 0.25rem;
         }
         
-        /* Кнопки */
         .btn-submit {
             background: linear-gradient(135deg, var(--success-green) 0%, #20c997 100%);
             border: none;
@@ -299,7 +293,6 @@
             background: linear-gradient(135deg, #545b62 0%, #3d4247 100%);
         }
         
-        /* Чекбокс */
         .form-check-input:checked {
             background-color: var(--success-green);
             border-color: var(--success-green);
@@ -310,13 +303,11 @@
             box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
         
-        /* Сообщения об ошибках */
         .invalid-feedback {
             font-size: 0.85rem;
             margin-top: 0.25rem;
         }
         
-        /* Футер */
         .footer {
             background: #f8f9fa;
             padding: 2rem;
@@ -339,7 +330,6 @@
             margin-top: 1rem;
         }
         
-        /* Адаптивность */
         @media (max-width: 768px) {
             .form-container {
                 margin: 1rem;
@@ -368,7 +358,6 @@
             }
         }
         
-        /* Анимация */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -382,7 +371,6 @@
             display: none !important;
         }
         
-        /* Стили для сообщений */
         .messages-container {
             position: fixed;
             top: 20px;
@@ -393,7 +381,6 @@
             max-width: 600px;
         }
         
-        /* Статусы складов */
         .warehouse-status {
             display: inline-flex;
             align-items: center;
@@ -414,7 +401,6 @@
             color: #721c24;
         }
         
-        /* Пульсация для выделения */
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7); }
             70% { box-shadow: 0 0 0 10px rgba(13, 110, 253, 0); }
@@ -423,12 +409,6 @@
         
         .pulse {
             animation: pulse 1.5s infinite;
-        }
-        
-        /* Стили для выбранного склада */
-        .selected-warehouse {
-            background-color: #e8f4f8;
-            border: 2px solid var(--primary-blue) !important;
         }
         
         .date-availability-indicator {
@@ -457,6 +437,24 @@
             background-color: #e7f3ff;
             color: #0d6efd;
             border: 1px solid #b3d7ff;
+        }
+        
+        /* Стили для динамических полей */
+        .delivery-client-legal-fields,
+        .delivery-client-entrepreneur-fields,
+        .delivery-client-individual-fields {
+            display: none;
+        }
+        
+        .delivery-client-field-group {
+            transition: all 0.3s ease;
+        }
+        
+        .delivery-client-legal-fields.visible,
+        .delivery-client-entrepreneur-fields.visible,
+        .delivery-client-individual-fields.visible {
+            display: block;
+            animation: fadeIn 0.5s ease forwards;
         }
     </style>
 </head>
@@ -774,7 +772,208 @@
                         <h5 class="card-title">Информация о клиенте</h5>
                     </div>
                     <div class="card-body">
-                        {% include "order_form/client_info_component.html" with client_type="client" %}
+                        <!-- Основные поля клиента -->
+                        <div class="mb-3">
+                            <label class="form-label required">Тип клиента *</label>
+                            {{ form.client_type }}
+                            {% if form.client_type.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_type.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Поле компании/ФИО -->
+                        <div class="mb-3 delivery-client-field-group" id="delivery-client-company-group">
+                            <label class="form-label required" id="delivery-client-company-label">Наименование компании *</label>
+                            {{ form.client_company }}
+                            {% if form.client_company.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_company.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text" id="delivery-client-company-help">Полное наименование компании или ФИО</div>
+                        </div>
+                        
+                        <div class="mb-3 delivery-client-field-group">
+                            <label class="form-label required">Контактное лицо *</label>
+                            {{ form.client_name }}
+                            {% if form.client_name.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_name.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">ФИО ответственного лица</div>
+                        </div>
+                        
+                        <!-- Поле ИНН (для всех типов кроме физ.лиц) -->
+                        <div class="mb-3 delivery-client-field-group delivery-client-legal-fields delivery-client-entrepreneur-fields">
+                            <label class="form-label">ИНН</label>
+                            {{ form.client_inn }}
+                            {% if form.client_inn.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_inn.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text small">10 цифр для юр. лиц, 12 цифр для ИП</div>
+                        </div>
+                        
+                        <!-- Поля для юридического лица -->
+                        <div class="delivery-client-legal-fields">
+                            <div class="mb-3">
+                                <label class="form-label">КПП</label>
+                                {{ form.client_kpp }}
+                                {% if form.client_kpp.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_kpp.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">ОГРН</label>
+                                {{ form.client_ogrn }}
+                                {% if form.client_ogrn.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_ogrn.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">ФИО руководителя</label>
+                                {{ form.client_director_name }}
+                                {% if form.client_director_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_director_name.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Поля для индивидуального предпринимателя -->
+                        <div class="delivery-client-entrepreneur-fields">
+                            <div class="mb-3">
+                                <label class="form-label">ОГРНИП</label>
+                                {{ form.client_ogrn }}
+                                {% if form.client_ogrn.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_ogrn.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Поля для физического лица -->
+                        <div class="delivery-client-individual-fields">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Серия паспорта</label>
+                                        {{ form.client_passport_series }}
+                                        {% if form.client_passport_series.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.client_passport_series.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Номер паспорта</label>
+                                        {{ form.client_passport_number }}
+                                        {% if form.client_passport_number.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.client_passport_number.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Кем выдан паспорт</label>
+                                {{ form.client_passport_issued_by }}
+                                {% if form.client_passport_issued_by.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_passport_issued_by.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Дата выдачи паспорта</label>
+                                {{ form.client_passport_issued_date }}
+                                {% if form.client_passport_issued_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_passport_issued_date.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Общие поля для всех типов -->
+                        <div class="mb-3 delivery-client-field-group">
+                            <label class="form-label required">Адрес *</label>
+                            {{ form.client_address }}
+                            {% if form.client_address.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_address.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text small">Юридический адрес для юр. лиц, адрес регистрации для физ. лиц</div>
+                        </div>
+                        
+                        <div class="mb-3 delivery-client-field-group">
+                            <label class="form-label required">Телефон для связи *</label>
+                            {{ form.client_phone }}
+                            {% if form.client_phone.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_phone.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text small">Формат: +7 (999) 123-45-67</div>
+                        </div>
+                        
+                        <div class="mb-3 delivery-client-field-group">
+                            <label class="form-label">Email</label>
+                            {{ form.client_email }}
+                            {% if form.client_email.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_email.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text small">На этот email придет подтверждение (если указан)</div>
+                        </div>
+                        
+                        <div class="mb-3 delivery-client-field-group">
+                            <label class="form-label">Контактное лицо (дополнительно)</label>
+                            {{ form.client_contact_person }}
+                            {% if form.client_contact_person.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.client_contact_person.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text small">Лицо, ответственное за отправку/получение груза</div>
+                        </div>
+                        
+                        <!-- Банковские реквизиты (для юр.лиц и ИП) -->
+                        <div class="delivery-client-legal-fields delivery-client-entrepreneur-fields">
+                            <div class="mb-3">
+                                <label class="form-label">Банк</label>
+                                {{ form.client_bank_name }}
+                                {% if form.client_bank_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_bank_name.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Расчетный счет</label>
+                                {{ form.client_bank_account }}
+                                {% if form.client_bank_account.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.client_bank_account.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -842,460 +1041,542 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Элементы DOM
-            const selectedCityId = document.getElementById('selectedCityId');
-            const cityInfo = document.getElementById('city-info');
-            const cityNameElement = document.getElementById('selected-city-name');
-            const cityContent = document.getElementById('city-info-content');
-            const warehouseHidden = document.getElementById('id_warehouse_hidden');
-            const cityHidden = document.getElementById('id_city_hidden');
-            const warehouseSelection = document.getElementById('warehouse-selection');
-            const citySelectionDisplay = document.getElementById('city-selection-display');
-            const form = document.getElementById('orderForm');
-            const submitButton = document.getElementById('submitButton');
-            const dateAvailabilityIndicator = document.getElementById('date-availability-indicator');
-            const dateAvailabilityMessage = document.getElementById('date-availability-message');
-            const dateInput = document.querySelector('#id_date');
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Элементы DOM
+        const selectedCityId = document.getElementById('selectedCityId');
+        const cityInfo = document.getElementById('city-info');
+        const cityNameElement = document.getElementById('selected-city-name');
+        const cityContent = document.getElementById('city-info-content');
+        const warehouseHidden = document.getElementById('id_warehouse_hidden');
+        const cityHidden = document.getElementById('id_city_hidden');
+        const warehouseSelection = document.getElementById('warehouse-selection');
+        const citySelectionDisplay = document.getElementById('city-selection-display');
+        const form = document.getElementById('orderForm');
+        const submitButton = document.getElementById('submitButton');
+        const dateAvailabilityIndicator = document.getElementById('date-availability-indicator');
+        const dateAvailabilityMessage = document.getElementById('date-availability-message');
+        const dateInput = document.querySelector('#id_date');
+        
+        // Данные из контекста Django
+        const citiesData = JSON.parse('{{ cities_data_json|escapejs }}' || '[]');
+        
+        // Текущий выбранный город и склад
+        let currentCity = null;
+        let selectedWarehouseId = null;
+        let selectedWarehouseName = null;
+        let selectedCityIdValue = null;
+        let selectedCityName = null;
+        
+        // Функция для переключения полей в зависимости от типа клиента в форме доставки
+        function toggleDeliveryClientFieldsByType() {
+            const clientTypeSelect = document.getElementById('id_client_type');
+            if (!clientTypeSelect) return;
             
-            // Данные из контекста Django
-            const citiesData = JSON.parse('{{ cities_data_json|escapejs }}' || '[]');
+            const clientType = clientTypeSelect.value;
+            const companyGroup = document.getElementById('delivery-client-company-group');
+            const companyLabel = document.getElementById('delivery-client-company-label');
+            const companyHelp = document.getElementById('delivery-client-company-help');
             
-            // Текущий выбранный город и склад
-            let currentCity = null;
-            let selectedWarehouseId = null;
-            let selectedWarehouseName = null;
-            let selectedCityIdValue = null;
-            let selectedCityName = null;
+            // Скрываем все группы полей
+            document.querySelectorAll('.delivery-client-legal-fields, .delivery-client-entrepreneur-fields, .delivery-client-individual-fields').forEach(el => {
+                el.classList.remove('visible');
+            });
             
-            // Функция для отображения информации о городе
-            function displayCityInfo(cityId) {
-                const city = citiesData.find(c => c.id == cityId);
-                if (!city) {
-                    cityContent.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="bi bi-exclamation-triangle"></i>
-                            Город не найден
-                        </div>
-                    `;
-                    return;
-                }
-                
-                currentCity = city;
-                cityNameElement.textContent = city.name;
-                selectedCityIdValue = city.id;
-                selectedCityName = city.name;
-                
-                // Устанавливаем город в скрытое поле
-                cityHidden.value = city.id;
-                
-                // Обновляем отображение выбранного города
-                updateCitySelectionDisplay(city.name);
-                
-                let html = '';
-                
-                if (city.warehouses && city.warehouses.length > 0) {
-                    // Отображаем информацию о каждом складе
-                    city.warehouses.forEach((warehouse, index) => {
-                        const isOpen = warehouse.is_open_now;
-                        
-                        html += `
-                            <div class="warehouse-info mb-3 p-3 ${selectedWarehouseId == warehouse.id ? 'selected-warehouse' : ''}" 
-                                 data-warehouse-id="${warehouse.id}">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <h6 class="mb-1">
-                                            <i class="bi bi-house-door me-2"></i>
-                                            <strong>${warehouse.name}</strong>
-                                            <span class="badge ${isOpen ? 'bg-success' : 'bg-danger'} ms-2">
-                                                <i class="bi ${isOpen ? 'bi-check-circle' : 'bi-x-circle'}"></i>
-                                                ${isOpen ? 'Открыт' : 'Закрыт'}
-                                            </span>
-                                        </h6>
-                                        <p class="text-muted mb-0"><small>Код: ${warehouse.code}</small></p>
-                                    </div>
-                                    <div>
-                                        <button type="button" class="btn btn-sm ${selectedWarehouseId == warehouse.id ? 'btn-primary' : 'btn-outline-primary'} select-warehouse-btn" 
-                                                data-warehouse-id="${warehouse.id}" 
-                                                data-warehouse-name="${warehouse.name}"
-                                                data-warehouse-city="${city.name}">
-                                            <i class="bi bi-check-circle me-1"></i> 
-                                            ${selectedWarehouseId == warehouse.id ? 'Выбран' : 'Выбрать'}
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <p class="mb-1 small">
-                                            <i class="bi bi-geo-alt text-primary"></i> 
-                                            <strong>Адрес:</strong> ${warehouse.address}
-                                        </p>
-                                        <p class="mb-1 small">
-                                            <i class="bi bi-telephone text-primary"></i> 
-                                            <strong>Телефон:</strong> ${warehouse.phone}
-                                        </p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <p class="mb-1 small">
-                                            <i class="bi bi-clock text-primary"></i> 
-                                            <strong>График работы:</strong> ${warehouse.working_hours}
-                                        </p>
-                                        ${warehouse.available_area ? `
-                                            <p class="mb-1 small">
-                                                <i class="bi bi-rulers text-primary"></i> 
-                                                <strong>Доступная площадь:</strong> ${warehouse.available_area} м²
-                                            </p>
-                                        ` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
+            // Скрываем поле ИНН для физ.лиц
+            const innField = document.querySelector('.delivery-client-legal-fields.delivery-client-entrepreneur-fields');
+            if (innField) {
+                if (clientType === 'individual' || clientType === 'self_employed') {
+                    innField.style.display = 'none';
                 } else {
-                    html = `
-                        <div class="alert alert-warning">
-                            <i class="bi bi-exclamation-triangle"></i>
-                            В городе ${city.name} нет доступных складов отправки.
-                        </div>
-                    `;
-                }
-                
-                cityContent.innerHTML = html;
-                cityInfo.classList.remove('hidden');
-                cityInfo.classList.add('fade-in');
-                
-                // Добавляем обработчики для кнопок выбора склада
-                document.querySelectorAll('.select-warehouse-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        selectWarehouse(
-                            this.getAttribute('data-warehouse-id'),
-                            this.getAttribute('data-warehouse-name'),
-                            this.getAttribute('data-warehouse-city')
-                        );
-                    });
-                });
-                
-                // Если склад уже выбран, обновляем его отображение
-                if (selectedWarehouseId) {
-                    document.querySelectorAll('.warehouse-info').forEach(div => {
-                        if (div.getAttribute('data-warehouse-id') == selectedWarehouseId) {
-                            div.classList.add('selected-warehouse');
-                        }
-                    });
+                    innField.style.display = 'block';
                 }
             }
             
-            // Функция для обновления отображения выбранного города
-            function updateCitySelectionDisplay(cityName) {
-                citySelectionDisplay.innerHTML = `
-                    <div class="alert alert-success">
-                        <i class="bi bi-check-circle"></i>
-                        Выбран город назначения: <strong>${cityName}</strong>
+            // Настраиваем лейбл для поля компании/ФИО
+            if (companyLabel && companyHelp) {
+                switch(clientType) {
+                    case 'legal':
+                        companyLabel.textContent = 'Наименование компании *';
+                        companyHelp.textContent = 'Полное наименование юридического лица (ООО, АО и т.д.)';
+                        document.querySelectorAll('.delivery-client-legal-fields').forEach(el => el.classList.add('visible'));
+                        break;
+                    case 'entrepreneur':
+                        companyLabel.textContent = 'Наименование ИП *';
+                        companyHelp.textContent = 'Наименование индивидуального предпринимателя';
+                        document.querySelectorAll('.delivery-client-entrepreneur-fields').forEach(el => el.classList.add('visible'));
+                        break;
+                    case 'individual':
+                    case 'self_employed':
+                        companyLabel.textContent = 'ФИО *';
+                        companyHelp.textContent = 'Фамилия, имя, отчество физического лица';
+                        document.querySelectorAll('.delivery-client-individual-fields').forEach(el => el.classList.add('visible'));
+                        break;
+                }
+            }
+        }
+        
+        // Инициализация полей клиента для доставки
+        function initDeliveryClientFields() {
+            const typeSelect = document.getElementById('id_client_type');
+            if (typeSelect) {
+                typeSelect.addEventListener('change', toggleDeliveryClientFieldsByType);
+                // Инициализируем при загрузке
+                toggleDeliveryClientFieldsByType();
+            }
+        }
+        
+        // Функция для отображения информации о городе
+        function displayCityInfo(cityId) {
+            const city = citiesData.find(c => c.id == cityId);
+            if (!city) {
+                cityContent.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Город не найден
+                    </div>
+                `;
+                return;
+            }
+            
+            currentCity = city;
+            cityNameElement.textContent = city.name;
+            selectedCityIdValue = city.id;
+            selectedCityName = city.name;
+            
+            // Устанавливаем город в скрытое поле
+            cityHidden.value = city.id;
+            
+            // Обновляем отображение выбранного города
+            updateCitySelectionDisplay(city.name);
+            
+            let html = '';
+            
+            if (city.warehouses && city.warehouses.length > 0) {
+                // Отображаем информацию о каждом складе
+                city.warehouses.forEach((warehouse, index) => {
+                    const isOpen = warehouse.is_open_now;
+                    
+                    html += `
+                        <div class="warehouse-info mb-3 p-3 ${selectedWarehouseId == warehouse.id ? 'selected-warehouse' : ''}" 
+                             data-warehouse-id="${warehouse.id}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <i class="bi bi-house-door me-2"></i>
+                                        <strong>${warehouse.name}</strong>
+                                        <span class="badge ${isOpen ? 'bg-success' : 'bg-danger'} ms-2">
+                                            <i class="bi ${isOpen ? 'bi-check-circle' : 'bi-x-circle'}"></i>
+                                            ${isOpen ? 'Открыт' : 'Закрыт'}
+                                        </span>
+                                    </h6>
+                                    <p class="text-muted mb-0"><small>Код: ${warehouse.code}</small></p>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-sm ${selectedWarehouseId == warehouse.id ? 'btn-primary' : 'btn-outline-primary'} select-warehouse-btn" 
+                                            data-warehouse-id="${warehouse.id}" 
+                                            data-warehouse-name="${warehouse.name}"
+                                            data-warehouse-city="${city.name}">
+                                        <i class="bi bi-check-circle me-1"></i> 
+                                        ${selectedWarehouseId == warehouse.id ? 'Выбран' : 'Выбрать'}
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1 small">
+                                        <i class="bi bi-geo-alt text-primary"></i> 
+                                        <strong>Адрес:</strong> ${warehouse.address}
+                                    </p>
+                                    <p class="mb-1 small">
+                                        <i class="bi bi-telephone text-primary"></i> 
+                                        <strong>Телефон:</strong> ${warehouse.phone}
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1 small">
+                                        <i class="bi bi-clock text-primary"></i> 
+                                        <strong>График работы:</strong> ${warehouse.working_hours}
+                                    </p>
+                                    ${warehouse.available_area ? `
+                                        <p class="mb-1 small">
+                                            <i class="bi bi-rulers text-primary"></i> 
+                                            <strong>Доступная площадь:</strong> ${warehouse.available_area} м²
+                                        </p>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                html = `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        В городе ${city.name} нет доступных складов отправки.
                     </div>
                 `;
             }
             
-            // Функция для выбора склада
-            function selectWarehouse(warehouseId, warehouseName, warehouseCity) {
-                selectedWarehouseId = warehouseId;
-                selectedWarehouseName = warehouseName;
-                
-                // Устанавливаем значение скрытого поля
-                warehouseHidden.value = warehouseId;
-                
-                // Обновляем кнопки и стили
-                document.querySelectorAll('.select-warehouse-btn').forEach(btn => {
-                    const btnWarehouseId = btn.getAttribute('data-warehouse-id');
-                    if (btnWarehouseId == warehouseId) {
-                        btn.classList.remove('btn-outline-primary');
-                        btn.classList.add('btn-primary');
-                        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Выбран';
-                    } else {
-                        btn.classList.remove('btn-primary');
-                        btn.classList.add('btn-outline-primary');
-                        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Выбрать';
-                    }
+            cityContent.innerHTML = html;
+            cityInfo.classList.remove('hidden');
+            cityInfo.classList.add('fade-in');
+            
+            // Добавляем обработчики для кнопок выбора склада
+            document.querySelectorAll('.select-warehouse-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    selectWarehouse(
+                        this.getAttribute('data-warehouse-id'),
+                        this.getAttribute('data-warehouse-name'),
+                        this.getAttribute('data-warehouse-city')
+                    );
                 });
-                
-                // Обновляем стили складов
+            });
+            
+            // Если склад уже выбран, обновляем его отображение
+            if (selectedWarehouseId) {
                 document.querySelectorAll('.warehouse-info').forEach(div => {
-                    div.classList.remove('selected-warehouse');
-                    if (div.getAttribute('data-warehouse-id') == warehouseId) {
+                    if (div.getAttribute('data-warehouse-id') == selectedWarehouseId) {
                         div.classList.add('selected-warehouse');
                     }
                 });
-                
-                // Показываем сообщение
-                showAlertMessage(`Выбран склад отправки: ${warehouseName} (${warehouseCity})`, 'success');
-                
-                // Обновляем отображение
-                if (warehouseSelection) {
-                    warehouseSelection.innerHTML = `
-                        <div class="alert alert-success">
-                            <i class="bi bi-check-circle"></i>
-                            Выбран склад отправки: <strong>${warehouseName}</strong> (${warehouseCity})
-                        </div>
-                    `;
+            }
+        }
+        
+        // Функция для обновления отображения выбранного города
+        function updateCitySelectionDisplay(cityName) {
+            citySelectionDisplay.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i>
+                    Выбран город назначения: <strong>${cityName}</strong>
+                </div>
+            `;
+        }
+        
+        // Функция для выбора склада
+        function selectWarehouse(warehouseId, warehouseName, warehouseCity) {
+            selectedWarehouseId = warehouseId;
+            selectedWarehouseName = warehouseName;
+            
+            // Устанавливаем значение скрытого поля
+            warehouseHidden.value = warehouseId;
+            
+            // Обновляем кнопки и стили
+            document.querySelectorAll('.select-warehouse-btn').forEach(btn => {
+                const btnWarehouseId = btn.getAttribute('data-warehouse-id');
+                if (btnWarehouseId == warehouseId) {
+                    btn.classList.remove('btn-outline-primary');
+                    btn.classList.add('btn-primary');
+                    btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Выбран';
+                } else {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-outline-primary');
+                    btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Выбрать';
                 }
-                
-                // Проверяем доступность текущей выбранной даты
-                if (dateInput && dateInput.value) {
-                    checkDateAvailability();
+            });
+            
+            // Обновляем стили складов
+            document.querySelectorAll('.warehouse-info').forEach(div => {
+                div.classList.remove('selected-warehouse');
+                if (div.getAttribute('data-warehouse-id') == warehouseId) {
+                    div.classList.add('selected-warehouse');
                 }
+            });
+            
+            // Показываем сообщение
+            showAlertMessage(`Выбран склад отправки: ${warehouseName} (${warehouseCity})`, 'success');
+            
+            // Обновляем отображение
+            if (warehouseSelection) {
+                warehouseSelection.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i>
+                        Выбран склад отправки: <strong>${warehouseName}</strong> (${warehouseCity})
+                    </div>
+                `;
             }
             
-            // Функция для проверки доступности даты
-            async function checkDateAvailability() {
-                if (!selectedWarehouseId || !dateInput || !dateInput.value) {
-                    return;
+            // Проверяем доступность текущей выбранной даты
+            if (dateInput && dateInput.value) {
+                checkDateAvailability();
+            }
+        }
+        
+        // Функция для получения CSRF токена
+        function getCSRFToken() {
+            const name = 'csrftoken';
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Функция для проверки доступности даты через API
+        async function checkDateAvailability() {
+            if (!selectedWarehouseId || !dateInput || !dateInput.value) {
+                return;
+            }
+            
+            // Показываем индикатор проверки
+            dateAvailabilityIndicator.classList.remove('hidden');
+            dateAvailabilityIndicator.classList.remove('date-available');
+            dateAvailabilityIndicator.classList.remove('date-unavailable');
+            dateAvailabilityIndicator.classList.add('date-checking');
+            dateAvailabilityIndicator.innerHTML = '<i class="bi bi-clock"></i><span>Проверка доступности...</span>';
+            
+            try {
+                // AJAX запрос к API проверки даты
+                const response = await fetch(`/warehouses/api/warehouses/${selectedWarehouseId}/check_date/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: JSON.stringify({ date: dateInput.value })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Ошибка сети');
                 }
                 
-                // Показываем индикатор проверки
-                dateAvailabilityIndicator.classList.remove('hidden');
-                dateAvailabilityIndicator.classList.remove('date-available');
-                dateAvailabilityIndicator.classList.remove('date-unavailable');
-                dateAvailabilityIndicator.classList.add('date-checking');
-                dateAvailabilityIndicator.innerHTML = '<i class="bi bi-clock"></i><span>Проверка доступности...</span>';
+                const data = await response.json();
                 
-                try {
-                    // Симуляция проверки доступности даты
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    // Здесь будет реальный AJAX запрос к API
-                    // const response = await fetch(`/api/check-date-availability/?warehouse_id=${selectedWarehouseId}&date=${dateInput.value}`);
-                    // const data = await response.json();
-                    
-                    // Временная заглушка: проверяем день недели (суббота, воскресенье - нерабочие)
-                    const selectedDate = new Date(dateInput.value);
-                    const dayOfWeek = selectedDate.getDay(); // 0 - воскресенье, 6 - суббота
-                    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-                    
-                    if (isWeekend) {
-                        dateAvailabilityIndicator.classList.remove('date-checking');
-                        dateAvailabilityIndicator.classList.add('date-unavailable');
-                        dateAvailabilityIndicator.innerHTML = '<i class="bi bi-x-circle"></i><span>Склад не работает в выходные</span>';
-                        dateAvailabilityMessage.innerHTML = 'Выбран выходной день. Пожалуйста, выберите рабочий день (понедельник-пятница)';
-                        dateAvailabilityMessage.style.color = '#dc3545';
-                    } else {
-                        dateAvailabilityIndicator.classList.remove('date-checking');
-                        dateAvailabilityIndicator.classList.add('date-available');
-                        dateAvailabilityIndicator.innerHTML = '<i class="bi bi-check-circle"></i><span>День доступен</span>';
-                        dateAvailabilityMessage.innerHTML = 'Дата доступна для бронирования';
-                        dateAvailabilityMessage.style.color = '#198754';
-                    }
-                    
-                } catch (error) {
-                    console.error('Ошибка проверки даты:', error);
+                if (data.is_available) {
+                    dateAvailabilityIndicator.classList.remove('date-checking');
+                    dateAvailabilityIndicator.classList.add('date-available');
+                    dateAvailabilityIndicator.innerHTML = '<i class="bi bi-check-circle"></i><span>День доступен</span>';
+                    dateAvailabilityMessage.innerHTML = data.message || 'Дата доступна для бронирования';
+                    dateAvailabilityMessage.style.color = '#198754';
+                } else {
                     dateAvailabilityIndicator.classList.remove('date-checking');
                     dateAvailabilityIndicator.classList.add('date-unavailable');
-                    dateAvailabilityIndicator.innerHTML = '<i class="bi bi-exclamation-triangle"></i><span>Ошибка проверки</span>';
-                    dateAvailabilityMessage.innerHTML = 'Не удалось проверить доступность даты';
+                    dateAvailabilityIndicator.innerHTML = '<i class="bi bi-x-circle"></i><span>День не доступен</span>';
+                    dateAvailabilityMessage.innerHTML = data.message || 'Склад не работает в этот день';
                     dateAvailabilityMessage.style.color = '#dc3545';
                 }
+                
+            } catch (error) {
+                console.error('Ошибка проверки даты:', error);
+                dateAvailabilityIndicator.classList.remove('date-checking');
+                dateAvailabilityIndicator.classList.add('date-unavailable');
+                dateAvailabilityIndicator.innerHTML = '<i class="bi bi-exclamation-triangle"></i><span>Ошибка проверки</span>';
+                dateAvailabilityMessage.innerHTML = 'Не удалось проверить доступность даты';
+                dateAvailabilityMessage.style.color = '#dc3545';
             }
-            
-            // Обработчики для кнопок выбора города
-            document.querySelectorAll('.city-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const cityId = this.getAttribute('data-city-id');
-                    
-                    // Сбрасываем активные кнопки
-                    document.querySelectorAll('.city-btn').forEach(b => {
-                        b.classList.remove('active');
-                    });
-                    
-                    // Активируем текущую кнопку
-                    this.classList.add('active');
-                    
-                    // Сохраняем ID города
-                    selectedCityId.value = cityId;
-                    
-                    // Отображаем информацию о городе
-                    displayCityInfo(cityId);
-                    
-                    // Прокручиваем к информации
-                    setTimeout(() => {
-                        document.getElementById('city-info').scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'start' 
-                        });
-                    }, 300);
+        }
+        
+        // Обработчики для кнопок выбора города
+        document.querySelectorAll('.city-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const cityId = this.getAttribute('data-city-id');
+                
+                // Сбрасываем активные кнопки
+                document.querySelectorAll('.city-btn').forEach(b => {
+                    b.classList.remove('active');
                 });
-            });
-            
-            // Добавляем обработчик для проверки даты при изменении
-            if (dateInput) {
-                dateInput.addEventListener('change', function() {
-                    if (selectedWarehouseId) {
-                        checkDateAvailability();
-                    } else {
-                        showAlertMessage('Сначала выберите склад для проверки доступности даты', 'warning');
-                    }
-                });
-            }
-            
-            // Автоматически выбираем первый город при загрузке
-            const firstCityBtn = document.querySelector('.city-btn');
-            if (firstCityBtn && citiesData.length > 0) {
+                
+                // Активируем текущую кнопку
+                this.classList.add('active');
+                
+                // Сохраняем ID города
+                selectedCityId.value = cityId;
+                
+                // Отображаем информацию о городе
+                displayCityInfo(cityId);
+                
+                // Прокручиваем к информации
                 setTimeout(() => {
-                    firstCityBtn.click();
-                }, 500);
-            }
-            
-            // Валидация формы
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    // Проверяем, выбран ли город назначения
-                    if (!selectedCityIdValue) {
-                        showAlertMessage('Пожалуйста, выберите город назначения', 'warning');
-                        document.querySelector('.city-selection-card').scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'center' 
-                        });
-                        return false;
-                    }
-                    
-                    // Проверяем, выбран ли склад отправки
-                    if (!selectedWarehouseId) {
-                        showAlertMessage('Пожалуйста, выберите склад отправки', 'warning');
-                        document.getElementById('city-info').scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'center' 
-                        });
-                        return false;
-                    }
-                    
-                    // Проверяем доступность даты перед отправкой
-                    if (dateInput && dateInput.value) {
-                        const selectedDate = new Date(dateInput.value);
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        
-                        if (selectedDate < today) {
-                            showAlertMessage('Нельзя выбрать дату в прошлом', 'warning');
-                            dateInput.focus();
-                            return false;
-                        }
-                        
-                        const dayOfWeek = selectedDate.getDay();
-                        if (dayOfWeek === 0 || dayOfWeek === 6) {
-                            showAlertMessage('Склад не работает в выходные дни. Пожалуйста, выберите рабочий день (понедельник-пятница)', 'warning');
-                            dateInput.focus();
-                            return false;
-                        }
-                    }
-                    
-                    // Проверяем обязательные поля формы Django
-                    let isValid = true;
-                    const requiredFields = form.querySelectorAll('[required]');
-                    
-                    requiredFields.forEach(function(field) {
-                        field.classList.remove('is-invalid');
-                        
-                        const isCheckbox = field.type === 'checkbox';
-                        const isEmpty = isCheckbox ? !field.checked : !field.value.trim();
-                        
-                        if (isEmpty) {
-                            isValid = false;
-                            field.classList.add('is-invalid');
-                            
-                            // Добавляем анимацию
-                            const parentDiv = field.closest('.col-md-6, .col-md-4, .col-12');
-                            if (parentDiv) {
-                                parentDiv.style.animation = 'pulse 0.5s';
-                                setTimeout(() => {
-                                    parentDiv.style.animation = '';
-                                }, 500);
-                            }
-                        }
+                    document.getElementById('city-info').scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
                     });
-                    
-                    if (!isValid) {
-                        showAlertMessage('Пожалуйста, заполните все обязательные поля', 'warning');
-                        const firstError = form.querySelector('.is-invalid');
-                        if (firstError) {
-                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            firstError.focus();
-                        }
-                        return false;
-                    }
-                    
-                    // Если все проверки пройдены, отправляем форму
-                    if (submitButton) {
-                        submitButton.disabled = true;
-                        submitButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Отправка...';
-                    }
-                    
-                    // Отправляем форму
-                    this.submit();
-                });
-            }
-            
-            // Функция для показа сообщений
-            function showAlertMessage(message, type) {
-                // Создаем уникальный ID для уведомления
-                const notificationId = 'notification-' + Date.now();
-                
-                const alertDiv = document.createElement('div');
-                alertDiv.id = notificationId;
-                alertDiv.className = `alert alert-${type} alert-dismissible fade show notification-alert`;
-                alertDiv.style.cssText = `
-                    position: fixed;
-                    top: 100px;
-                    right: 20px;
-                    z-index: 9999;
-                    min-width: 300px;
-                    max-width: 400px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                `;
-                alertDiv.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        ${type === 'success' ? 
-                            '<i class="bi bi-check-circle-fill me-2 fs-5"></i>' : 
-                            type === 'warning' ? 
-                            '<i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>' :
-                            type === 'info' ?
-                            '<i class="bi bi-info-circle-fill me-2 fs-5"></i>' :
-                            '<i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>'
-                        }
-                        <div>${message}</div>
-                    </div>
-                    <button type="button" class="btn-close" onclick="document.getElementById('${notificationId}').remove()"></button>
-                `;
-                
-                document.body.appendChild(alertDiv);
-                
-                // Автоматическое удаление через 5 секунд
-                setTimeout(() => {
-                    const element = document.getElementById(notificationId);
-                    if (element) {
-                        element.remove();
-                    }
-                }, 5000);
-            }
-
-            
-            // Автоматическое закрытие сообщений
-            setTimeout(function() {
-                const alerts = document.querySelectorAll('.alert');
-                alerts.forEach(function(alert) {
-                    const bsAlert = new bootstrap.Alert(alert);
-                    bsAlert.close();
-                });
-            }, 5000);
-            
-            // Восстанавливаем кнопку отправки при возврате на страницу
-            window.addEventListener('pageshow', function(event) {
-                if (submitButton) {
-                    submitButton.disabled = false;
-                    submitButton.innerHTML = '<i class="bi bi-send-check me-2"></i> Отправить заявку';
-                }
+                }, 300);
             });
         });
-    </script>
+        
+        // Добавляем обработчик для проверки даты при изменении
+        if (dateInput) {
+            dateInput.addEventListener('change', function() {
+                if (selectedWarehouseId) {
+                    checkDateAvailability();
+                } else {
+                    showAlertMessage('Сначала выберите склад для проверки доступности даты', 'warning');
+                }
+            });
+        }
+        
+        // Автоматически выбираем первый город при загрузке
+        const firstCityBtn = document.querySelector('.city-btn');
+        if (firstCityBtn && citiesData.length > 0) {
+            setTimeout(() => {
+                firstCityBtn.click();
+            }, 500);
+        }
+        
+        // Валидация формы
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Проверяем, выбран ли город назначения
+                if (!selectedCityIdValue) {
+                    showAlertMessage('Пожалуйста, выберите город назначения', 'warning');
+                    document.querySelector('.city-selection-card').scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    return false;
+                }
+                
+                // Проверяем, выбран ли склад отправки
+                if (!selectedWarehouseId) {
+                    showAlertMessage('Пожалуйста, выберите склад отправки', 'warning');
+                    document.getElementById('city-info').scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    return false;
+                }
+                
+                // Проверяем доступность даты перед отправкой
+                if (dateInput && dateInput.value) {
+                    const selectedDate = new Date(dateInput.value);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    if (selectedDate < today) {
+                        showAlertMessage('Нельзя выбрать дату в прошлом', 'warning');
+                        dateInput.focus();
+                        return false;
+                    }
+                    
+                    // Проверяем доступность даты через API перед отправкой
+                    if (dateAvailabilityIndicator.classList.contains('date-unavailable')) {
+                        showAlertMessage('Выбранная дата недоступна для этого склада. Пожалуйста, выберите другую дату.', 'warning');
+                        dateInput.focus();
+                        return false;
+                    }
+                }
+                
+                // Проверяем обязательные поля формы Django
+                let isValid = true;
+                const requiredFields = form.querySelectorAll('[required]');
+                
+                requiredFields.forEach(function(field) {
+                    field.classList.remove('is-invalid');
+                    
+                    const isCheckbox = field.type === 'checkbox';
+                    const isEmpty = isCheckbox ? !field.checked : !field.value.trim();
+                    
+                    if (isEmpty) {
+                        isValid = false;
+                        field.classList.add('is-invalid');
+                        
+                        // Добавляем анимацию
+                        const parentDiv = field.closest('.col-md-6, .col-md-4, .col-12');
+                        if (parentDiv) {
+                            parentDiv.style.animation = 'pulse 0.5s';
+                            setTimeout(() => {
+                                parentDiv.style.animation = '';
+                            }, 500);
+                        }
+                    }
+                });
+                
+                if (!isValid) {
+                    showAlertMessage('Пожалуйста, заполните все обязательные поля', 'warning');
+                    const firstError = form.querySelector('.is-invalid');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstError.focus();
+                    }
+                    return false;
+                }
+                
+                // Если все проверки пройдены, отправляем форму
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Отправка...';
+                }
+                
+                // Отправляем форму
+                this.submit();
+            });
+        }
+        
+        // Функция для показа сообщений
+        function showAlertMessage(message, type) {
+            // Создаем уникальный ID для уведомления
+            const notificationId = 'notification-' + Date.now();
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.id = notificationId;
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show notification-alert`;
+            alertDiv.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                z-index: 9999;
+                min-width: 300px;
+                max-width: 400px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            `;
+            alertDiv.innerHTML = `
+                <div class="d-flex align-items-center">
+                    ${type === 'success' ? 
+                        '<i class="bi bi-check-circle-fill me-2 fs-5"></i>' : 
+                        type === 'warning' ? 
+                        '<i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>' :
+                        type === 'info' ?
+                        '<i class="bi bi-info-circle-fill me-2 fs-5"></i>' :
+                        '<i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>'
+                    }
+                    <div>${message}</div>
+                </div>
+                <button type="button" class="btn-close" onclick="document.getElementById('${notificationId}').remove()"></button>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // Автоматическое удаление через 5 секунд
+            setTimeout(() => {
+                const element = document.getElementById(notificationId);
+                if (element) {
+                    element.remove();
+                }
+            }, 5000);
+        }
+
+        
+        // Автоматическое закрытие сообщений
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+        
+        // Восстанавливаем кнопку отправки при возврате на страницу
+        window.addEventListener('pageshow', function(event) {
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="bi bi-send-check me-2"></i> Отправить заявку';
+            }
+        });
+        
+        // Инициализируем поля клиента для доставки
+        initDeliveryClientFields();
+    });
+</script>
 </body>
 </html>

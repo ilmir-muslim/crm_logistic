@@ -140,6 +140,50 @@ class Warehouse(models.Model):
             return False
 
         return True
+    
+    def get_detailed_working_hours(self):
+        """Возвращает детальный график работы на основе расписания"""
+        if self.is_24h:
+            return "Круглосуточно"
+        
+        schedules = self.schedules.filter(is_working=True).order_by('day_of_week')
+        if not schedules.exists():
+            return "График работы не указан"
+        
+        # Группируем по одинаковому времени работы
+        schedule_dict = {}
+        for schedule in schedules:
+            key = f"{schedule.opening_time.strftime('%H:%M')}-{schedule.closing_time.strftime('%H:%M')}"
+            if key not in schedule_dict:
+                schedule_dict[key] = []
+            schedule_dict[key].append(schedule.get_day_of_week_display())
+        
+        result = []
+        for time_range, days in schedule_dict.items():
+            if len(days) == 7:
+                result.append(f"Ежедневно: {time_range}")
+            elif len(days) == 5 and all(day in days for day in ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница"]):
+                result.append(f"Пн-Пт: {time_range}")
+            elif len(days) == 2 and all(day in days for day in ["Суббота", "Воскресенье"]):
+                result.append(f"Сб-Вс: {time_range}")
+            else:
+                days_str = ", ".join(days)
+                result.append(f"{days_str}: {time_range}")
+        
+        return "; ".join(result)
+
+    def is_working_day(self, date):
+        """Проверяет, работает ли склад в указанную дату"""
+        day_of_week = date.isoweekday()
+        try:
+            schedule = WarehouseSchedule.objects.get(
+                warehouse=self, 
+                day_of_week=day_of_week
+            )
+            return schedule.is_working
+        except WarehouseSchedule.DoesNotExist:
+            return False
+
 
 
 class ContainerType(models.Model):

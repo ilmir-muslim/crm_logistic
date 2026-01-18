@@ -33,14 +33,51 @@ class PickupOrderFormView(FormView):
             warehouses = city.warehouses.all().prefetch_related(
                 Prefetch(
                     "schedules",
-                    queryset=WarehouseSchedule.objects.filter(is_working=True).order_by(
-                        "day_of_week"
-                    ),
+                    queryset=WarehouseSchedule.objects.all().order_by("day_of_week"),
                 )
             )
 
             warehouses_list = []
             for warehouse in warehouses:
+                # Получаем текущие день недели и время для проверки статуса
+                from django.utils import timezone
+
+                now = timezone.now()
+                current_day = now.isoweekday()  # 1=понедельник, 7=воскресенье
+                current_time = now.time()
+
+                # Ищем расписание на текущий день
+                schedule_today = None
+                for schedule in warehouse.schedules.all():
+                    if schedule.day_of_week == current_day:
+                        schedule_today = schedule
+                        break
+
+                # Определяем статус "Открыт/Закрыт" на основе расписания
+                is_open_now = False
+                if schedule_today:
+                    if schedule_today.is_working:
+                        # Проверяем время работы
+                        opening_time = schedule_today.opening_time
+                        closing_time = schedule_today.closing_time
+
+                        # Если склад круглосуточный или текущее время в пределах рабочих часов
+                        if warehouse.is_24h or (
+                            opening_time
+                            and closing_time
+                            and opening_time <= current_time <= closing_time
+                        ):
+                            # Проверяем перерыв
+                            if schedule_today.break_start and schedule_today.break_end:
+                                if not (
+                                    schedule_today.break_start
+                                    <= current_time
+                                    <= schedule_today.break_end
+                                ):
+                                    is_open_now = True
+                            else:
+                                is_open_now = True
+
                 schedules = []
                 for schedule in warehouse.schedules.all():
                     schedules.append(
@@ -54,6 +91,7 @@ class PickupOrderFormView(FormView):
                             "delivery_cutoff_time": schedule.delivery_cutoff_time.strftime(
                                 "%H:%M"
                             ),
+                            "is_working": schedule.is_working,
                         }
                     )
 
@@ -72,7 +110,7 @@ class PickupOrderFormView(FormView):
                         ),
                         "working_hours": warehouse.get_working_hours(),
                         "is_24h": warehouse.is_24h,
-                        "is_open_now": warehouse.is_open_now,
+                        "is_open_now": is_open_now,  # Используем вычисленный статус
                         "total_area": warehouse.total_area or 0,
                         "available_area": warehouse.available_area or 0,
                         "schedules": schedules,
@@ -257,10 +295,54 @@ class DeliveryOrderFormView(FormView):
 
         cities_data = []
         for city in cities:
-            warehouses = city.warehouses.all()
+            warehouses = city.warehouses.all().prefetch_related(
+                Prefetch(
+                    "schedules",
+                    queryset=WarehouseSchedule.objects.all(),
+                )
+            )
 
             warehouses_list = []
             for warehouse in warehouses:
+                # Получаем текущие день недели и время для проверки статуса
+                from django.utils import timezone
+
+                now = timezone.now()
+                current_day = now.isoweekday()  # 1=понедельник, 7=воскресенье
+                current_time = now.time()
+
+                # Ищем расписание на текущий день
+                schedule_today = None
+                for schedule in warehouse.schedules.all():
+                    if schedule.day_of_week == current_day:
+                        schedule_today = schedule
+                        break
+
+                # Определяем статус "Открыт/Закрыт" на основе расписания
+                is_open_now = False
+                if schedule_today:
+                    if schedule_today.is_working:
+                        # Проверяем время работы
+                        opening_time = schedule_today.opening_time
+                        closing_time = schedule_today.closing_time
+
+                        # Если склад круглосуточный или текущее время в пределах рабочих часов
+                        if warehouse.is_24h or (
+                            opening_time
+                            and closing_time
+                            and opening_time <= current_time <= closing_time
+                        ):
+                            # Проверяем перерыв
+                            if schedule_today.break_start and schedule_today.break_end:
+                                if not (
+                                    schedule_today.break_start
+                                    <= current_time
+                                    <= schedule_today.break_end
+                                ):
+                                    is_open_now = True
+                            else:
+                                is_open_now = True
+
                 warehouses_list.append(
                     {
                         "id": warehouse.id,
@@ -275,7 +357,7 @@ class DeliveryOrderFormView(FormView):
                             else "Не назначен"
                         ),
                         "working_hours": warehouse.get_working_hours(),
-                        "is_open_now": warehouse.is_open_now,
+                        "is_open_now": is_open_now,  # Используем вычисленный статус
                     }
                 )
 
