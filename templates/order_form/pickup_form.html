@@ -1520,11 +1520,7 @@
                                         <i class="bi bi-rulers text-primary"></i> 
                                         <strong>Площадь:</strong> ${warehouse.available_area} м² / ${warehouse.total_area} м²
                                     </p>
-                                    <p class="mb-0">
-                                        <i class="bi bi-info-circle text-primary"></i> 
-                                        ${warehouse.is_24h ? 'Круглосуточный склад' : 'Работает по графику'}
-                                    </p>
-                                </div>
+                                   </div>
                             </div>
                             
                             ${schedules.length > 0 ? `
@@ -1574,7 +1570,8 @@
                 btn.addEventListener('click', function() {
                     selectWarehouse(
                         this.getAttribute('data-warehouse-id'),
-                        this.getAttribute('data-warehouse-name')
+                        this.getAttribute('data-warehouse-name'),
+                        city.name  // Добавляем город
                     );
                 });
             });

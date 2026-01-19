@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils import timezone
+from django import forms
 from .models import (
     City,
     Warehouse,
@@ -9,59 +10,71 @@ from .models import (
 )
 
 
+class WarehouseScheduleForm(forms.ModelForm):
+    """Форма для расписания работы"""
+
+    class Meta:
+        model = WarehouseSchedule
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "day_of_week" in self.fields:
+            instance = kwargs.get("instance")
+            if instance:
+                self.fields["day_of_week"].widget.attrs["readonly"] = True
+                self.fields["day_of_week"].help_text = (
+                    f"День недели: {instance.get_day_of_week_display()}"
+                )
+
+            self.fields["day_of_week"].required = False
+
+
 class WarehouseScheduleInline(admin.TabularInline):
     model = WarehouseSchedule
+    form = WarehouseScheduleForm
     extra = 0
-    max_num = 7  # Максимум 7 записей (по дням недели)
+    max_num = 7
     can_delete = False
     can_add = False
 
-    # Показываем только для существующих складов
-    def has_add_permission(self, request, obj=None):
-        return False
+    fieldsets = (
+        (None, {"fields": ("is_working", "day_of_week")}),
+        (
+            "Часы работы",
+            {
+                "fields": ("opening_time", "closing_time"),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Перерыв",
+            {
+                "fields": ("break_start", "break_end"),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Крайние сроки приема",
+            {
+                "fields": ("pickup_cutoff_time", "delivery_cutoff_time"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
 
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-    # Предзаполняем значениями по умолчанию
-    def get_formset(self, request, obj=None, **kwargs):
-        formset = super().get_formset(request, obj, **kwargs)
-
-        # Если склад уже существует, убедимся, что есть расписание на все дни
-        if obj and obj.pk:
-            existing_days = set(obj.schedules.values_list("day_of_week", flat=True))
-            all_days = set(range(1, 8))
-
-            # Создаем недостающие дни
-            for day in all_days - existing_days:
-                WarehouseSchedule.objects.create(
-                    warehouse=obj,
-                    day_of_week=day,
-                    is_working=(
-                        True if day <= 5 else False
-                    ),  # Пн-Пт рабочие по умолчанию
-                    opening_time=timezone.datetime.strptime("08:00", "%H:%M").time(),
-                    closing_time=timezone.datetime.strptime("20:00", "%H:%M").time(),
-                    pickup_cutoff_time=timezone.datetime.strptime(
-                        "16:00", "%H:%M"
-                    ).time(),
-                    delivery_cutoff_time=timezone.datetime.strptime(
-                        "17:00", "%H:%M"
-                    ).time(),
-                )
-
-        return formset
-
-    # Делаем поле дня недели только для чтения
     def get_readonly_fields(self, request, obj=None):
         if obj:
             return ("day_of_week",)
         return super().get_readonly_fields(request, obj)
 
-    # Форматируем отображение дня недели
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.order_by("day_of_week")
+
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == "day_of_week":
-            kwargs["widget"] = admin.widgets.AdminTextInputWidget
+            kwargs["widget"] = forms.TextInput(attrs={"readonly": "readonly"})
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
 
@@ -79,17 +92,14 @@ class WarehouseAdmin(admin.ModelAdmin):
         "city",
         "code",
         "phone",
-        "email",
         "manager",
-        "is_24h",
-        "available_area",
         "working_status",
+        "available_area",
     )
-    list_filter = ("city", "is_24h")
+    list_filter = ("city",)
     search_fields = ("name", "code", "address", "city__name")
     filter_horizontal = ("operators",)
 
-    # Добавляем inline для расписания
     inlines = [WarehouseScheduleInline]
 
     fieldsets = (
@@ -99,14 +109,9 @@ class WarehouseAdmin(admin.ModelAdmin):
             {"fields": ("phone", "email", "manager", "operators")},
         ),
         ("Параметры склада", {"fields": ("total_area", "available_area")}),
-        (
-            "Общие настройки",
-            {"fields": ("is_24h",)},
-        ),
     )
 
     def working_status(self, obj):
-        """Статус работы склада"""
         if obj.is_open_now:
             return "🟢 Открыт"
         else:
@@ -115,32 +120,40 @@ class WarehouseAdmin(admin.ModelAdmin):
     working_status.short_description = "Статус"
 
     def get_working_hours_display(self, obj):
-        """Детальный график работы"""
         return obj.get_working_hours()
 
     get_working_hours_display.short_description = "График работы"
 
-    # Автоматически создаем расписание при сохранении нового склада
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
 
-        # Если склад новый, создаем расписание по дням недели
         if not change:
             for day in range(1, 8):
+                is_working = True if day <= 5 else False
                 WarehouseSchedule.objects.create(
                     warehouse=obj,
                     day_of_week=day,
-                    is_working=(
-                        True if day <= 5 else False
-                    ),  # Пн-Пт рабочие по умолчанию
-                    opening_time=timezone.datetime.strptime("08:00", "%H:%M").time(),
-                    closing_time=timezone.datetime.strptime("20:00", "%H:%M").time(),
-                    pickup_cutoff_time=timezone.datetime.strptime(
-                        "16:00", "%H:%M"
-                    ).time(),
-                    delivery_cutoff_time=timezone.datetime.strptime(
-                        "17:00", "%H:%M"
-                    ).time(),
+                    is_working=is_working,
+                    opening_time=(
+                        timezone.datetime.strptime("08:00", "%H:%M").time()
+                        if is_working
+                        else None
+                    ),
+                    closing_time=(
+                        timezone.datetime.strptime("20:00", "%H:%M").time()
+                        if is_working
+                        else None
+                    ),
+                    pickup_cutoff_time=(
+                        timezone.datetime.strptime("16:00", "%H:%M").time()
+                        if is_working
+                        else None
+                    ),
+                    delivery_cutoff_time=(
+                        timezone.datetime.strptime("17:00", "%H:%M").time()
+                        if is_working
+                        else None
+                    ),
                 )
 
 
@@ -219,13 +232,13 @@ class WarehouseScheduleAdmin(admin.ModelAdmin):
         "get_warehouse_name",
         "day_of_week_display",
         "is_working",
-        "working_hours",
+        "working_hours_display",
         "cutoff_times",
     )
     list_filter = ("warehouse", "day_of_week", "is_working")
     search_fields = ("warehouse__name",)
+    readonly_fields = ("day_of_week",)
 
-    # Запрещаем добавлять/удалять через админку (только редактировать)
     def has_add_permission(self, request):
         return False
 
@@ -234,9 +247,27 @@ class WarehouseScheduleAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ("Основная информация", {"fields": ("warehouse", "day_of_week", "is_working")}),
-        ("Рабочие часы", {"fields": ("opening_time", "closing_time")}),
-        ("Перерыв", {"fields": ("break_start", "break_end")}),
-        ("Крайние сроки", {"fields": ("pickup_cutoff_time", "delivery_cutoff_time")}),
+        (
+            "Часы работы",
+            {
+                "fields": ("opening_time", "closing_time"),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Перерыв",
+            {
+                "fields": ("break_start", "break_end"),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Крайние сроки приема",
+            {
+                "fields": ("pickup_cutoff_time", "delivery_cutoff_time"),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
     def get_warehouse_name(self, obj):
@@ -249,13 +280,10 @@ class WarehouseScheduleAdmin(admin.ModelAdmin):
 
     day_of_week_display.short_description = "День недели"
 
-    def working_hours(self, obj):
-        if obj.is_working:
-            return f"{obj.opening_time.strftime('%H:%M')} - {obj.closing_time.strftime('%H:%M')}"
-        else:
-            return "Выходной"
+    def working_hours_display(self, obj):
+        return obj.working_hours
 
-    working_hours.short_description = "Время работы"
+    working_hours_display.short_description = "Время работы"
 
     def cutoff_times(self, obj):
         if obj.is_working:

@@ -14,6 +14,95 @@ from warehouses.models import City, ContainerType, WarehouseSchedule
 from counterparties.models import Counterparty
 
 
+def get_cities_with_warehouses_data():
+    """Функция для получения унифицированных данных о городах и складах"""
+    cities = City.objects.filter(warehouses__isnull=False).distinct().order_by("name")
+
+    cities_data = []
+    for city in cities:
+        warehouses = city.warehouses.all().prefetch_related(
+            Prefetch(
+                "schedules",
+                queryset=WarehouseSchedule.objects.filter(is_working=True).order_by(
+                    "day_of_week"
+                ),
+            )
+        )
+
+        warehouses_list = []
+        for warehouse in warehouses:
+            schedules = []
+            for schedule in warehouse.schedules.all():
+                schedules.append(
+                    {
+                        "day_of_week": schedule.get_day_of_week_display(),
+                        "opening_time": schedule.opening_time.strftime("%H:%M"),
+                        "closing_time": schedule.closing_time.strftime("%H:%M"),
+                        "pickup_cutoff_time": schedule.pickup_cutoff_time.strftime(
+                            "%H:%M"
+                        ),
+                        "delivery_cutoff_time": schedule.delivery_cutoff_time.strftime(
+                            "%H:%M"
+                        ),
+                        "is_working": schedule.is_working,
+                    }
+                )
+
+            warehouses_list.append(
+                {
+                    "id": warehouse.id,
+                    "name": warehouse.name,
+                    "code": warehouse.code,
+                    "address": warehouse.address,
+                    "phone": warehouse.phone,
+                    "email": warehouse.email or "",
+                    "manager": (
+                        warehouse.manager.get_full_name()
+                        if warehouse.manager
+                        else "Не назначен"
+                    ),
+                    "working_hours": warehouse.get_working_hours(),
+                    "is_open_now": warehouse.is_open_now,
+                    "total_area": warehouse.total_area or 0,
+                    "available_area": warehouse.available_area or 0,
+                    "schedules": schedules,
+                }
+            )
+
+        cities_data.append(
+            {
+                "id": city.id,
+                "name": city.name,
+                "region": city.region or "",
+                "warehouses": warehouses_list,
+            }
+        )
+
+    return cities_data
+
+
+def get_box_sizes_data():
+    """Функция для получения данных о типах коробок"""
+    box_types = ContainerType.objects.filter(category="box").order_by("volume")
+    box_sizes = []
+
+    for box in box_types:
+        box_sizes.append(
+            {
+                "name": box.name,
+                "code": box.code,
+                "length": box.length,
+                "width": box.width,
+                "height": box.height,
+                "volume": box.volume or box.calculate_volume(),
+                "weight_capacity": box.weight_capacity,
+                "description": box.description or "",
+            }
+        )
+
+    return box_sizes
+
+
 class PickupOrderFormView(FormView):
     """Представление для формы заявки на ЗАБОР груза"""
 
@@ -24,103 +113,24 @@ class PickupOrderFormView(FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        cities = (
-            City.objects.filter(warehouses__isnull=False).distinct().order_by("name")
-        )
-
-        cities_data = []
-        for city in cities:
-            warehouses = city.warehouses.all().prefetch_related(
-                Prefetch(
-                    "schedules",
-                    queryset=WarehouseSchedule.objects.filter(is_working=True).order_by(
-                        "day_of_week"
-                    ),
-                )
-            )
-
-            warehouses_list = []
-            for warehouse in warehouses:
-                schedules = []
-                for schedule in warehouse.schedules.all():
-                    schedules.append(
-                        {
-                            "day_of_week": schedule.get_day_of_week_display(),
-                            "opening_time": schedule.opening_time.strftime("%H:%M"),
-                            "closing_time": schedule.closing_time.strftime("%H:%M"),
-                            "pickup_cutoff_time": schedule.pickup_cutoff_time.strftime(
-                                "%H:%M"
-                            ),
-                            "delivery_cutoff_time": schedule.delivery_cutoff_time.strftime(
-                                "%H:%M"
-                            ),
-                        }
-                    )
-
-                warehouses_list.append(
-                    {
-                        "id": warehouse.id,
-                        "name": warehouse.name,
-                        "code": warehouse.code,
-                        "address": warehouse.address,
-                        "phone": warehouse.phone,
-                        "email": warehouse.email or "",
-                        "manager": (
-                            warehouse.manager.get_full_name()
-                            if warehouse.manager
-                            else "Не назначен"
-                        ),
-                        "working_hours": warehouse.get_working_hours(),
-                        "is_24h": warehouse.is_24h,
-                        "is_open_now": warehouse.is_open_now,  # Используем свойство модели
-                        "total_area": warehouse.total_area or 0,
-                        "available_area": warehouse.available_area or 0,
-                        "schedules": schedules,
-                    }
-                )
-
-            cities_data.append(
-                {
-                    "id": city.id,
-                    "name": city.name,
-                    "region": city.region or "",
-                    "warehouses": warehouses_list,
-                }
-            )
+        # Используем унифицированные функции
+        cities_data = get_cities_with_warehouses_data()
+        box_sizes = get_box_sizes_data()
 
         context["cities_data"] = cities_data
         context["cities_data_json"] = json.dumps(cities_data, default=str)
-
-        box_types = ContainerType.objects.filter(category="box").order_by("volume")
-        context["box_sizes"] = []
-
-        for box in box_types:
-            context["box_sizes"].append(
-                {
-                    "name": box.name,
-                    "code": box.code,
-                    "length": box.length,
-                    "width": box.width,
-                    "height": box.height,
-                    "volume": box.volume or box.calculate_volume(),
-                    "weight_capacity": box.weight_capacity,
-                    "description": box.description or "",
-                }
-            )
+        context["box_sizes"] = box_sizes
 
         return context
 
     def form_valid(self, form):
         """Сохранение заявки на забор с обработкой контрагентов"""
         try:
-            # Сохраняем форму с данными
             order = form.save(commit=False)
 
-            # Устанавливаем дополнительные поля
             order.pickup_date = timezone.now().date()
             order.status = "ready"
 
-            # Получаем warehouse и устанавливаем оператора
             warehouse = form.cleaned_data.get("receiving_warehouse")
             if warehouse:
                 if warehouse.manager:
@@ -128,36 +138,29 @@ class PickupOrderFormView(FormView):
                     order.receiving_operator = warehouse.manager
                 order.receiving_warehouse = warehouse
 
-            # Сохраняем в базе данных
             order.save()
-
-            # Перезагружаем объект из базы
             order.refresh_from_db()
 
             print(
                 f"✅ Заявка на забор создана: ID={order.id}, Tracking={order.tracking_number}"
             )
 
-            # Отправляем email клиенту
             try:
                 self.send_confirmation_email(order)
                 print(f"✅ Email отправлен клиенту")
             except Exception as e:
                 print(f"❌ Ошибка при отправке email клиенту: {e}")
 
-            # Отправляем уведомление оператору
             try:
                 self.send_operator_notification(order)
                 print(f"✅ Уведомление отправлено оператору")
             except Exception as e:
                 print(f"❌ Ошибка при отправке уведомления оператору: {e}")
 
-            # Сохраняем данные в сессии
             self.request.session["order_id"] = order.id
             self.request.session["tracking_number"] = order.tracking_number
             self.request.session["order_type"] = "pickup"
 
-            # Принудительно сохраняем сессию
             self.request.session.modified = True
             self.request.session.save()
 
@@ -251,62 +254,13 @@ class DeliveryOrderFormView(FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        cities = (
-            City.objects.filter(warehouses__isnull=False).distinct().order_by("name")
-        )
-
-        cities_data = []
-        for city in cities:
-            warehouses = city.warehouses.all().prefetch_related("schedules")
-
-            warehouses_list = []
-            for warehouse in warehouses:
-                warehouses_list.append(
-                    {
-                        "id": warehouse.id,
-                        "name": warehouse.name,
-                        "code": warehouse.code,
-                        "address": warehouse.address,
-                        "phone": warehouse.phone,
-                        "email": warehouse.email or "",
-                        "manager": (
-                            warehouse.manager.get_full_name()
-                            if warehouse.manager
-                            else "Не назначен"
-                        ),
-                        "working_hours": warehouse.get_working_hours(),
-                        "is_open_now": warehouse.is_open_now,  # Используем свойство модели
-                    }
-                )
-
-            cities_data.append(
-                {
-                    "id": city.id,
-                    "name": city.name,
-                    "region": city.region or "",
-                    "warehouses": warehouses_list,
-                }
-            )
+        # Используем унифицированные функции
+        cities_data = get_cities_with_warehouses_data()
+        box_sizes = get_box_sizes_data()
 
         context["cities_data"] = cities_data
         context["cities_data_json"] = json.dumps(cities_data, default=str)
-
-        box_types = ContainerType.objects.filter(category="box").order_by("volume")
-        context["box_sizes"] = []
-
-        for box in box_types:
-            context["box_sizes"].append(
-                {
-                    "name": box.name,
-                    "code": box.code,
-                    "length": box.length,
-                    "width": box.width,
-                    "height": box.height,
-                    "volume": box.volume or box.calculate_volume(),
-                    "weight_capacity": box.weight_capacity,
-                    "description": box.description or "",
-                }
-            )
+        context["box_sizes"] = box_sizes
 
         return context
 
@@ -315,7 +269,7 @@ class DeliveryOrderFormView(FormView):
         try:
             order = form.save(commit=False)
             order.status = "submitted"
-            order.operator = None 
+            order.operator = None
             order.save()
             order.refresh_from_db()
 

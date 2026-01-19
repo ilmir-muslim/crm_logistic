@@ -1144,23 +1144,20 @@
             selectedCityIdValue = city.id;
             selectedCityName = city.name;
             
-            // Устанавливаем город в скрытое поле
             cityHidden.value = city.id;
             
-            // Обновляем отображение выбранного города
             updateCitySelectionDisplay(city.name);
             
             let html = '';
             
             if (city.warehouses && city.warehouses.length > 0) {
-                // Отображаем информацию о каждом складе
                 city.warehouses.forEach((warehouse, index) => {
                     const isOpen = warehouse.is_open_now;
+                    const schedules = warehouse.schedules || [];
                     
                     html += `
-                        <div class="warehouse-info mb-3 p-3 ${selectedWarehouseId == warehouse.id ? 'selected-warehouse' : ''}" 
-                             data-warehouse-id="${warehouse.id}">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="warehouse-info mb-4 p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div>
                                     <h6 class="mb-1">
                                         <i class="bi bi-house-door me-2"></i>
@@ -1183,30 +1180,68 @@
                                 </div>
                             </div>
                             
-                            <div class="row">
+                            <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <p class="mb-1 small">
+                                    <p class="mb-1">
                                         <i class="bi bi-geo-alt text-primary"></i> 
                                         <strong>Адрес:</strong> ${warehouse.address}
                                     </p>
-                                    <p class="mb-1 small">
+                                    <p class="mb-1">
                                         <i class="bi bi-telephone text-primary"></i> 
                                         <strong>Телефон:</strong> ${warehouse.phone}
                                     </p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p class="mb-1 small">
-                                        <i class="bi bi-clock text-primary"></i> 
-                                        <strong>График работы:</strong> ${warehouse.working_hours}
-                                    </p>
-                                    ${warehouse.available_area ? `
-                                        <p class="mb-1 small">
-                                            <i class="bi bi-rulers text-primary"></i> 
-                                            <strong>Доступная площадь:</strong> ${warehouse.available_area} м²
+                                    ${warehouse.email ? `
+                                        <p class="mb-1">
+                                            <i class="bi bi-envelope text-primary"></i> 
+                                            <strong>Email:</strong> ${warehouse.email}
+                                        </p>
+                                    ` : ''}
+                                    ${warehouse.manager ? `
+                                        <p class="mb-1">
+                                            <i class="bi bi-person text-primary"></i> 
+                                            <strong>Менеджер:</strong> ${warehouse.manager}
                                         </p>
                                     ` : ''}
                                 </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1">
+                                        <i class="bi bi-clock text-primary"></i> 
+                                        <strong>График работы:</strong> ${warehouse.working_hours}
+                                    </p>
+                                    <p class="mb-1">
+                                        <i class="bi bi-rulers text-primary"></i> 
+                                        <strong>Площадь:</strong> ${warehouse.available_area} м² / ${warehouse.total_area} м²
+                                    </p>
+                                </div>
                             </div>
+                            
+                            ${schedules.length > 0 ? `
+                                <div class="mt-3">
+                                    <h6 class="mb-2"><i class="bi bi-calendar-event"></i> График приема заявок:</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>День недели</th>
+                                                    <th>Время работы</th>
+                                                    <th>Крайний срок забора</th>
+                                                    <th>Крайний срок доставки</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${schedules.map(schedule => `
+                                                    <tr>
+                                                        <td>${schedule.day_of_week}</td>
+                                                        <td>${schedule.opening_time} - ${schedule.closing_time}</td>
+                                                        <td>${schedule.pickup_cutoff_time}</td>
+                                                        <td>${schedule.delivery_cutoff_time}</td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            ` : '<p class="text-warning"><i class="bi bi-exclamation-triangle"></i> График приема заявок не указан</p>'}
                         </div>
                     `;
                 });
@@ -1223,7 +1258,6 @@
             cityInfo.classList.remove('hidden');
             cityInfo.classList.add('fade-in');
             
-            // Добавляем обработчики для кнопок выбора склада
             document.querySelectorAll('.select-warehouse-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     selectWarehouse(
@@ -1234,7 +1268,6 @@
                 });
             });
             
-            // Если склад уже выбран, обновляем его отображение
             if (selectedWarehouseId) {
                 document.querySelectorAll('.warehouse-info').forEach(div => {
                     if (div.getAttribute('data-warehouse-id') == selectedWarehouseId) {
@@ -1243,6 +1276,7 @@
                 });
             }
         }
+
         
         // Функция для обновления отображения выбранного города
         function updateCitySelectionDisplay(cityName) {

@@ -5,8 +5,6 @@ from django.core.validators import MinValueValidator
 
 
 class City(models.Model):
-    """Город с информацией о логистических возможностях"""
-
     name = models.CharField(max_length=100, verbose_name="Название города", unique=True)
     region = models.CharField(
         max_length=100, verbose_name="Регион/Область", blank=True, null=True
@@ -25,20 +23,16 @@ class City(models.Model):
 
 
 class Warehouse(models.Model):
-    """Склад с доступными объемами и графиком работы"""
-
     city = models.ForeignKey(
         City, on_delete=models.CASCADE, related_name="warehouses", verbose_name="Город"
     )
     name = models.CharField(max_length=200, verbose_name="Название склада")
     code = models.CharField(max_length=50, verbose_name="Код склада", unique=True)
 
-    # Контактная информация
     address = models.TextField(verbose_name="Адрес склада")
     phone = models.CharField(max_length=20, verbose_name="Телефон склада")
     email = models.EmailField(verbose_name="Email склада", blank=True, null=True)
 
-    # Ответственные лица
     manager = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -54,7 +48,6 @@ class Warehouse(models.Model):
         blank=True,
     )
 
-    # Параметры склада
     total_area = models.FloatField(
         verbose_name="Общая площадь (м²)",
         validators=[MinValueValidator(0)],
@@ -68,9 +61,6 @@ class Warehouse(models.Model):
         null=True,
     )
 
-    # Круглосуточный режим
-    is_24h = models.BooleanField(verbose_name="Круглосуточный", default=False)
-
     class Meta:
         verbose_name = "Склад"
         verbose_name_plural = "Склады"
@@ -80,18 +70,16 @@ class Warehouse(models.Model):
         return f"{self.name} ({self.city.name})"
 
     def get_working_hours(self):
-        """Возвращает строку с графиком работы на основе расписания по дням"""
-        # Используем детальное расписание
         working_schedules = self.schedules.filter(is_working=True).order_by(
             "day_of_week"
         )
         if not working_schedules.exists():
             return "График работы не указан"
 
-        # Группируем дни с одинаковым временем работы
         schedule_dict = {}
         for schedule in working_schedules:
             key = f"{schedule.opening_time.strftime('%H:%M')}-{schedule.closing_time.strftime('%H:%M')}"
+
             if key not in schedule_dict:
                 schedule_dict[key] = []
             schedule_dict[key].append(schedule.get_day_of_week_display())
@@ -116,16 +104,14 @@ class Warehouse(models.Model):
         return "; ".join(result)
 
     def get_available_capacity_percentage(self):
-        """Возвращает процент доступной площади"""
         if self.total_area and self.total_area > 0:
             return round((self.available_area / self.total_area) * 100, 1)
         return 0
 
     @property
     def is_open_now(self):
-        """Проверяет, работает ли склад сейчас на основе расписания по дням"""
         now = timezone.now()
-        current_day = now.isoweekday()  # 1=понедельник, 7=воскресенье
+        current_day = now.isoweekday()
         current_time = now.time()
 
         try:
@@ -133,29 +119,20 @@ class Warehouse(models.Model):
             if not schedule.is_working:
                 return False
 
-            # Если склад круглосуточный
-            if self.is_24h:
-                return True
-
-            # Проверяем время работы
             if schedule.opening_time and schedule.closing_time:
-                # Проверяем, не перерыв ли сейчас
                 if schedule.break_start and schedule.break_end:
                     if schedule.break_start <= current_time <= schedule.break_end:
                         return False
 
-                # Проверяем рабочие часы
                 if schedule.opening_time <= current_time <= schedule.closing_time:
                     return True
 
             return False
 
         except WarehouseSchedule.DoesNotExist:
-            # Если нет расписания на этот день, считаем что склад закрыт
             return False
 
     def get_schedule_for_day(self, day_of_week):
-        """Возвращает расписание для указанного дня недели"""
         try:
             return self.schedules.get(day_of_week=day_of_week)
         except WarehouseSchedule.DoesNotExist:
@@ -163,8 +140,6 @@ class Warehouse(models.Model):
 
 
 class ContainerType(models.Model):
-    """Тип тары/контейнера"""
-
     CONTAINER_CATEGORIES = [
         ("pallet", "Паллеты"),
         ("box", "Коробки"),
@@ -222,20 +197,16 @@ class ContainerType(models.Model):
         return f"{self.name} ({self.code})"
 
     def calculate_volume(self):
-        """Рассчитывает объем в м³"""
         volume_cm = self.length * self.width * self.height
-        return round(volume_cm / 1000000, 3)  # Конвертация см³ в м³
+        return round(volume_cm / 1000000, 3)
 
     def save(self, *args, **kwargs):
-        """Автоматически рассчитываем объем при сохранении"""
         if not self.volume:
             self.volume = self.calculate_volume()
         super().save(*args, **kwargs)
 
 
 class WarehouseContainer(models.Model):
-    """Доступные объемы тары на складе"""
-
     warehouse = models.ForeignKey(
         Warehouse,
         on_delete=models.CASCADE,
@@ -278,18 +249,15 @@ class WarehouseContainer(models.Model):
 
     @property
     def is_low_stock(self):
-        """Проверяет, низкий ли запас"""
         return self.available_quantity <= self.min_stock_level
 
     @property
     def stock_percentage(self):
-        """Возвращает процент доступного запаса"""
         if self.total_quantity > 0:
             return round((self.available_quantity / self.total_quantity) * 100, 1)
         return 0
 
     def reserve(self, quantity):
-        """Резервирует тару"""
         if quantity <= self.available_quantity:
             self.available_quantity -= quantity
             self.reserved_quantity += quantity
@@ -298,7 +266,6 @@ class WarehouseContainer(models.Model):
         return False
 
     def release(self, quantity):
-        """Освобождает зарезервированную тару"""
         if quantity <= self.reserved_quantity:
             self.reserved_quantity -= quantity
             self.available_quantity += quantity
@@ -308,8 +275,6 @@ class WarehouseContainer(models.Model):
 
 
 class WarehouseSchedule(models.Model):
-    """Детальный график приема заявок по дням"""
-
     warehouse = models.ForeignKey(
         Warehouse,
         on_delete=models.CASCADE,
@@ -329,8 +294,18 @@ class WarehouseSchedule(models.Model):
         verbose_name="День недели",
     )
     is_working = models.BooleanField(default=True, verbose_name="Рабочий день")
-    opening_time = models.TimeField(verbose_name="Время открытия")
-    closing_time = models.TimeField(verbose_name="Время закрытия")
+    opening_time = models.TimeField(
+        verbose_name="Время открытия",
+        default=timezone.datetime.strptime("08:00", "%H:%M").time(),
+        blank=True,
+        null=True,
+    )
+    closing_time = models.TimeField(
+        verbose_name="Время закрытия",
+        default=timezone.datetime.strptime("20:00", "%H:%M").time(),
+        blank=True,
+        null=True,
+    )
     break_start = models.TimeField(
         verbose_name="Начало перерыва", blank=True, null=True
     )
@@ -338,9 +313,11 @@ class WarehouseSchedule(models.Model):
     pickup_cutoff_time = models.TimeField(
         verbose_name="Крайний срок приема заявок на забор",
         help_text="После этого времени заявки на следующий день",
+        default=timezone.datetime.strptime("16:00", "%H:%M").time(),
     )
     delivery_cutoff_time = models.TimeField(
-        verbose_name="Крайний срок приема заявок на доставку"
+        verbose_name="Крайний срок приема заявок на доставку",
+        default=timezone.datetime.strptime("17:00", "%H:%M").time(),
     )
 
     class Meta:
@@ -350,17 +327,16 @@ class WarehouseSchedule(models.Model):
         ordering = ["warehouse", "day_of_week"]
 
     def __str__(self):
-        return f"{self.warehouse.name} - {self.get_day_of_week_display()}"
+        return self.get_day_of_week_display()
 
     @property
     def working_hours(self):
-        """Возвращает рабочие часы"""
-        if self.is_working:
+        if not self.is_working:
+            return "Выходной"
+        else:
             return f"{self.opening_time.strftime('%H:%M')}-{self.closing_time.strftime('%H:%M')}"
-        return "Выходной"
 
     def is_available_for_time(self, time):
-        """Проверяет доступность в указанное время"""
         if not self.is_working:
             return False
 
