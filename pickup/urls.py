@@ -26,4 +26,9 @@ urlpatterns = [
     ),
     path("api/operators/", views.get_operators, name="get_operators"),
     path("<int:pk>/qr-pdf/", views.pickup_order_qr_pdf, name="pickup_order_qr_pdf"),
+    path(
+        "bulk-update/",
+        views.bulk_update_pickup_orders,
+        name="pickup_orders_bulk_update",
+    ),
 ]

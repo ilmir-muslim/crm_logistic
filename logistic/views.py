@@ -1086,3 +1086,112 @@ def delivery_order_qr_pdf(request, pk):
         print(f"❌ Ошибка при создании PDF QR-кода: {e}")
         messages.error(request, f"Ошибка при создании PDF: {str(e)}")
         return redirect("delivery_order_detail", pk=pk)
+
+
+@require_POST
+@login_required
+def bulk_update_delivery_orders(request):
+    """Массовое обновление выбранных заявок"""
+    try:
+        # Проверка прав
+        if not (
+            request.user.is_superuser
+            or request.user.groups.filter(name="Логисты").exists()
+        ):
+            return JsonResponse(
+                {"success": False, "error": "Нет прав на массовое редактирование"}
+            )
+
+        data = json.loads(request.body)
+        order_ids = data.get("order_ids", [])
+        field = data.get("field")
+        value = data.get("value")
+
+        if not order_ids:
+            return JsonResponse({"success": False, "error": "Не выбраны заявки"})
+
+        if not field:
+            return JsonResponse(
+                {"success": False, "error": "Не указано поле для обновления"}
+            )
+
+        # Разрешенные поля для массового редактирования
+        allowed_fields = [
+            "status",
+            "driver_name",
+            "driver_phone",
+            "vehicle",
+            "date",
+            "fulfillment",
+            "quantity",
+            "weight",
+            "volume",
+        ]
+
+        if field not in allowed_fields:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Поле не доступно для массового редактирования",
+                }
+            )
+
+        # Получаем заявки
+        orders = DeliveryOrder.objects.filter(id__in=order_ids)
+
+        # Для операторов: только свои заявки
+        if hasattr(request.user, "profile") and request.user.profile.is_operator:
+            orders = orders.filter(operator=request.user)
+
+        if not orders.exists():
+            return JsonResponse({"success": False, "error": "Заявки не найдены"})
+
+        # Преобразование значений
+        updated_count = 0
+        for order in orders:
+            try:
+                # Проверяем, можно ли редактировать заявку
+                if order.status == "shipped" and field != "status":
+                    continue  # Пропускаем отправленные заявки, если не меняем статус
+
+                # Преобразование типов
+                if field in ["quantity"]:
+                    new_value = int(value) if value else 0
+                elif field in ["weight", "volume"]:
+                    new_value = float(value) if value else 0.0
+                elif field == "date":
+                    try:
+                        new_value = datetime.strptime(value, "%Y-%m-%d").date()
+                    except ValueError:
+                        continue
+                elif field == "fulfillment":
+                    if value:
+                        from django.contrib.auth.models import User
+
+                        try:
+                            new_value = User.objects.get(id=value)
+                        except User.DoesNotExist:
+                            continue
+                    else:
+                        new_value = None
+                else:
+                    new_value = value
+
+                setattr(order, field, new_value)
+                order.save()
+                updated_count += 1
+
+            except Exception as e:
+                print(f"Ошибка при обновлении заявки {order.id}: {e}")
+                continue
+
+        return JsonResponse(
+            {
+                "success": True,
+                "updated_count": updated_count,
+                "total_count": len(order_ids),
+            }
+        )
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})

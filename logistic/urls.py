@@ -40,4 +40,9 @@ urlpatterns = [
         name="delivery_order_update_field",
     ),
     path("<int:pk>/qr-pdf/", views.delivery_order_qr_pdf, name="delivery_order_qr_pdf"),
+    path(
+        "bulk-update/",
+        views.bulk_update_delivery_orders,
+        name="delivery_orders_bulk_update",
+    ),
 ]

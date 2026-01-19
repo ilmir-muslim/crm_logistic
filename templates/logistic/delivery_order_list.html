@@ -420,6 +420,26 @@
         line-height: 1.5;
     }
 
+    /* Стили для массового редактирования */
+    #bulkEditBtn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    #bulkEditModal .modal-content {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    #bulkEditModal .form-label {
+        font-weight: 600;
+        font-size: 15px !important;
+    }
+
+    #bulkEditModal .form-control,
+    #bulkEditModal .form-select {
+        font-size: 15px !important;
+    }
+
     /* Адаптивность */
     @media (max-width: 768px) {
         .table th,
@@ -451,6 +471,10 @@
         }
         
         #addressModal .modal-dialog {
+            margin: 0.5rem;
+        }
+        
+        #bulkEditModal .modal-dialog {
             margin: 0.5rem;
         }
         
@@ -514,6 +538,12 @@
                     <a href="{% url 'delivery_order_create' %}" class="btn btn-success me-2">
                         <i class="bi bi-plus-circle"></i> Добавить новую заявку
                     </a>
+                    <!-- Кнопка массового редактирования -->
+                    {% if not is_operator %}
+                    <button type="button" class="btn btn-warning me-2" id="bulkEditBtn" disabled>
+                        <i class="bi bi-pencil-square"></i> Массовое редактирование
+                    </button>
+                    {% endif %}
                     <button type="submit" class="btn btn-danger" id="exportPdfBtn" disabled>
                         <i class="bi bi-file-pdf"></i> Экспорт выбранного в PDF
                     </button>
@@ -766,6 +796,49 @@
   </div>
 </div>
 
+<!-- Модальное окно для массового редактирования -->
+<div class="modal fade" id="bulkEditModal" tabindex="-1" aria-labelledby="bulkEditModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="bulkEditModalLabel">Массовое редактирование</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="bulkEditForm">
+          <div class="mb-3">
+            <label for="bulkEditField" class="form-label">Поле для редактирования</label>
+            <select class="form-select" id="bulkEditField">
+              <option value="">Выберите поле</option>
+              <option value="status">Статус</option>
+              <option value="driver_name">Имя водителя</option>
+              <option value="driver_phone">Телефон водителя</option>
+              <option value="vehicle">Транспортное средство</option>
+              <option value="date">Дата доставки</option>
+              <option value="fulfillment">Фулфилмент оператор</option>
+              <option value="quantity">Количество мест</option>
+              <option value="weight">Вес (кг)</option>
+              <option value="volume">Объем (м³)</option>
+            </select>
+          </div>
+          <div class="mb-3" id="bulkEditValueContainer">
+            <!-- Здесь будет поле для ввода значения в зависимости от выбранного поля -->
+          </div>
+          <div class="alert alert-info">
+            <small>
+              <i class="bi bi-info-circle"></i> Будет обновлено: <span id="selectedOrdersCount">0</span> заявок
+            </small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="bulkEditSaveBtn">Сохранить изменения</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- JavaScript для инлайн-редактирования и модального окна складов -->
 <script>
 // Глобальные переменные для хранения состояния
@@ -773,6 +846,7 @@ let editingCell = null;
 let operatorsList = [];
 let currentAddressCell = null;
 let currentAddressField = null; // 'pickup_address' или 'delivery_address'
+let bulkEditModal = null;
 
 // Загружаем список операторов при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
@@ -861,10 +935,6 @@ function openAddressModal(cell, field) {
     
     // Заполняем поле адреса
     document.getElementById('addressInput').value = currentAddress;
-    
-    // Показываем подсказку
-    if (currentAddress) {
-    }
     
     // Открываем модальное окно
     const modal = new bootstrap.Modal(document.getElementById('addressModal'));
@@ -1533,58 +1603,337 @@ function initBulkActions() {
     
     function updateSelectedCount() {
         const selected = document.querySelectorAll('.order-checkbox:checked');
-        selectedCount.textContent = `Выбрано: ${selected.length}`;
-        exportPdfBtn.disabled = selected.length === 0;
+        if (selectedCount) {
+            selectedCount.textContent = `Выбрано: ${selected.length}`;
+        }
+        if (exportPdfBtn) {
+            exportPdfBtn.disabled = selected.length === 0;
+        }
     }
     
-    selectAllCheckbox.addEventListener('change', function() {
-        orderCheckboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            orderCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateSelectedCount();
+            updateBulkEditButton();
         });
-        updateSelectedCount();
-    });
+    }
     
-    selectAllBtn.addEventListener('click', function() {
-        orderCheckboxes.forEach(checkbox => {
-            checkbox.checked = true;
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            orderCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            if (selectAllCheckbox) selectAllCheckbox.checked = true;
+            updateSelectedCount();
+            updateBulkEditButton();
         });
-        selectAllCheckbox.checked = true;
-        updateSelectedCount();
-    });
+    }
     
-    deselectAllBtn.addEventListener('click', function() {
-        orderCheckboxes.forEach(checkbox => {
-            checkbox.checked = false;
+    if (deselectAllBtn) {
+        deselectAllBtn.addEventListener('click', function() {
+            orderCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            if (selectAllCheckbox) selectAllCheckbox.checked = false;
+            updateSelectedCount();
+            updateBulkEditButton();
         });
-        selectAllCheckbox.checked = false;
-        updateSelectedCount();
-    });
+    }
     
     orderCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateSelectedCount);
+        checkbox.addEventListener('change', function() {
+            updateSelectedCount();
+            updateBulkEditButton();
+        });
     });
     
-    bulkActionsForm.addEventListener('submit', function(e) {
+    if (bulkActionsForm) {
+        bulkActionsForm.addEventListener('submit', function(e) {
+            const selectedCheckboxes = document.querySelectorAll('.order-checkbox:checked');
+            if (selectedCheckboxes.length === 0) {
+                e.preventDefault();
+                alert('Пожалуйста, выберите хотя бы одну заявку');
+                return;
+            }
+            
+            const oldInputs = this.querySelectorAll('input[name="order_ids"]');
+            oldInputs.forEach(input => input.remove());
+            
+            selectedCheckboxes.forEach(checkbox => {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'order_ids';
+                hiddenInput.value = checkbox.value;
+                this.appendChild(hiddenInput);
+            });
+        });
+    }
+    
+    updateSelectedCount();
+    initBulkEditing();
+    updateBulkEditButton();
+}
+
+// ==================== МАССОВОЕ РЕДАКТИРОВАНИЕ ====================
+
+function updateBulkEditButton() {
+    const bulkEditBtn = document.getElementById('bulkEditBtn');
+    if (!bulkEditBtn) return;
+    
+    const selected = document.querySelectorAll('.order-checkbox:checked');
+    bulkEditBtn.disabled = selected.length === 0;
+}
+
+function initBulkEditing() {
+    const bulkEditBtn = document.getElementById('bulkEditBtn');
+    if (!bulkEditBtn) return;
+    
+    bulkEditBtn.addEventListener('click', function() {
         const selectedCheckboxes = document.querySelectorAll('.order-checkbox:checked');
         if (selectedCheckboxes.length === 0) {
-            e.preventDefault();
-            alert('Пожалуйста, выберите хотя бы одну заявку');
+            alert('Пожалуйста, выберите заявки для редактирования');
             return;
         }
         
-        const oldInputs = this.querySelectorAll('input[name="order_ids"]');
-        oldInputs.forEach(input => input.remove());
+        // Обновляем счетчик выбранных заявок (с проверкой на существование элемента)
+        const selectedOrdersCountEl = document.getElementById('selectedOrdersCount');
+        if (selectedOrdersCountEl) {
+            selectedOrdersCountEl.textContent = selectedCheckboxes.length;
+        }
         
-        selectedCheckboxes.forEach(checkbox => {
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = 'order_ids';
-            hiddenInput.value = checkbox.value;
-            this.appendChild(hiddenInput);
-        });
+        // Сбрасываем форму
+        const bulkEditField = document.getElementById('bulkEditField');
+        const bulkEditValueContainer = document.getElementById('bulkEditValueContainer');
+        
+        if (bulkEditField) bulkEditField.value = '';
+        if (bulkEditValueContainer) bulkEditValueContainer.innerHTML = '';
+        
+        // Показываем модальное окно
+        const bulkEditModalEl = document.getElementById('bulkEditModal');
+        if (bulkEditModalEl) {
+            bulkEditModal = new bootstrap.Modal(bulkEditModalEl);
+            bulkEditModal.show();
+        } else {
+            console.error('Модальное окно массового редактирования не найдено');
+        }
     });
     
-    updateSelectedCount();
+    // Обработчик изменения поля
+    const bulkEditFieldEl = document.getElementById('bulkEditField');
+    if (bulkEditFieldEl) {
+        bulkEditFieldEl.addEventListener('change', function() {
+            const field = this.value;
+            const container = document.getElementById('bulkEditValueContainer');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            if (!field) return;
+            
+            let inputHtml = '';
+            
+            switch(field) {
+                case 'status':
+                    inputHtml = `
+                        <label for="bulkEditValue" class="form-label">Новый статус</label>
+                        <select class="form-select" id="bulkEditValue">
+                            <option value="">Выберите статус</option>
+                            <option value="submitted">Подана</option>
+                            <option value="driver_assigned">Водитель назначен</option>
+                            <option value="shipped">Отправлено</option>
+                        </select>
+                    `;
+                    break;
+                    
+                case 'driver_name':
+                    inputHtml = `
+                        <label for="bulkEditValue" class="form-label">Имя водителя</label>
+                        <input type="text" class="form-control" id="bulkEditValue" placeholder="Введите ФИО водителя">
+                    `;
+                    break;
+                    
+                case 'driver_phone':
+                    inputHtml = `
+                        <label for="bulkEditValue" class="form-label">Телефон водителя</label>
+                        <input type="text" class="form-control" id="bulkEditValue" placeholder="+7 (XXX) XXX-XX-XX">
+                    `;
+                    break;
+                    
+                case 'vehicle':
+                    inputHtml = `
+                        <label for="bulkEditValue" class="form-label">Транспортное средство</label>
+                        <input type="text" class="form-control" id="bulkEditValue" placeholder="Марка и номер ТС">
+                    `;
+                    break;
+                    
+                case 'date':
+                    inputHtml = `
+                        <label for="bulkEditValue" class="form-label">Дата доставки</label>
+                        <input type="date" class="form-control" id="bulkEditValue">
+                    `;
+                    break;
+                    
+                case 'fulfillment':
+                    // Загружаем операторов для выбора
+                    loadFulfillmentOperatorsForBulk();
+                    inputHtml = `
+                        <label for="bulkEditValue" class="form-label">Фулфилмент оператор</label>
+                        <select class="form-select" id="bulkEditValue">
+                            <option value="">Загрузка операторов...</option>
+                        </select>
+                    `;
+                    break;
+                    
+                case 'quantity':
+                    inputHtml = `
+                        <label for="bulkEditValue" class="form-label">Количество мест</label>
+                        <input type="number" class="form-control" id="bulkEditValue" min="1" placeholder="Введите число">
+                    `;
+                    break;
+                    
+                case 'weight':
+                    inputHtml = `
+                        <label for="bulkEditValue" class="form-label">Вес (кг)</label>
+                        <input type="number" class="form-control" id="bulkEditValue" min="0" step="0.01" placeholder="Введите вес">
+                    `;
+                    break;
+                    
+                case 'volume':
+                    inputHtml = `
+                        <label for="bulkEditValue" class="form-label">Объем (м³)</label>
+                        <input type="number" class="form-control" id="bulkEditValue" min="0" step="0.01" placeholder="Введите объем">
+                    `;
+                    break;
+            }
+            
+            container.innerHTML = inputHtml;
+        });
+    }
+    
+    // Кнопка сохранения изменений
+    const bulkEditSaveBtn = document.getElementById('bulkEditSaveBtn');
+    if (bulkEditSaveBtn) {
+        bulkEditSaveBtn.addEventListener('click', saveBulkChanges);
+    }
+}
+
+// Загрузка операторов фулфилмента для выпадающего списка
+function loadFulfillmentOperatorsForBulk() {
+    const csrfToken = getCookie('csrftoken');
+    
+    fetch('{% url "get_operators" %}', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const select = document.getElementById('bulkEditValue');
+        if (select) {
+            select.innerHTML = '<option value="">Выберите оператора</option>';
+            data.forEach(operator => {
+                const option = document.createElement('option');
+                option.value = operator.id;
+                option.textContent = operator.full_name || operator.username;
+                select.appendChild(option);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка загрузки операторов:', error);
+        const select = document.getElementById('bulkEditValue');
+        if (select) {
+            select.innerHTML = '<option value="">Ошибка загрузки</option>';
+        }
+    });
+}
+
+// Сохранение массовых изменений
+function saveBulkChanges() {
+    const field = document.getElementById('bulkEditField');
+    const valueInput = document.getElementById('bulkEditValue');
+    
+    if (!field || !valueInput) {
+        showNotification('Ошибка: элементы формы не найдены', 'error');
+        return;
+    }
+    
+    const fieldValue = field.value;
+    const value = valueInput.value;
+    
+    if (!fieldValue) {
+        showNotification('Выберите поле для редактирования', 'error');
+        return;
+    }
+    
+    if (value === '') {
+        showNotification('Введите значение для поля', 'error');
+        return;
+    }
+    
+    // Собираем ID выбранных заявок
+    const selectedCheckboxes = document.querySelectorAll('.order-checkbox:checked');
+    const orderIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+    
+    if (orderIds.length === 0) {
+        showNotification('Не выбраны заявки для редактирования', 'error');
+        return;
+    }
+    
+    // Показываем индикатор загрузки
+    const saveBtn = document.getElementById('bulkEditSaveBtn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Сохранение...';
+    saveBtn.disabled = true;
+    
+    // Отправка запроса на сервер
+    const csrfToken = getCookie('csrftoken');
+    const url = '{% url "delivery_orders_bulk_update" %}';
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            order_ids: orderIds,
+            field: fieldValue,
+            value: value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+        
+        if (data.success) {
+            showNotification(`Успешно обновлено ${data.updated_count} из ${data.total_count} заявок`, 'success');
+            
+            // Закрываем модальное окно
+            if (bulkEditModal) {
+                bulkEditModal.hide();
+            }
+            
+            // Обновляем страницу через 1.5 секунды, чтобы увидеть изменения
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+            
+        } else {
+            showNotification('Ошибка: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+        console.error('Ошибка при массовом обновлении:', error);
+        showNotification('Ошибка сети: ' + error.message, 'error');
+    });
 }
 
 // ==================== СОРТИРОВКА ТАБЛИЦЫ ====================

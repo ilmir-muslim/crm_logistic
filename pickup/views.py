@@ -556,3 +556,137 @@ def pickup_order_qr_pdf(request, pk):
         print(f"❌ Ошибка при создании PDF QR-кода: {e}")
         messages.error(request, f"Ошибка при создании PDF: {str(e)}")
         return redirect("pickup_order_detail", pk=pk)
+
+
+@require_POST
+@login_required
+def bulk_update_pickup_orders(request):
+    """Массовое обновление выбранных заявок на забор"""
+    try:
+        import json
+        from datetime import datetime
+        from django.http import JsonResponse
+        from django.contrib.auth.models import User
+        from warehouses.models import Warehouse
+
+        data = json.loads(request.body)
+        order_ids = data.get("order_ids", [])
+        field = data.get("field")
+        value = data.get("value")
+
+        if not order_ids:
+            return JsonResponse({"success": False, "error": "Не выбраны заявки"})
+
+        if not field:
+            return JsonResponse(
+                {"success": False, "error": "Не указано поле для обновления"}
+            )
+
+        # Получаем заявки с проверкой прав
+        orders = PickupOrder.objects.filter(id__in=order_ids)
+
+        # Для операторов проверяем, что это их заявки
+        if hasattr(request.user, "profile") and request.user.profile.role == "operator":
+            orders = orders.filter(operator=request.user)
+
+        if not orders.exists():
+            return JsonResponse(
+                {"success": False, "error": "Заявки не найдены или нет прав доступа"}
+            )
+
+        # Проверяем, что поле доступно для массового редактирования
+        allowed_bulk_fields = [
+            "operator",
+            "status",
+            "receiving_warehouse",
+            "receiving_operator",
+            "pickup_date",
+            "desired_delivery_date",
+        ]
+
+        if field not in allowed_bulk_fields:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Поле не доступно для массового редактирования",
+                }
+            )
+
+        updated_count = 0
+
+        # Обновляем каждую заявку
+        for order in orders:
+            try:
+                # Преобразование типов данных
+                if field == "operator":
+                    if value:
+                        try:
+                            operator_value = User.objects.get(id=value)
+                            order.operator = operator_value
+                        except User.DoesNotExist:
+                            continue
+                    else:
+                        order.operator = None
+
+                elif field == "status":
+                    if value in ["ready", "payment"]:
+                        order.status = value
+
+                elif field == "receiving_warehouse":
+                    if value:
+                        try:
+                            warehouse_value = Warehouse.objects.get(id=value)
+                            order.receiving_warehouse = warehouse_value
+                        except Warehouse.DoesNotExist:
+                            continue
+                    else:
+                        order.receiving_warehouse = None
+
+                elif field == "receiving_operator":
+                    if value:
+                        try:
+                            operator_value = User.objects.get(id=value)
+                            order.receiving_operator = operator_value
+                        except User.DoesNotExist:
+                            continue
+                    else:
+                        order.receiving_operator = None
+
+                elif field == "pickup_date":
+                    if value:
+                        try:
+                            date_value = datetime.strptime(value, "%Y-%m-%d").date()
+                            order.pickup_date = date_value
+                        except ValueError:
+                            continue
+                    else:
+                        order.pickup_date = None
+
+                elif field == "desired_delivery_date":
+                    if value:
+                        try:
+                            date_value = datetime.strptime(value, "%Y-%m-%d").date()
+                            order.desired_delivery_date = date_value
+                        except ValueError:
+                            continue
+                    else:
+                        order.desired_delivery_date = None
+
+                order.save()
+                updated_count += 1
+
+            except Exception as e:
+                print(f"Ошибка при обновлении заявки {order.id}: {e}")
+                continue
+
+        return JsonResponse(
+            {
+                "success": True,
+                "updated_count": updated_count,
+                "message": f"Обновлено {updated_count} из {len(order_ids)} заявок",
+            }
+        )
+
+    except Exception as e:
+        print(f"Ошибка в bulk_update_pickup_orders: {e}")
+        return JsonResponse({"success": False, "error": str(e)})
