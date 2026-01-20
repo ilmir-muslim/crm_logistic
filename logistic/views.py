@@ -19,7 +19,10 @@ from io import BytesIO
 import zipfile
 
 from django.views.decorators.http import require_POST
+import qrcode
 from weasyprint import HTML
+
+from crm_logistic import settings
 
 
 from .models import DeliveryOrder
@@ -986,7 +989,7 @@ def get_operators(request):
 
 @login_required
 def delivery_order_qr_pdf(request, pk):
-    """Скачать QR-коды заявки на доставку в PDF формате (несколько QR-кодов по количеству мест)"""
+    """Скачать QR-коды заявки на доставку в PDF формате"""
     order = get_object_or_404(DeliveryOrder, pk=pk)
 
     if hasattr(request.user, "profile") and request.user.profile.is_operator:
@@ -996,149 +999,172 @@ def delivery_order_qr_pdf(request, pk):
 
     if not order.qr_code:
         order.generate_qr_code()
+        order.refresh_from_db()
 
-    if not order.qr_code:
-        messages.error(request, "QR-код недоступен")
+    qr_image_data = None
+    try:
+        if order.qr_code and order.qr_code.path and os.path.exists(order.qr_code.path):
+            with open(order.qr_code.path, "rb") as f:
+                qr_image_data = base64.b64encode(f.read()).decode("utf-8")
+        else:
+            pdf_url = f"{settings.SITE_URL}{reverse('delivery_order_pdf', kwargs={'pk': order.pk})}"
+
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(pdf_url)
+            qr.make(fit=True)
+
+            buffer = BytesIO()
+            img = qr.make_image(fill_color="black", back_color="white")
+            img.save(buffer, format="PNG")
+            buffer.seek(0)
+
+            qr_image_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
+            buffer.close()
+
+    except Exception as e:
+        print(f"❌ Ошибка при получении QR-кода: {e}")
+        messages.error(request, f"Ошибка при получении QR-кода: {str(e)[:100]}")
         return redirect("delivery_order_detail", pk=pk)
 
+    if not qr_image_data:
+        messages.error(request, "Не удалось получить QR-код")
+        return redirect("delivery_order_detail", pk=pk)
+
+    client_name = order.get_recipient_display()
+    if len(client_name) > 25:
+        client_name = client_name[:22] + "..."
+
+    qr_items_html = ""
+    items_per_page = 12
+    total_items = order.quantity
+
+    page_width = 210
+    page_height = 297
+    margin = 10
+
+    cell_width = (page_width - 2 * margin) / 3
+    cell_height = (page_height - 2 * margin) / 4
+
+    qr_size = min(cell_width - 10, cell_height - 15)
+
+    for page_num in range(0, (total_items + items_per_page - 1) // items_per_page):
+        qr_items_html += f'<div class="page page-{page_num + 1}">'
+
+        for position in range(items_per_page):
+            item_index = page_num * items_per_page + position
+            if item_index >= total_items:
+                break
+
+            i = item_index + 1
+
+            row = position // 3
+            col = position % 3
+
+            x = margin + col * cell_width + (cell_width - qr_size) / 2
+            y = margin + row * cell_height + 5
+
+            qr_items_html += f"""
+            <div class="qr-item" style="position: absolute; left: {x}mm; top: {y}mm; width: {qr_size}mm; height: {qr_size}mm;">
+                <div class="qr-header">Фулфилмент Царицыно</div>
+                <div class="qr-date">Дата: {order.date.strftime("%d.%m.%Y")}</div>
+                <img src="data:image/png;base64,{qr_image_data}" alt="QR Code" width="100" height="100" />
+                <div class="qr-client">Клиент: {client_name}</div>
+                <div class="qr-counter">{i} из {total_items}</div>
+            </div>
+            """
+
+        qr_items_html += "</div>"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            @page {{
+                size: A4 portrait;
+                margin: 0;
+            }}
+            body {{
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+                font-size: 7pt;
+            }}
+            .page {{
+                width: 210mm;
+                height: 297mm;
+                position: relative;
+                page-break-after: always;
+            }}
+            .page:last-child {{
+                page-break-after: avoid;
+            }}
+            .qr-item {{
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                box-sizing: border-box;
+                padding: 3mm;
+                border: 0.5px solid #999;
+                background-color: white;
+                overflow: hidden;
+            }}
+            .qr-header {{
+                font-size: 8pt;
+                font-weight: bold;
+                margin-bottom: 1mm;
+                color: #000;
+                line-height: 1.2;
+            }}
+            .qr-date {{
+                font-size: 7pt;
+                margin-bottom: 2mm;
+                color: #333;
+                line-height: 1.2;
+            }}
+            .qr-item img {{
+                width: 80% !important;
+                height: auto !important;
+                max-width: 30mm !important;
+                max-height: 30mm !important;
+                margin: 1mm 0;
+                display: block;
+            }}
+            .qr-client {{
+                font-size: 7pt;
+                margin: 1mm 0;
+                color: #000;
+                line-height: 1.2;
+                max-width: 100%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }}
+            .qr-counter {{
+                font-size: 7pt;
+                font-weight: bold;
+                margin-top: 1mm;
+                color: #000;
+                line-height: 1.2;
+            }}
+        </style>
+    </head>
+    <body>
+        {qr_items_html}
+    </body>
+    </html>
+    """
+
     try:
-        qr_code_path = order.qr_code.path
-        if not os.path.exists(qr_code_path):
-            messages.error(request, "Файл QR-кода не найден")
-            return redirect("delivery_order_detail", pk=pk)
-
-        with open(qr_code_path, "rb") as f:
-            qr_image_data = base64.b64encode(f.read()).decode("utf-8")
-
-        client_name = order.get_recipient_display()
-        if len(client_name) > 25:
-            client_name = client_name[:22] + "..." 
-
-        qr_items_html = ""
-        items_per_page = 12  
-        total_items = order.quantity
-
-        page_width = 210  
-        page_height = 297  
-        margin = 10  
-
-        cell_width = (page_width - 2 * margin) / 3 
-        cell_height = (page_height - 2 * margin) / 4 
-
-        qr_size = min(cell_width - 10, cell_height - 15) 
-
-        for page_num in range(0, (total_items + items_per_page - 1) // items_per_page):
-            qr_items_html += f'<div class="page page-{page_num + 1}">'
-
-            for position in range(items_per_page):
-                item_index = page_num * items_per_page + position
-                if item_index >= total_items:
-                    break
-
-                i = item_index + 1 
-
-                row = position // 3  
-                col = position % 3  
-
-                x = margin + col * cell_width + (cell_width - qr_size) / 2
-                y = margin + row * cell_height + 5  
-
-                qr_items_html += f"""
-                <div class="qr-item" style="position: absolute; left: {x}mm; top: {y}mm; width: {qr_size}mm; height: {qr_size}mm;">
-                    <div class="qr-header">Фулфилмент Царицыно</div>
-                    <div class="qr-date">Дата: {order.date.strftime('%d.%m.%Y')}</div>
-                    <img src="data:image/png;base64,{qr_image_data}" />
-                    <div class="qr-client">Клиент: {client_name}</div>
-                    <div class="qr-counter">{i} из {total_items}</div>
-                </div>
-                """
-
-            qr_items_html += "</div>"
-
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <style>
-                @page {{
-                    size: A4 portrait;
-                    margin: 0;
-                }}
-                body {{
-                    margin: 0;
-                    padding: 0;
-                    font-family: Arial, sans-serif;
-                    font-size: 7pt;
-                }}
-                .page {{
-                    width: 210mm;
-                    height: 297mm;
-                    position: relative;
-                    page-break-after: always;
-                    border: 1px solid #ccc; /* Для визуализации границ страницы */
-                }}
-                .page:last-child {{
-                    page-break-after: avoid;
-                }}
-                .qr-item {{
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    text-align: center;
-                    box-sizing: border-box;
-                    padding: 3mm;
-                    border: 0.5px solid #999;
-                    background-color: white;
-                    overflow: hidden;
-                }}
-                .qr-header {{
-                    font-size: 8pt;
-                    font-weight: bold;
-                    margin-bottom: 1mm;
-                    color: #000;
-                    line-height: 1.2;
-                }}
-                .qr-date {{
-                    font-size: 7pt;
-                    margin-bottom: 2mm;
-                    color: #333;
-                    line-height: 1.2;
-                }}
-                .qr-item img {{
-                    width: 80%;
-                    height: auto;
-                    max-width: 30mm;
-                    max-height: 30mm;
-                    margin: 1mm 0;
-                }}
-                .qr-client {{
-                    font-size: 7pt;
-                    margin: 1mm 0;
-                    color: #000;
-                    line-height: 1.2;
-                    max-width: 100%;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                }}
-                .qr-counter {{
-                    font-size: 7pt;
-                    font-weight: bold;
-                    margin-top: 1mm;
-                    color: #000;
-                    line-height: 1.2;
-                }}
-            </style>
-        </head>
-        <body>
-            {qr_items_html}
-        </body>
-        </html>
-        """
-
-        html = HTML(string=html_content)
+        html = HTML(string=html_content, base_url=request.build_absolute_uri("/"))
         pdf = html.write_pdf()
 
         if pdf:
@@ -1157,7 +1183,6 @@ def delivery_order_qr_pdf(request, pk):
         traceback.print_exc()
         messages.error(request, f"Ошибка при создании PDF: {str(e)}")
         return redirect("delivery_order_detail", pk=pk)
-
 
 
 @require_POST
