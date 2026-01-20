@@ -984,8 +984,9 @@ def get_operators(request):
     return JsonResponse(operators_list, safe=False)
 
 
+@login_required
 def delivery_order_qr_pdf(request, pk):
-    """Скачать QR-код заявки на доставку в PDF формате (только QR-код)"""
+    """Скачать QR-коды заявки на доставку в PDF формате (несколько QR-кодов по количеству мест)"""
     order = get_object_or_404(DeliveryOrder, pk=pk)
 
     if hasattr(request.user, "profile") and request.user.profile.is_operator:
@@ -1009,6 +1010,24 @@ def delivery_order_qr_pdf(request, pk):
         with open(qr_code_path, "rb") as f:
             qr_image_data = base64.b64encode(f.read()).decode("utf-8")
 
+        # Получаем данные для отображения
+        client_name = order.get_recipient_display()
+        if len(client_name) > 25:
+            client_name = client_name[:22] + "..."  # Обрезаем длинные имена
+
+        # Генерируем HTML с несколькими QR-кодами
+        qr_items_html = ""
+        for i in range(1, order.quantity + 1):
+            qr_items_html += f"""
+            <div class="qr-item">
+                <div class="qr-header">Фулфилмент Царицыно</div>
+                <div class="qr-date">Дата: {order.date.strftime('%d.%m.%Y')}</div>
+                <img src="data:image/png;base64,{qr_image_data}" />
+                <div class="qr-client">Клиент: {client_name}</div>
+                <div class="qr-counter">{i} из {order.quantity}</div>
+            </div>
+            """
+
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -1016,25 +1035,83 @@ def delivery_order_qr_pdf(request, pk):
             <meta charset="utf-8">
             <style>
                 @page {{
-                    size: 80mm 80mm;
-                    margin: 0;
+                    size: A4 portrait;
+                    margin: 10mm;
                 }}
                 body {{
                     margin: 0;
                     padding: 0;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    height: 100vh;
+                    font-family: Arial, sans-serif;
                 }}
-                img {{
-                    width: 70mm;
-                    height: 70mm;
+                .qr-grid {{
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr); /* 3 колонки */
+                    grid-template-rows: repeat(4, 1fr); /* 4 строки на странице */
+                    gap: 5mm;
+                    height: 100%;
+                    page-break-inside: avoid;
+                }}
+                .qr-item {{
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    padding: 3mm;
+                    text-align: center;
+                    box-sizing: border-box;
+                    height: 100%;
+                    page-break-inside: avoid;
+                }}
+                .qr-header {{
+                    font-size: 9px;
+                    font-weight: bold;
+                    margin-bottom: 2px;
+                    color: #333;
+                }}
+                .qr-date {{
+                    font-size: 8px;
+                    margin-bottom: 3px;
+                    color: #666;
+                }}
+                .qr-item img {{
+                    width: 40mm;
+                    height: 40mm;
+                    margin: 2mm 0;
+                }}
+                .qr-client {{
+                    font-size: 8px;
+                    margin: 2px 0;
+                    color: #333;
+                    max-width: 100%;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }}
+                .qr-counter {{
+                    font-size: 8px;
+                    font-weight: bold;
+                    margin-top: 2px;
+                    color: #000;
+                }}
+                .page {{
+                    page-break-after: always;
+                    height: 277mm; /* Высота A4 минус поля */
+                    width: 190mm; /* Ширина A4 минус поля */
+                }}
+                /* Для последней страницы, чтобы избежать пустой страницы */
+                .page:last-child {{
+                    page-break-after: avoid;
                 }}
             </style>
         </head>
         <body>
-            <img src="data:image/png;base64,{qr_image_data}" />
+            <div class="page">
+                <div class="qr-grid">
+                    {qr_items_html}
+                </div>
+            </div>
         </body>
         </html>
         """
@@ -1044,7 +1121,7 @@ def delivery_order_qr_pdf(request, pk):
 
         if pdf:
             response = HttpResponse(pdf, content_type="application/pdf")
-            filename = f"delivery_qr_{order.tracking_number or order.id}.pdf"
+            filename = f"delivery_qr_{order.tracking_number or order.id}_{order.quantity}_places.pdf"
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
             return response
         else:
@@ -1052,7 +1129,7 @@ def delivery_order_qr_pdf(request, pk):
             return redirect("delivery_order_detail", pk=pk)
 
     except Exception as e:
-        print(f"❌ Ошибка при создании PDF QR-кода: {e}")
+        print(f"❌ Ошибка при создании PDF с QR-кодами: {e}")
         messages.error(request, f"Ошибка при создании PDF: {str(e)}")
         return redirect("delivery_order_detail", pk=pk)
 
