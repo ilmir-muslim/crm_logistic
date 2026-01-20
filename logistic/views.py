@@ -1010,18 +1010,15 @@ def delivery_order_qr_pdf(request, pk):
         with open(qr_code_path, "rb") as f:
             qr_image_data = base64.b64encode(f.read()).decode("utf-8")
 
-        # Получаем данные для отображения
         client_name = order.get_recipient_display()
         if len(client_name) > 25:
-            client_name = client_name[:22] + "..."  # Обрезаем длинные имена
+            client_name = client_name[:22] + "..." 
 
-        # Создаем HTML с QR-кодами
         qr_items_html = ""
-        items_per_page = 12  # 3x4
+        items_per_page = 12 
         total_items = order.quantity
 
         for i in range(1, total_items + 1):
-            # Начинаем новую страницу каждые 12 QR-кодов
             if i % items_per_page == 1:
                 if i > 1:
                     qr_items_html += (
@@ -1040,7 +1037,6 @@ def delivery_order_qr_pdf(request, pk):
             </div>
             """
 
-            # Закрываем последнюю страницу
             if i == total_items:
                 qr_items_html += "</div></div>"
 
