@@ -113,7 +113,6 @@ class PickupOrderFormView(FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Используем унифицированные функции
         cities_data = get_cities_with_warehouses_data()
         box_sizes = get_box_sizes_data()
 
@@ -254,7 +253,6 @@ class DeliveryOrderFormView(FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Используем унифицированные функции
         cities_data = get_cities_with_warehouses_data()
         box_sizes = get_box_sizes_data()
 

@@ -21,7 +21,6 @@ class Counterparty(models.Model):
         verbose_name='Тип контрагента'
     )
     
-    # Общие поля
     name = models.CharField(
         max_length=200,
         verbose_name='Наименование/ФИО'
@@ -52,7 +51,6 @@ class Counterparty(models.Model):
         verbose_name='Фактический адрес'
     )
     
-    # Для юридических лиц и ИП
     inn = models.CharField(
         max_length=12,
         blank=True,
@@ -90,7 +88,6 @@ class Counterparty(models.Model):
         ]
     )
     
-    # Для физических лиц
     passport_series = models.CharField(
         max_length=4,
         blank=True,
@@ -114,7 +111,6 @@ class Counterparty(models.Model):
         verbose_name='Дата выдачи паспорта'
     )
     
-    # Дополнительная информация
     director_name = models.CharField(
         max_length=200,
         blank=True,
@@ -152,7 +148,6 @@ class Counterparty(models.Model):
         verbose_name='Корреспондентский счет'
     )
     
-    # Статусы и даты
     is_active = models.BooleanField(
         default=True,
         verbose_name='Активный'

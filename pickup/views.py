@@ -23,7 +23,7 @@ from utils.pdf_generator import generate_qr_code_pdf
 from .models import PickupOrder
 from .filters import PickupOrderFilter
 from .forms import PickupOrderForm
-from .pdf_utils import create_pickup_order_pdf
+from .pdf_utils import create_pickup_order_pdf, create_pickup_orders_list_pdf
 
 
 class PickupOrderListView(LoginRequiredMixin, ListView):
@@ -35,12 +35,10 @@ class PickupOrderListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
 
-        # Фильтрация по оператору
         if self.request.user.is_authenticated and hasattr(self.request.user, "profile"):
             if self.request.user.profile.role == "operator":
                 queryset = queryset.filter(operator=self.request.user)
 
-        # Применение фильтров
         pickup_date_gte = self.request.GET.get("pickup_date__gte")
         pickup_date_lte = self.request.GET.get("pickup_date__lte")
         client_name = self.request.GET.get("client_name")
@@ -61,11 +59,9 @@ class PickupOrderListView(LoginRequiredMixin, ListView):
         if status:
             queryset = queryset.filter(status=status)
 
-        # Сортировка
         sort = self.request.GET.get("sort", "-pickup_date")
         order = self.request.GET.get("order", "desc")
 
-        # Список разрешенных полей для сортировки
         allowed_sort_fields = [
             "invoice_number",
             "pickup_date",
@@ -86,7 +82,6 @@ class PickupOrderListView(LoginRequiredMixin, ListView):
                 sort_field = sort
             queryset = queryset.order_by(sort_field)
         else:
-            # Сортировка по умолчанию
             queryset = queryset.order_by("-pickup_date")
 
         return queryset
@@ -103,7 +98,6 @@ class PickupOrderListView(LoginRequiredMixin, ListView):
             and hasattr(self.request.user, "profile")
             and self.request.user.profile.role == "logistic"
         )
-        # Передаем параметры сортировки в контекст
         context["sort"] = self.request.GET.get("sort", "pickup_date")
         context["order"] = self.request.GET.get("order", "desc")
         return context
@@ -143,7 +137,6 @@ class PickupOrderCreateView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Добавляем список контрагентов в контекст
         context["counterparties"] = Counterparty.objects.filter(
             is_active=True
         ).order_by("name")
@@ -166,7 +159,6 @@ class PickupOrderUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Добавляем список контрагентов в контекст
         context["counterparties"] = Counterparty.objects.filter(
             is_active=True
         ).order_by("name")
@@ -247,7 +239,6 @@ def update_pickup_order_field(request, pk):
     except PickupOrder.DoesNotExist:
         return JsonResponse({"success": False, "error": "Заявка не найдена"})
 
-    # Проверка прав
     if not (
         request.user.is_superuser
         or request.user.groups.filter(name="Логисты").exists()
@@ -280,21 +271,18 @@ def update_pickup_order_field(request, pk):
         )
 
     try:
-        # Преобразование типов
         if field == "quantity":
             value = int(value) if value else 1
         elif field == "pickup_date" and value:
             value = datetime.strptime(value, "%Y-%m-%d").date()
         elif field in ["pickup_time_from", "pickup_time_to"]:
-            # Обработка времени - разрешаем пустые значения
             if value and value.strip():
                 value = datetime.strptime(value, "%H:%M").time()
             else:
-                value = None  # Явно устанавливаем None для пустых значений
+                value = None 
         elif field == "desired_delivery_date" and value:
             value = datetime.strptime(value, "%Y-%m-%d").date()
         elif field == "operator":
-            # Обработка поля operator (ForeignKey)
             if value:
                 try:
                     value = User.objects.get(id=value)
@@ -318,7 +306,6 @@ def update_pickup_order_field(request, pk):
         setattr(order, field, value)
         order.save()
 
-        # Возвращаем отображаемое значение
         if field == "status":
             display_value = order.get_status_display()
             return JsonResponse({"success": True, "display_value": display_value})
@@ -335,7 +322,6 @@ def update_pickup_order_field(request, pk):
                 display_value = f"{order.receiving_warehouse.name} ({order.receiving_warehouse.city.name})"
             return JsonResponse({"success": True, "display_value": display_value})
         elif field in ["pickup_time_from", "pickup_time_to"]:
-            # Для времени возвращаем диапазон
             return JsonResponse(
                 {"success": True, "display_value": order.pickup_time_range}
             )
@@ -489,7 +475,6 @@ def pickup_order_qr_pdf(request, pk):
             messages.error(request, "У вас нет доступа к этой заявке")
             return redirect("pickup_order_list")
 
-    # Проверяем наличие QR-кода
     if not order.qr_code:
         order.generate_qr_code()
 
@@ -497,18 +482,15 @@ def pickup_order_qr_pdf(request, pk):
         messages.error(request, "QR-код недоступен")
         return redirect("pickup_order_detail", pk=pk)
 
-    # Получаем полный путь к файлу QR-кода
     try:
         qr_code_path = order.qr_code.path
         if not os.path.exists(qr_code_path):
             messages.error(request, "Файл QR-кода не найден")
             return redirect("pickup_order_detail", pk=pk)
 
-        # Генерируем простой PDF с QR-кодом
         with open(qr_code_path, "rb") as f:
             qr_image_data = base64.b64encode(f.read()).decode("utf-8")
 
-        # Создаем простой HTML с QR-кодом
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -539,7 +521,6 @@ def pickup_order_qr_pdf(request, pk):
         </html>
         """
 
-        # Генерируем PDF
         html = HTML(string=html_content)
         pdf = html.write_pdf()
 
@@ -582,10 +563,8 @@ def bulk_update_pickup_orders(request):
                 {"success": False, "error": "Не указано поле для обновления"}
             )
 
-        # Получаем заявки с проверкой прав
         orders = PickupOrder.objects.filter(id__in=order_ids)
 
-        # Для операторов проверяем, что это их заявки
         if hasattr(request.user, "profile") and request.user.profile.role == "operator":
             orders = orders.filter(operator=request.user)
 
@@ -594,7 +573,6 @@ def bulk_update_pickup_orders(request):
                 {"success": False, "error": "Заявки не найдены или нет прав доступа"}
             )
 
-        # Проверяем, что поле доступно для массового редактирования
         allowed_bulk_fields = [
             "operator",
             "status",
@@ -614,10 +592,8 @@ def bulk_update_pickup_orders(request):
 
         updated_count = 0
 
-        # Обновляем каждую заявку
         for order in orders:
             try:
-                # Преобразование типов данных
                 if field == "operator":
                     if value:
                         try:
@@ -690,3 +666,45 @@ def bulk_update_pickup_orders(request):
     except Exception as e:
         print(f"Ошибка в bulk_update_pickup_orders: {e}")
         return JsonResponse({"success": False, "error": str(e)})
+
+
+def pickup_orders_list_pdf(request):
+    """Экспорт выбранных заявок на забор в один PDF файл (таблица)"""
+    order_ids = request.GET.getlist("order_ids")
+
+    if not order_ids:
+        messages.error(request, "Не выбраны заявки для экспорта")
+        return redirect("pickup_order_list")
+
+    try:
+        orders = PickupOrder.objects.filter(id__in=order_ids)
+
+        if hasattr(request.user, "profile") and request.user.profile.is_operator:
+            orders = orders.filter(operator=request.user)
+
+        if not orders.exists():
+            messages.error(request, "Не найдено заявок для экспорта")
+            return redirect("pickup_order_list")
+
+        orders = orders.order_by("pickup_date", "pickup_time_from")
+
+        pdf = create_pickup_orders_list_pdf(orders)
+
+        if pdf:
+            response = HttpResponse(pdf, content_type="application/pdf")
+            filename = (
+                f'pickup_orders_list_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+            )
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            return response
+        else:
+            messages.error(request, "Ошибка при генерации PDF")
+            return redirect("pickup_order_list")
+
+    except Exception as e:
+        print(f"❌ Ошибка при создании списка PDF: {e}")
+        import traceback
+
+        traceback.print_exc()
+        messages.error(request, f"Ошибка при создании PDF: {str(e)[:100]}")
+        return redirect("pickup_order_list")

@@ -10,8 +10,8 @@ class PickupOrderAdmin(admin.ModelAdmin):
         "pickup_time_range",
         "pickup_address",
         "contact_person",
-        "get_sender_display",  # Изменено: метод для отображения отправителя
-        "get_recipient_display",  # Изменено: метод для отображения получателя
+        "get_sender_display", 
+        "get_recipient_display",  
         "desired_delivery_date",
         "status",
         "invoice_number",
@@ -30,14 +30,14 @@ class PickupOrderAdmin(admin.ModelAdmin):
     ]
     search_fields = [
         "tracking_number",
-        "sender__name",  # Изменено: поиск по имени отправителя
-        "sender__inn",  # Изменено: поиск по ИНН отправителя
-        "recipient__name",  # Изменено: поиск по имени получателя
-        "recipient__inn",  # Изменено: поиск по ИНН получателя
+        "sender__name", 
+        "sender__inn", 
+        "recipient__name",  
+        "recipient__inn", 
         "contact_person",
         "pickup_address",
         "invoice_number",
-        "receiving_warehouse__name",  # Изменено: поиск по названию склада
+        "receiving_warehouse__name",  
         "cargo_description",
     ]
     list_per_page = 50
@@ -58,7 +58,7 @@ class PickupOrderAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Информация о контрагентах",  # Изменено название секции
+            "Информация о контрагентах",  
             {
                 "fields": (
                     "sender",

@@ -7,9 +7,7 @@ from django.conf import settings
 def load_email_settings():
     """Загружает настройки email из файла"""
     try:
-        # Для продакшена используем .env или настройки Django
         if os.getenv("DJANGO_PRODUCTION", False):
-            # В продакшене настройки из переменных окружения
             settings.EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
             settings.EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
             settings.EMAIL_PORT = int(os.getenv("EMAIL_PORT", 25))
@@ -23,7 +21,6 @@ def load_email_settings():
                 "OPERATOR_EMAIL", "operator@crm.gulnar8f.beget.tech"
             )
         else:
-            # Для разработки из файла
             settings_file = Path(settings.BASE_DIR) / "email_settings.json"
             if settings_file.exists():
                 with open(settings_file, "r", encoding="utf-8") as f:
@@ -47,6 +44,5 @@ def load_email_settings():
         print(f"⚠️ Не удалось загрузить настройки email: {e}")
 
 
-# Загружаем настройки только если не в продакшене
 if not os.getenv("DJANGO_PRODUCTION", False):
     load_email_settings()

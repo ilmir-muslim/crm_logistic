@@ -1,4 +1,3 @@
-# pickup/pdf_utils.py
 from utils.pdf_generator import generate_pdf_from_template, DEFAULT_CSS
 from datetime import datetime
 
@@ -12,7 +11,6 @@ def create_pickup_order_pdf(pickup_order):
             "now": datetime.now(),
         }
 
-        # Для продакшена важно правильно настроить пути
         return generate_pdf_from_template(
             "pickup/pickup_pdf.html", context, DEFAULT_CSS
         )
@@ -26,7 +24,6 @@ def create_pickup_order_pdf(pickup_order):
 
 def create_daily_pickup_report_pdf(date, orders):
     """Создание ежедневного отчета по заборам"""
-    # Собираем статистику
     stats = {
         "total": len(orders),
         "ready": len([o for o in orders if o.status == "ready"]),
@@ -44,7 +41,6 @@ def create_daily_pickup_report_pdf(date, orders):
         "now": datetime.now(),
     }
 
-    # CSS для ландшафтной ориентации
     landscape_css = """
     @page {
         size: A4 landscape;
@@ -90,3 +86,104 @@ def create_daily_pickup_report_pdf(date, orders):
     return generate_pdf_from_template(
         "pickup/daily_pickup_report_pdf.html", context, landscape_css
     )
+
+
+def create_pickup_orders_list_pdf(orders):
+    """Создание PDF со списком заявок на забор в виде таблицы"""
+    try:
+        context = {
+            "orders": orders,
+            "title": "СПИСОК ЗАЯВОК НА ЗАБОР ГРУЗА",
+            "now": datetime.now(),
+            "total_count": len(orders),
+            "total_quantity": sum(o.quantity for o in orders),
+            "total_weight": sum(o.weight for o in orders if o.weight),
+            "total_volume": sum(o.volume for o in orders if o.volume),
+        }
+
+        landscape_css = """
+        @page {
+            size: A4 landscape;
+            margin: 1.5cm;
+        }
+        
+        body {
+            font-family: "DejaVu Sans", "Liberation Sans", Arial, sans-serif;
+            font-size: 9px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8px;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 4px 6px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .summary {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        
+        .summary-item {
+            display: inline-block;
+            margin-right: 20px;
+        }
+        
+        .summary-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .summary-value {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        
+        .status-ready { 
+            color: #0dcaf0; 
+            font-weight: bold;
+        }
+        
+        .status-payment { 
+            color: #ffc107; 
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .page-break {
+            page-break-after: always;
+        }
+        """
+
+        return generate_pdf_from_template(
+            "pickup/pickup_orders_list_pdf.html", context, landscape_css
+        )
+    except Exception as e:
+        print(f"❌ Ошибка в create_pickup_orders_list_pdf: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return None

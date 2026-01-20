@@ -19,9 +19,7 @@ def get_available_dates_for_warehouse(warehouse, days_ahead=30):
                 warehouse=warehouse, day_of_week=day_of_week
             )
 
-            # Проверяем, что день рабочий
             if schedule.is_working:
-                # Проверяем, что если это сегодня, то время не прошло
                 if check_date == today:
                     current_time = timezone.now().time()
                     if (
@@ -44,7 +42,7 @@ def get_next_available_date_for_warehouse(warehouse):
     """
     today = timezone.now().date()
 
-    for i in range(60):  # Ищем на 2 месяца вперед
+    for i in range(60):  
         check_date = today + timedelta(days=i)
         day_of_week = check_date.isoweekday()
 
@@ -84,7 +82,6 @@ def is_date_available_for_warehouse(warehouse, date):
         if not schedule.is_working:
             return False
 
-        # Проверяем, если это сегодня, то время не должно быть позже крайнего срока
         if date == timezone.now().date():
             current_time = timezone.now().time()
             if (

@@ -33,7 +33,6 @@ class UserProfile(models.Model):
         return self.role == "admin"
 
 
-# Сигналы для автоматического создания профиля
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:

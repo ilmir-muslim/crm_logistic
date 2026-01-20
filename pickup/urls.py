@@ -31,4 +31,5 @@ urlpatterns = [
         views.bulk_update_pickup_orders,
         name="pickup_orders_bulk_update",
     ),
+    path("list-pdf/", views.pickup_orders_list_pdf, name="pickup_orders_list_pdf"),
 ]

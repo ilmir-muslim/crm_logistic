@@ -16,7 +16,6 @@ def regenerate_qr_codes_for_pickup():
 
     for order in orders:
         try:
-            # Удаляем старый QR-код если есть
             if order.qr_code:
                 try:
                     if os.path.exists(order.qr_code.path):
@@ -26,9 +25,8 @@ def regenerate_qr_codes_for_pickup():
                 order.qr_code.delete(save=False)
                 order.qr_code = None
 
-            # Генерируем новый QR-код только с ссылкой (без текста)
             pdf_url = f"{settings.SITE_URL}{reverse('pickup_order_pdf', kwargs={'pk': order.pk})}"
-            qr_data = pdf_url  # Только ссылка, без текста
+            qr_data = pdf_url  
 
             qr = qrcode.QRCode(
                 version=1,
@@ -71,7 +69,6 @@ def regenerate_qr_codes_for_delivery():
 
     for order in orders:
         try:
-            # Удаляем старый QR-код если есть
             if order.qr_code:
                 try:
                     if os.path.exists(order.qr_code.path):
@@ -81,9 +78,8 @@ def regenerate_qr_codes_for_delivery():
                 order.qr_code.delete(save=False)
                 order.qr_code = None
 
-            # Генерируем новый QR-код только с ссылкой (без текста)
             pdf_url = f"{settings.SITE_URL}{reverse('delivery_order_pdf', kwargs={'pk': order.pk})}"
-            qr_data = pdf_url  # Только ссылка, без текста
+            qr_data = pdf_url 
 
             qr = qrcode.QRCode(
                 version=1,

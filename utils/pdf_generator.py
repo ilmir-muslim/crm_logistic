@@ -1,4 +1,3 @@
-# utils/pdf_generator.py
 import base64
 from django.template.loader import render_to_string
 from django.conf import settings
@@ -12,30 +11,24 @@ def generate_pdf_from_template(template_name, context, css_string=None):
     Универсальная функция для генерации PDF из HTML-шаблона
     """
     try:
-        # Добавляем текущее время в контекст
         if "now" not in context:
             context["now"] = datetime.now()
 
-        # Рендерим HTML
         html_string = render_to_string(template_name, context)
 
-        # На продакшене важно указать правильный base_url
         if hasattr(settings, "SITE_URL") and settings.SITE_URL:
             base_url = settings.SITE_URL
         else:
-            # Для продакшена указываем домен
             base_url = "https://crm.gulnar8f.beget.tech"
 
         print(f"📄 Генерация PDF из шаблона {template_name}, base_url: {base_url}")
 
         html = HTML(string=html_string, base_url=base_url)
 
-        # Если есть CSS, добавляем его
         stylesheets = []
         if css_string:
             stylesheets.append(CSS(string=css_string))
 
-        # Генерируем PDF
         pdf_bytes = html.write_pdf(stylesheets=stylesheets)
 
         print(f"✅ PDF успешно сгенерирован, размер: {len(pdf_bytes)} байт")
@@ -47,7 +40,6 @@ def generate_pdf_from_template(template_name, context, css_string=None):
 
         traceback.print_exc()
 
-        # Пробуем альтернативный способ без base_url
         try:
             print("🔄 Пробуем альтернативный способ генерации...")
             html_string = render_to_string(template_name, context)
@@ -62,7 +54,6 @@ def generate_pdf_from_template(template_name, context, css_string=None):
             return None
 
 
-# Стили по умолчанию для PDF
 DEFAULT_CSS = """
 @page {
     size: A4;
@@ -189,11 +180,9 @@ def generate_qr_code_pdf(qr_code_path):
     Генерация PDF с чистым QR-кодом (без текста)
     """
     try:
-        # Читаем файл QR-кода и конвертируем в base64
         with open(qr_code_path, "rb") as f:
             qr_image_data = base64.b64encode(f.read()).decode("utf-8")
 
-        # Простейший HTML с только изображением
         html_string = f"""
         <!DOCTYPE html>
         <html>
@@ -225,10 +214,8 @@ def generate_qr_code_pdf(qr_code_path):
         </html>
         """
 
-        # Создаем HTML объект
         html = HTML(string=html_string, base_url=settings.SITE_URL)
 
-        # Генерируем PDF
         pdf_bytes = html.write_pdf()
 
         return pdf_bytes

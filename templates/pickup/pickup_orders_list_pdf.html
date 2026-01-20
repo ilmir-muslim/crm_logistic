@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <h1>{{ title }}</h1>
+    <div class="summary">
+        <div class="summary-item">
+            <span class="summary-label">Дата формирования:</span>
+            <span class="summary-value">{{ now|date:"d.m.Y H:i" }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">Всего заявок:</span>
+            <span class="summary-value">{{ total_count }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">Общее количество мест:</span>
+            <span class="summary-value">{{ total_quantity }}</span>
+        </div>
+        {% if total_weight %}
+        <div class="summary-item">
+            <span class="summary-label">Общий вес:</span>
+            <span class="summary-value">{{ total_weight|floatformat:2 }} кг</span>
+        </div>
+        {% endif %}
+        {% if total_volume %}
+        <div class="summary-item">
+            <span class="summary-label">Общий объем:</span>
+            <span class="summary-value">{{ total_volume|floatformat:3 }} м³</span>
+        </div>
+        {% endif %}
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>№</th>
+                <th>Трек номер</th>
+                <th>Номер накладной</th>
+                <th>Дата забора</th>
+                <th>Время</th>
+                <th>Адрес забора</th>
+                <th>Конт. лицо</th>
+                <th>Дата доставки</th>
+                <th>Статус</th>
+                <th>Клиент</th>
+                <th>Оператор</th>
+                <th>Склад</th>
+                <th>Места</th>
+                <th>Вес (кг)</th>
+                <th>Объем (м³)</th>
+                <th>Примечание</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td><strong>{{ order.tracking_number|default:"-" }}</strong></td>
+                <td>{{ order.invoice_number|default:"-" }}</td>
+                <td>{% if order.pickup_date %}{{ order.pickup_date|date:"d.m.Y" }}{% else %}-{% endif %}</td>
+                <td>{{ order.pickup_time_range }}</td>
+                <td>{{ order.pickup_address|truncatechars:40 }}</td>
+                <td>{{ order.contact_person|default:order.get_client_name|truncatechars:20 }}</td>
+                <td>{% if order.desired_delivery_date %}{{ order.desired_delivery_date|date:"d.m.Y" }}{% else %}-{% endif %}</td>
+                <td class="status-{{ order.status }}">{{ order.get_status_display }}</td>
+                <td>{{ order.get_client_name|truncatechars:30 }}</td>
+                <td>{% if order.operator %}{{ order.operator.get_full_name|default:order.operator.username }}{% else %}-{% endif %}</td>
+                <td>
+                    {% if order.receiving_warehouse %}
+                        {{ order.receiving_warehouse.name|truncatechars:20 }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td style="text-align: center;">{{ order.quantity }}</td>
+                <td>{% if order.weight %}{{ order.weight|floatformat:2 }}{% else %}-{% endif %}</td>
+                <td>{% if order.volume %}{{ order.volume|floatformat:3 }}{% else %}-{% endif %}</td>
+                <td>{{ order.cargo_description|truncatechars:30|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if orders|length > 20 %}
+    <div class="page-break"></div>
+    {% endif %}
+</body>
+</html>

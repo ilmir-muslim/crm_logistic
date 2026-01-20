@@ -45,8 +45,8 @@ class PickupOrderForm(forms.ModelForm):
             "pickup_time_to",
             "pickup_address",
             "contact_person",
-            "sender",  # Добавлено
-            "recipient",  # Добавлено
+            "sender", 
+            "recipient",  
             "marketplace",
             "desired_delivery_date",
             "invoice_number",
@@ -108,14 +108,12 @@ class PickupOrderForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Устанавливаем минимальные даты
         today = timezone.now().date()
         self.fields["pickup_date"].widget.attrs["min"] = today.strftime("%Y-%m-%d")
         self.fields["desired_delivery_date"].widget.attrs["min"] = today.strftime(
             "%Y-%m-%d"
         )
 
-        # Статусы
         self.fields["status"].choices = [
             ("ready", "Готов к выдаче"),
             ("payment", "На оплате"),

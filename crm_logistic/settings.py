@@ -9,15 +9,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 
-# Функция для преобразования строки в булево значение
 def str_to_bool(value):
     """Преобразует строку в булево значение"""
     if isinstance(value, bool):
@@ -28,11 +25,9 @@ def str_to_bool(value):
     return False
 
 
-# Определяем среду выполнения
 IS_PRODUCTION = str_to_bool(os.getenv("DJANGO_PRODUCTION", "False"))
 
 if IS_PRODUCTION:
-    # Продакшен настройки
     DEBUG = False
     ALLOWED_HOSTS = [
         "crm.gulnar8f.beget.tech",
@@ -42,13 +37,11 @@ if IS_PRODUCTION:
     ]
     print("⚙️  Загружены ПРОДАКШЕН настройки")
 else:
-    # Разработка настройки
     DEBUG = True
     ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
     print("🔧 Загружены РАЗРАБОТОЧНЫЕ настройки")
 
 
-# Application definition
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -89,7 +82,6 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                # Добавляем контекстный процессор для MEDIA_URL
                 "django.template.context_processors.media",
             ],
         },
@@ -99,9 +91,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "crm_logistic.wsgi.application"
 
 
-# Database configuration based on environment
 if IS_PRODUCTION:
-    # MySQL для продакшена
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
@@ -118,7 +108,6 @@ if IS_PRODUCTION:
     }
     print(f"📊 База данных: MySQL ({os.getenv('MYSQL_DATABASE')})")
 else:
-    # SQLite для разработки
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -128,7 +117,6 @@ else:
     print(f"📊 База данных: SQLite ({BASE_DIR / 'db.sqlite3'})")
 
 
-# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
@@ -145,17 +133,15 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-LANGUAGE_CODE = "ru-ru"  # Меняем на русский
+LANGUAGE_CODE = "ru-ru"  
 
-TIME_ZONE = "Europe/Moscow"  # Меняем на московское время
+TIME_ZONE = "Europe/Moscow" 
 
 USE_I18N = True
 
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
 STATIC_URL = "/static/"
 STATICFILES_DIRS = []
 
@@ -164,14 +150,11 @@ if not os.path.exists(os.path.join(BASE_DIR, "static")):
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
-# Media files
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# URL сайта для QR-кодов и ссылок
 if IS_PRODUCTION:
     SITE_URL = "https://fftzar-crm.ru"
 else:
@@ -179,9 +162,7 @@ else:
 
 print(f"🌐 SITE_URL: {SITE_URL}")
 
-# Настройки email (для Beget)
 if IS_PRODUCTION:
-    # Продакшен настройки email
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "localhost" 
     EMAIL_PORT = 25
@@ -192,11 +173,9 @@ if IS_PRODUCTION:
     DEFAULT_FROM_EMAIL = "noreply@fftzar-crm.ru"
     print("📧 Email: SMTP (продакшен)")
 else:
-    # Разработка настройки email (консоль для отладки)
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
     print("📧 Email: Console (разработка)")
 
-# Проверяем наличие важных переменных
 if IS_PRODUCTION:
     required_vars = ["SECRET_KEY", "MYSQL_DATABASE", "MYSQL_USER", "MYSQL_PASSWORD"]
     missing = [var for var in required_vars if not os.getenv(var)]

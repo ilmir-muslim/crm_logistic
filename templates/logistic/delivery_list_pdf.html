@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <div class="header">
+        <div class="title">{{ title }}</div>
+        <div class="subtitle">Сформировано: {{ now|date:"d.m.Y H:i" }}</div>
+    </div>
+    
+    <div class="stats">
+        <div class="stat-item">
+            <div class="stat-label">Всего заявок</div>
+            <div class="stat-value">{{ total_count }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Общее количество мест</div>
+            <div class="stat-value">{{ total_quantity }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Общий вес (кг)</div>
+            <div class="stat-value">{{ total_weight|floatformat:2 }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Общий объем (м³)</div>
+            <div class="stat-value">{{ total_volume|floatformat:3 }}</div>
+        </div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 40px;">№</th>
+                <th style="width: 100px;">Дата</th>
+                <th style="width: 120px;">Номер</th>
+                <th style="width: 150px;">Отправитель</th>
+                <th style="width: 150px;">Адрес отправки</th>
+                <th style="width: 150px;">Получатель</th>
+                <th style="width: 150px;">Адрес доставки</th>
+                <th style="width: 60px;">Места</th>
+                <th style="width: 70px;">Вес (кг)</th>
+                <th style="width: 70px;">Объем (м³)</th>
+                <th style="width: 90px;">Статус</th>
+                <th style="width: 120px;">Водитель</th>
+                <th style="width: 100px;">Телефон</th>
+                <th style="width: 100px;">ТС</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ order.date|date:"d.m.Y" }}</td>
+                <td>{{ order.tracking_number|default:"#"|add:order.id|stringformat:"s" }}</td>
+                <td>
+                    {% if order.sender %}
+                        {{ order.sender.name|truncatechars:20 }}
+                    {% else %}
+                        {{ order.get_sender_display|truncatechars:20 }}
+                    {% endif %}
+                </td>
+                <td class="address-cell">{{ order.sender_address|default:"-"|truncatechars:30 }}</td>
+                <td>
+                    {% if order.recipient %}
+                        {{ order.recipient.name|truncatechars:20 }}
+                    {% else %}
+                        {{ order.get_recipient_display|truncatechars:20 }}
+                    {% endif %}
+                </td>
+                <td class="address-cell">{{ order.recipient_address|default:"-"|truncatechars:30 }}</td>
+                <td>{{ order.quantity }}</td>
+                <td>{{ order.weight|floatformat:2 }}</td>
+                <td>{{ order.volume|floatformat:3 }}</td>
+                <td>
+                    <span class="status-badge status-{{ order.status }}">
+                        {{ order.get_status_display }}
+                    </span>
+                </td>
+                <td>{{ order.driver_name|default:"-"|truncatechars:15 }}</td>
+                <td>{{ order.driver_phone|default:"-" }}</td>
+                <td>{{ order.vehicle|default:"-"|truncatechars:15 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="footer">
+        Страница 1 из 1 • Всего заявок: {{ total_count }} • Общий вес: {{ total_weight|floatformat:2 }} кг • Общий объем: {{ total_volume|floatformat:3 }} м³
+    </div>
+</body>
+</html>

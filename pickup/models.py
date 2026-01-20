@@ -5,7 +5,7 @@ from django.conf import settings
 from django.utils import timezone
 from logistic.models import DeliveryOrder
 from warehouses.models import Warehouse, City
-from counterparties.models import Counterparty  # Добавляем импорт
+from counterparties.models import Counterparty  
 import qrcode
 import os
 from io import BytesIO
@@ -17,7 +17,6 @@ class PickupOrder(models.Model):
     Заявка на забор груза от клиента
     """
 
-    # Выбор маркетплейсов
     MARKETPLACE_CHOICES = [
         ("Wildberries", "Wildberries"),
         ("Ozon", "Ozon"),
@@ -32,7 +31,6 @@ class PickupOrder(models.Model):
         ("payment", "На оплате"),
     ]
 
-    # Основные данные из ТЗ
     pickup_date = models.DateField(
         verbose_name="Дата забора",
         blank=True,
@@ -58,7 +56,6 @@ class PickupOrder(models.Model):
         default="Не указан",
     )
 
-    # Контактное лицо для выдачи груза
     contact_person = models.CharField(
         max_length=200,
         verbose_name="Контактное лицо для выдачи груза",
@@ -67,7 +64,6 @@ class PickupOrder(models.Model):
         help_text="ФИО лица, которое будет выдавать груз",
     )
 
-    # Убраны поля клиента - теперь используем контрагентов
     sender = models.ForeignKey(
         Counterparty,
         on_delete=models.SET_NULL,
@@ -88,7 +84,6 @@ class PickupOrder(models.Model):
         help_text="Контрагент, который получает груз",
     )
 
-    # Данные о заказе
     marketplace = models.CharField(
         max_length=50,
         choices=MARKETPLACE_CHOICES,
@@ -114,7 +109,6 @@ class PickupOrder(models.Model):
         default="Не указан",
     )
 
-    # Номер накладной
     invoice_number = models.CharField(
         max_length=100,
         verbose_name="Номер накладной",
@@ -123,7 +117,6 @@ class PickupOrder(models.Model):
         help_text="Номер транспортной накладной",
     )
 
-    # Оператор приемки и склад
     receiving_operator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -133,7 +126,6 @@ class PickupOrder(models.Model):
         related_name="receiving_orders",
     )
 
-    # ForeignKey вместо CharField
     receiving_warehouse = models.ForeignKey(
         Warehouse,
         on_delete=models.SET_NULL,
@@ -144,7 +136,6 @@ class PickupOrder(models.Model):
         help_text="Склад, куда будет доставлен груз",
     )
 
-    # Город доставки
     delivery_city = models.ForeignKey(
         City,
         on_delete=models.SET_NULL,
@@ -155,12 +146,10 @@ class PickupOrder(models.Model):
         help_text="Город назначения доставки",
     )
 
-    # Характеристики груза
     quantity = models.IntegerField(verbose_name="Количество мест", default=0)
     weight = models.FloatField(verbose_name="Вес (кг)", default=0.0)
     volume = models.FloatField(verbose_name="Объем (м³)", default=0.0)
 
-    # Дополнительная информация
     cargo_description = models.TextField(
         verbose_name="Комментарий к заказу",
         blank=True,
@@ -176,11 +165,10 @@ class PickupOrder(models.Model):
         default="",
     )
 
-    # Статус и ответственные
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default="ready",  # Изменено с 'new' на 'ready'
+        default="ready", 
         verbose_name="Статус заявки",
     )
     operator = models.ForeignKey(
@@ -192,7 +180,6 @@ class PickupOrder(models.Model):
         related_name="pickup_orders",
     )
 
-    # Связь с заявкой на доставку (если создана)
     delivery_order = models.OneToOneField(
         DeliveryOrder,
         on_delete=models.SET_NULL,
@@ -202,14 +189,12 @@ class PickupOrder(models.Model):
         related_name="pickup_source",
     )
 
-    # Системные поля
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
     notes = models.TextField(
         verbose_name="Внутренние заметки", blank=True, null=True, default=""
     )
 
-    # Новые поля
     tracking_number = models.CharField(
         max_length=50, unique=True, blank=True, verbose_name="Сквозной номер заказа"
     )
@@ -240,8 +225,8 @@ class PickupOrder(models.Model):
     def get_status_color(self):
         """Возвращает цвет статуса для отображения"""
         colors = {
-            "ready": "info",  # синий
-            "payment": "warning",  # желтый
+            "ready": "info",  
+            "payment": "warning",  
         }
         return colors.get(self.status, "secondary")
 
@@ -268,17 +253,13 @@ class PickupOrder(models.Model):
         2. Генерирует QR-код при создании (один раз, неизменный)
         """
 
-        # Генерируем уникальный номер
         if not self.tracking_number:
             self.tracking_number = self.generate_tracking_number()
 
-        # Определяем, новая ли это запись
         is_new = self.pk is None
 
-        # Сохраняем объект
         super().save(*args, **kwargs)
 
-        # Если запись новая, генерируем QR-код
         if is_new:
             self.generate_qr_code()
 
@@ -311,12 +292,10 @@ class PickupOrder(models.Model):
             except (ValueError, FileNotFoundError, AttributeError):
                 pass
 
-        # Генерируем URL для скачивания PDF
         pdf_url = (
             f"{settings.SITE_URL}{reverse('pickup_order_pdf', kwargs={'pk': self.pk})}"
         )
 
-        # Создаем QR-код только с ссылкой
         qr_data = pdf_url
 
         try:
@@ -354,7 +333,6 @@ class PickupOrder(models.Model):
     def regenerate_qr_code(self):
         """Принудительно пересоздает QR-код"""
         try:
-            # Удаляем старый QR-код если есть
             if self.qr_code:
                 try:
                     if os.path.exists(self.qr_code.path):
@@ -364,7 +342,6 @@ class PickupOrder(models.Model):
                 self.qr_code.delete(save=False)
                 self.qr_code = None
 
-            # Генерируем новый QR-код
             self.generate_qr_code()
             return True
         except Exception as e:
@@ -380,31 +357,25 @@ class PickupOrder(models.Model):
 
         fulfillment_user = None
 
-        # Сначала пытаемся использовать receiving_operator из заявки на забор
         if self.receiving_operator and hasattr(self.receiving_operator, "profile"):
             if self.receiving_operator.profile.role == "operator":
                 fulfillment_user = self.receiving_operator
 
-        # Если не нашли, проверяем текущего пользователя
         if not fulfillment_user and hasattr(user, "profile"):
             if user.profile.role == "operator":
                 fulfillment_user = user
 
-        # Если до сих пор не нашли, ищем любого пользователя с ролью оператора
         if not fulfillment_user:
             from django.contrib.auth.models import User
 
             try:
-                # Ищем первого пользователя с ролью оператора
                 fulfillment_user = User.objects.filter(profile__role="operator").first()
             except:
                 fulfillment_user = None
 
-        # Если все еще не нашли, используем текущего пользователя
         if not fulfillment_user:
             fulfillment_user = user
 
-        # Создаём заявку на доставку с актуальными полями
         delivery = DeliveryOrder.objects.create(
             date=self.desired_delivery_date,
             pickup_address=self.pickup_address,
@@ -417,7 +388,6 @@ class PickupOrder(models.Model):
             operator=user,
         )
 
-        # Связываем заявки
         self.delivery_order = delivery
         self.save()
 

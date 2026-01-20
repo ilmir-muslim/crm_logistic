@@ -18,7 +18,6 @@ class DeliveryOrder(models.Model):
 
     date = models.DateField(verbose_name="Дата доставки")
 
-    # Контрагенты вместо текстовых адресов
     sender = models.ForeignKey(
         "counterparties.Counterparty",
         on_delete=models.SET_NULL,
@@ -51,7 +50,6 @@ class DeliveryOrder(models.Model):
         help_text="Можно указать вручную, если получатель не выбран",
     )
 
-    # Остальные поля остаются без изменений
     fulfillment = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -155,17 +153,13 @@ class DeliveryOrder(models.Model):
 
     def save(self, *args, **kwargs):
         """Сохраняет заявку и генерирует QR-код при создании"""
-        # Генерируем уникальный номер
         if not self.tracking_number:
             self.tracking_number = self.generate_tracking_number()
 
-        # Определяем, новая ли это запись
         is_new = self.pk is None
 
-        # Сохраняем объект
         super().save(*args, **kwargs)
 
-        # Если запись новая, генерируем QR-код
         if is_new:
             self.generate_qr_code()
 
@@ -193,22 +187,18 @@ class DeliveryOrder(models.Model):
         """Генерирует QR-код с ссылкой на PDF файл заявки"""
         from django.conf import settings
 
-        # Если QR-код уже существует и файл есть - ничего не делаем
         if self.qr_code:
             try:
                 if os.path.exists(self.qr_code.path):
                     return
             except (ValueError, FileNotFoundError, AttributeError):
-                pass  # Файл не существует, продолжаем создание
+                pass  
 
-        # Генерируем URL для скачивания PDF
         pdf_url = f"{settings.SITE_URL}{reverse('delivery_order_pdf', kwargs={'pk': self.pk})}"
 
-        # Создаем QR-код только с ссылкой (без текста)
         qr_data = pdf_url
 
         try:
-            # Создаем QR-код
             qr = qrcode.QRCode(
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -218,26 +208,20 @@ class DeliveryOrder(models.Model):
             qr.add_data(qr_data)
             qr.make(fit=True)
 
-            # Создаем изображение
             img = qr.make_image(fill_color="black", back_color="white")
 
-            # Создаем папку, если её нет
             qr_dir = Path(settings.MEDIA_ROOT) / "qr_codes" / "delivery"
             qr_dir.mkdir(parents=True, exist_ok=True)
 
-            # Сохраняем в BytesIO
             buffer = BytesIO()
             img.save(buffer, format="PNG")
             buffer.seek(0)
 
-            # Сохраняем в поле модели
             filename = f'delivery_qr_{self.tracking_number.replace("/", "_")}.png'
             self.qr_code.save(filename, File(buffer), save=False)
 
-            # Закрываем буфер
             buffer.close()
 
-            # Сохраняем модель с QR-кодом
             super().save(update_fields=["qr_code"])
             print(f"✅ QR-код создан для заявки на доставку #{self.id}")
 
@@ -252,7 +236,6 @@ class DeliveryOrder(models.Model):
     def regenerate_qr_code(self):
         """Принудительно пересоздает QR-код"""
         try:
-            # Удаляем старый QR-код если есть
             if self.qr_code:
                 try:
                     if os.path.exists(self.qr_code.path):
@@ -262,7 +245,6 @@ class DeliveryOrder(models.Model):
                 self.qr_code.delete(save=False)
                 self.qr_code = None
 
-            # Генерируем новый QR-код
             self.generate_qr_code()
             return True
         except Exception as e:

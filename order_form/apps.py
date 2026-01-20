@@ -1,4 +1,3 @@
-# [file name]: order_form/apps.py
 from django.apps import AppConfig
 
 

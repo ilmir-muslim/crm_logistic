@@ -2,7 +2,6 @@ import os
 import sys
 from pathlib import Path
 
-# Добавляем путь к проекту
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(BASE_DIR))
 sys.path.append(str(BASE_DIR / "crm_logistic"))

@@ -11,12 +11,10 @@ from counterparties.models import Counterparty
 class ClientPickupForm(forms.ModelForm):
     """Форма заявки на ЗАБОР (получение) груза"""
 
-    # Поля для связи с контрагентом (клиентом)
     client_counterparty_id = forms.IntegerField(
         required=False, widget=forms.HiddenInput()
     )
 
-    # Основные поля для клиента
     client_type = forms.ChoiceField(
         choices=[
             ("legal", "Юридическое лицо (ООО, АО)"),
@@ -144,7 +142,6 @@ class ClientPickupForm(forms.ModelForm):
         widget=forms.TextInput(attrs={"class": "form-control"}),
     )
 
-    # Оригинальные поля формы
     delivery_city = forms.ModelChoiceField(
         queryset=City.objects.all(),
         label="Город доставки *",
@@ -447,23 +444,18 @@ class ClientPickupForm(forms.ModelForm):
         """Переопределяем сохранение для обработки контрагента"""
         instance = super().save(commit=False)
 
-        # Обработка клиента (контрагента)
         client_counterparty_id = self.cleaned_data.get("client_counterparty_id")
         if client_counterparty_id:
-            # Используем существующего контрагента
             try:
                 client = Counterparty.objects.get(
                     id=client_counterparty_id, is_active=True
                 )
-                # Обновляем данные контрагента на случай изменений
                 self._update_counterparty(client, "client")
             except Counterparty.DoesNotExist:
                 client = self._create_counterparty("client")
         else:
-            # Создаем нового контрагента
             client = self._create_counterparty("client")
 
-        # Сохраняем связь с контрагентом в заметках
         if client:
             instance.notes = f"""
             Клиент: {client.name} (ID: {client.id})
@@ -534,12 +526,10 @@ class ClientPickupForm(forms.ModelForm):
 class ClientDeliveryForm(forms.ModelForm):
     """Форма заявки на ОТПРАВКУ (доставку) груза"""
 
-    # Поля для связи с контрагентами
     client_counterparty_id = forms.IntegerField(
         required=False, widget=forms.HiddenInput()
     )
 
-    # Основные поля для клиента
     client_type = forms.ChoiceField(
         choices=[
             ("legal", "Юридическое лицо (ООО, АО)"),
@@ -677,7 +667,6 @@ class ClientDeliveryForm(forms.ModelForm):
         widget=forms.TextInput(attrs={"class": "form-control"}),
     )
 
-    # Оригинальные поля формы
     city = forms.ModelChoiceField(
         queryset=City.objects.all(),
         label="Город назначения *",
@@ -924,20 +913,16 @@ class ClientDeliveryForm(forms.ModelForm):
 
         instance.status = "submitted"
 
-        # Обработка клиента (контрагента)
         client_counterparty_id = self.cleaned_data.get("client_counterparty_id")
         if client_counterparty_id:
-            # Используем существующего контрагента
             try:
                 client = Counterparty.objects.get(
                     id=client_counterparty_id, is_active=True
                 )
-                # Обновляем данные контрагента на случай изменений
                 self._update_counterparty(client, "client")
             except Counterparty.DoesNotExist:
                 client = self._create_counterparty("client")
         else:
-            # Создаем нового контрагента
             client = self._create_counterparty("client")
 
         if commit:

@@ -24,7 +24,7 @@ from weasyprint import HTML
 
 from .models import DeliveryOrder
 from pickup.models import PickupOrder
-from .pdf_utils import create_delivery_order_pdf, create_daily_report_pdf
+from .pdf_utils import create_delivery_order_pdf, create_daily_report_pdf, create_delivery_orders_list_pdf
 from .forms import DailyReportForm, DateRangeReportForm, DeliveryOrderCreateForm, EmailSettingsForm
 
 
@@ -37,12 +37,10 @@ class DeliveryOrderListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
 
-        # Фильтрация по оператору
         if self.request.user.is_authenticated and hasattr(self.request.user, "profile"):
             if self.request.user.profile.role == "operator":
                 queryset = queryset.filter(operator=self.request.user)
 
-        # Применение фильтров
         date_gte = self.request.GET.get("date__gte")
         date_lte = self.request.GET.get("date__lte")
         city = self.request.GET.get("city")
@@ -63,11 +61,9 @@ class DeliveryOrderListView(LoginRequiredMixin, ListView):
         if fulfillment:
             queryset = queryset.filter(fulfillment_id=fulfillment)
 
-        # Сортировка
         sort = self.request.GET.get("sort", "date")
         order = self.request.GET.get("order", "desc")
 
-        # Список разрешенных полей для сортировки
         allowed_sort_fields = [
             "date",
             "city",
@@ -113,7 +109,6 @@ class DeliveryOrderListView(LoginRequiredMixin, ListView):
 
         from warehouses.models import City, Warehouse
 
-        # Все города
         context["cities"] = City.objects.all().order_by("name")
 
         context["warehouses"] = (
@@ -198,7 +193,6 @@ def update_delivery_order_field(request, pk):
     except DeliveryOrder.DoesNotExist:
         return JsonResponse({"success": False, "error": "Заявка не найдена"})
 
-    # Проверка прав
     if not (
         request.user.is_superuser
         or request.user.groups.filter(name="Логисты").exists()
@@ -210,7 +204,6 @@ def update_delivery_order_field(request, pk):
     field = data.get("field")
     value = data.get("value")
 
-    # Разрешенные поля для редактирования
     allowed_fields = [
         "sender",
         "sender_address",
@@ -232,7 +225,6 @@ def update_delivery_order_field(request, pk):
         )
 
     try:
-        # Преобразование типов
         if field in ["quantity"]:
             value = int(value)
         elif field in ["weight", "volume"]:
@@ -269,13 +261,11 @@ def update_delivery_order_field(request, pk):
             else:
                 value = None
         elif field in ["sender_address", "recipient_address"]:
-            # Значение уже в виде строки, никаких преобразований не нужно
             pass
 
         setattr(order, field, value)
         order.save()
 
-        # Для статуса возвращаем отображаемое значение
         if field == "status":
             display_value = order.get_status_display()
             return JsonResponse({"success": True, "display_value": display_value})
@@ -380,7 +370,6 @@ def dashboard(request):
         :5
     ]
 
-    # ЗАГРУЖАЕМ ТЕКУЩИЕ НАСТРОЙКИ EMAIL ДЛЯ АВТОЗАПОЛНЕНИЯ
     email_settings = load_email_settings()
     if email_settings is None:
         email_settings = {}
@@ -772,26 +761,22 @@ def statistics_report(request):
 def email_settings_view(request):
     """Представление для настройки параметров email"""
 
-    # Загружаем текущие настройки для автозаполнения
     current_settings = load_email_settings() or {}
 
-    # Инициализация формы с текущими настройками
     initial_data = {
         "email_host": current_settings.get("email_host", ""),
         "email_port": current_settings.get("email_port", 587),
         "email_host_user": current_settings.get("email_host_user", ""),
-        "email_host_password": "",  # Пароль не показываем в форме
+        "email_host_password": "", 
         "default_from_email": current_settings.get("default_from_email", ""),
         "operator_email": current_settings.get("operator_email", ""),
     }
 
     if request.method == "POST":
-        # Обрабатываем данные формы
         host = request.POST.get("email_host")
         if host == "custom":
             host = request.POST.get("custom_email_host", "")
 
-        # Обрабатываем пароль: если поле пустое, оставляем старый пароль
         new_password = request.POST.get("email_host_password", "")
         if not new_password and current_settings.get("email_host_password"):
             password = current_settings["email_host_password"]
@@ -799,7 +784,6 @@ def email_settings_view(request):
             password = new_password
 
         try:
-            # Формируем настройки
             settings_data = {
                 "email_backend": "django.core.mail.backends.smtp.EmailBackend",
                 "email_host": host,
@@ -816,12 +800,10 @@ def email_settings_view(request):
                 == "on",
             }
 
-            # Сохраняем в JSON файл
             settings_file = Path(django_settings.BASE_DIR) / "email_settings.json"
             with open(settings_file, "w", encoding="utf-8") as f:
                 json.dump(settings_data, f, ensure_ascii=False, indent=4)
 
-            # Тестовая отправка
             if request.POST.get("send_test"):
                 test_email = request.POST.get("email_host_user")
                 try:
@@ -842,7 +824,6 @@ def email_settings_view(request):
         except Exception as e:
             messages.error(request, f"Ошибка: {str(e)[:100]}...")
     else:
-        # Для GET-запроса создаем форму с текущими настройками
         form = EmailSettingsForm(initial=initial_data)
 
     context = {
@@ -867,24 +848,20 @@ def test_email_connection(request):
         and request.headers.get("X-Requested-With") == "XMLHttpRequest"
     ):
         try:
-            # Определяем хост
             host = request.POST.get("email_host")
             if host == "custom":
                 host = request.POST.get("custom_email_host", "")
 
-            # Получаем остальные параметры
             port = int(request.POST.get("email_port", 587))
             username = request.POST.get("email_host_user", "")
             password = request.POST.get("email_host_password", "")
             use_tls = request.POST.get("email_use_tls") == "1"
 
-            # Проверяем обязательные поля
             if not host or not username:
                 return JsonResponse(
                     {"success": False, "error": "Заполните обязательные поля"}
                 )
 
-            # Тестируем подключение
             connection = get_connection(
                 backend="django.core.mail.backends.smtp.EmailBackend",
                 host=host,
@@ -903,7 +880,6 @@ def test_email_connection(request):
 
         except Exception as e:
             error_msg = str(e)
-            # Упрощаем сообщение об ошибке для пользователя
             if "Connection refused" in error_msg:
                 error_msg = "Сервер недоступен. Проверьте хост и порт."
             elif "authentication failed" in error_msg.lower():
@@ -953,7 +929,6 @@ def load_email_settings():
     return None
 
 
-# Добавьте этот класс в logistic/views.py, рядом с другими классами
 class DeliveryOrderCreateView(LoginRequiredMixin, CreateView):
     """Создание новой заявки на доставку"""
 
@@ -962,7 +937,6 @@ class DeliveryOrderCreateView(LoginRequiredMixin, CreateView):
     form_class = DeliveryOrderCreateForm
 
     def form_valid(self, form):
-        # При создании заявки устанавливаем текущего пользователя как оператора
         form.instance.operator = self.request.user
         response = super().form_valid(form)
         messages.success(self.request, "Заявка на доставку успешно создана!")
@@ -1019,7 +993,6 @@ def delivery_order_qr_pdf(request, pk):
             messages.error(request, "У вас нет доступа к этой заявке")
             return redirect("delivery_order_list")
 
-    # Проверяем наличие QR-кода
     if not order.qr_code:
         order.generate_qr_code()
 
@@ -1027,18 +1000,15 @@ def delivery_order_qr_pdf(request, pk):
         messages.error(request, "QR-код недоступен")
         return redirect("delivery_order_detail", pk=pk)
 
-    # Получаем полный путь к файлу QR-кода
     try:
         qr_code_path = order.qr_code.path
         if not os.path.exists(qr_code_path):
             messages.error(request, "Файл QR-кода не найден")
             return redirect("delivery_order_detail", pk=pk)
 
-        # Генерируем простой PDF с QR-кодом
         with open(qr_code_path, "rb") as f:
             qr_image_data = base64.b64encode(f.read()).decode("utf-8")
 
-        # Создаем простой HTML с QR-кодом
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -1069,7 +1039,6 @@ def delivery_order_qr_pdf(request, pk):
         </html>
         """
 
-        # Генерируем PDF
         html = HTML(string=html_content)
         pdf = html.write_pdf()
 
@@ -1093,7 +1062,6 @@ def delivery_order_qr_pdf(request, pk):
 def bulk_update_delivery_orders(request):
     """Массовое обновление выбранных заявок"""
     try:
-        # Проверка прав
         if not (
             request.user.is_superuser
             or request.user.groups.filter(name="Логисты").exists()
@@ -1115,7 +1083,6 @@ def bulk_update_delivery_orders(request):
                 {"success": False, "error": "Не указано поле для обновления"}
             )
 
-        # Разрешенные поля для массового редактирования
         allowed_fields = [
             "status",
             "driver_name",
@@ -1136,25 +1103,20 @@ def bulk_update_delivery_orders(request):
                 }
             )
 
-        # Получаем заявки
         orders = DeliveryOrder.objects.filter(id__in=order_ids)
 
-        # Для операторов: только свои заявки
         if hasattr(request.user, "profile") and request.user.profile.is_operator:
             orders = orders.filter(operator=request.user)
 
         if not orders.exists():
             return JsonResponse({"success": False, "error": "Заявки не найдены"})
 
-        # Преобразование значений
         updated_count = 0
         for order in orders:
             try:
-                # Проверяем, можно ли редактировать заявку
                 if order.status == "shipped" and field != "status":
-                    continue  # Пропускаем отправленные заявки, если не меняем статус
+                    continue  
 
-                # Преобразование типов
                 if field in ["quantity"]:
                     new_value = int(value) if value else 0
                 elif field in ["weight", "volume"]:
@@ -1195,3 +1157,42 @@ def bulk_update_delivery_orders(request):
 
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
+
+
+@login_required
+def delivery_orders_list_pdf(request):
+    """Экспорт списка выбранных заявок на доставку в PDF (одним файлом)"""
+    order_ids = request.GET.getlist("order_ids")
+
+    if not order_ids:
+        messages.error(request, "Не выбраны заявки для экспорта")
+        return redirect("delivery_order_list")
+
+    try:
+        orders = DeliveryOrder.objects.filter(id__in=order_ids)
+
+        if hasattr(request.user, "profile") and request.user.profile.is_operator:
+            orders = orders.filter(operator=request.user)
+
+        if not orders.exists():
+            messages.error(request, "Не найдено заявок для экспорта")
+            return redirect("delivery_order_list")
+
+        pdf = create_delivery_orders_list_pdf(orders)
+
+        if pdf:
+            response = HttpResponse(pdf, content_type="application/pdf")
+            filename = f"delivery_list_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            return response
+        else:
+            messages.error(request, "Ошибка при генерации PDF списка")
+            return redirect("delivery_order_list")
+
+    except Exception as e:
+        print(f"❌ Ошибка при создании PDF списка: {e}")
+        import traceback
+
+        traceback.print_exc()
+        messages.error(request, f"Ошибка при создании PDF списка: {str(e)[:100]}")
+        return redirect("delivery_order_list")

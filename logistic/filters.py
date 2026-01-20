@@ -13,10 +13,8 @@ class DeliveryOrderFilter(django_filters.FilterSet):
         field_name="date", lookup_expr="lte", label="Дата до"
     )
 
-    # Используем NumberFilter для ID, чтобы избежать импорта моделей
     city = django_filters.NumberFilter(field_name="city__id", label="Город (ID)")
 
-    # Добавляем фильтр по названию города
     city_name = django_filters.CharFilter(
         field_name="city__name", lookup_expr="icontains", label="Название города"
     )
@@ -25,7 +23,6 @@ class DeliveryOrderFilter(django_filters.FilterSet):
         field_name="warehouse__id", label="Склад (ID)"
     )
 
-    # Добавляем фильтр по названию склада
     warehouse_name = django_filters.CharFilter(
         field_name="warehouse__name", lookup_expr="icontains", label="Название склада"
     )

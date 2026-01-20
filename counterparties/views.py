@@ -31,7 +31,7 @@ def get_counterparties_json(request):
     data = []
     for counterparty in queryset.order_by("name")[
         :50
-    ]:  # Ограничиваем количество для производительности
+    ]:  
         data.append(
             {
                 "id": counterparty.id,
@@ -134,7 +134,6 @@ def search_counterparties_public(request):
     except ValueError:
         limit = 10
 
-    # Ищем по всем полям
     queryset = Counterparty.objects.filter(is_active=True).filter(
         Q(name__icontains=search_term)
         | Q(full_name__icontains=search_term)
@@ -207,7 +206,6 @@ def create_counterparty_public(request):
     try:
         data = json.loads(request.body)
 
-        # Создаем контрагента
         counterparty = Counterparty.objects.create(
             type=data.get("type", "legal"),
             name=data.get("name", ""),
@@ -227,9 +225,9 @@ def create_counterparty_public(request):
             passport_issued_date=data.get("passport_issued_date", ""),
             bank_name=data.get("bank_name", ""),
             bank_account=data.get("bank_account", ""),
-            is_customer=True,  # Помечаем как покупателя
+            is_customer=True,  
             notes="Создано через веб-форму заявки",
-            created_by=None,  # Для публичных форм создатель не указывается
+            created_by=None, 
         )
 
         return JsonResponse(

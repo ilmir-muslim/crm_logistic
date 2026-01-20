@@ -124,7 +124,6 @@ class EmailSettingsForm(forms.Form):
 class DeliveryOrderCreateForm(forms.ModelForm):
     """Форма для создания новой заявки на доставку"""
 
-    # Поля для быстрого создания контрагентов
     new_sender_name = forms.CharField(
         required=False,
         widget=forms.TextInput(
@@ -283,12 +282,10 @@ class DeliveryOrderCreateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["status"].initial = "submitted"
 
-        # Ограничиваем выбор фулфилмент операторов только операторами
         self.fields["fulfillment"].queryset = User.objects.filter(
             profile__role="operator"
         ).order_by("first_name", "last_name", "username")
 
-        # Фильтруем активных контрагентов
         self.fields["sender"].queryset = Counterparty.objects.filter(
             is_active=True
         ).order_by("name")
@@ -311,7 +308,6 @@ class DeliveryOrderCreateForm(forms.ModelForm):
         new_recipient_type = cleaned_data.get("new_recipient_type")
         new_recipient_address = cleaned_data.get("new_recipient_address")
 
-        # Проверка отправителя
         if not sender and not sender_address and not new_sender_name:
             raise forms.ValidationError(
                 "Укажите отправителя: выберите существующего контрагента, "
@@ -328,7 +324,6 @@ class DeliveryOrderCreateForm(forms.ModelForm):
                     "Для нового отправителя необходимо указать адрес."
                 )
 
-        # Проверка получателя
         if not recipient and not recipient_address and not new_recipient_name:
             raise forms.ValidationError(
                 "Укажите получателя: выберите существующего контрагента, "
@@ -351,7 +346,6 @@ class DeliveryOrderCreateForm(forms.ModelForm):
         """Сохраняет форму, создавая новых контрагентов при необходимости"""
         instance = super().save(commit=False)
 
-        # Создаем нового отправителя, если указано
         new_sender_name = self.cleaned_data.get("new_sender_name")
         if new_sender_name:
             sender = Counterparty.objects.create(
@@ -363,7 +357,6 @@ class DeliveryOrderCreateForm(forms.ModelForm):
             instance.sender = sender
             instance.sender_address = ""
 
-        # Создаем нового получателя, если указано
         new_recipient_name = self.cleaned_data.get("new_recipient_name")
         if new_recipient_name:
             recipient = Counterparty.objects.create(

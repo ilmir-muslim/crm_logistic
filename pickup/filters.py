@@ -1,4 +1,3 @@
-### BEGIN: pickup/filters.py
 import django_filters
 
 from utils.text_utils import normalize_phone, normalize_search_text
@@ -17,17 +16,14 @@ class PickupOrderFilter(django_filters.FilterSet):
         field_name="pickup_date", lookup_expr="lte", label="Дата забора до"
     )
 
-    # Кастомный фильтр для поиска по клиенту без учета регистра
     client_name = django_filters.CharFilter(
         method="filter_client_name_ignore_case", label="Клиент"
     )
 
-    # Кастомный фильтр для поиска по адресу без учета регистра
     pickup_address = django_filters.CharFilter(
         method="filter_address_ignore_case", label="Адрес забора"
     )
 
-    # Кастомные фильтры для телефона и email
     client_phone = django_filters.CharFilter(
         method="filter_phone_ignore_case", label="Телефон клиента"
     )
@@ -51,7 +47,6 @@ class PickupOrderFilter(django_filters.FilterSet):
         label="Есть связанная доставка",
     )
 
-    # Новые фильтры
     invoice_number = django_filters.CharFilter(
         field_name="invoice_number", lookup_expr="icontains", label="Номер накладной"
     )
@@ -78,11 +73,10 @@ class PickupOrderFilter(django_filters.FilterSet):
         """
         if value:
             normalized_value = normalize_search_text(value)
-            # Создаем поисковый запрос с разными вариантами регистра
             return queryset.filter(
                 Q(client_name__icontains=normalized_value)
-                | Q(client_name__icontains=value.title())  # С заглавной буквы
-                | Q(client_name__icontains=value.upper())  # В верхнем регистре
+                | Q(client_name__icontains=value.title())  
+                | Q(client_name__icontains=value.upper()) 
             )
         return queryset
 
@@ -106,7 +100,6 @@ class PickupOrderFilter(django_filters.FilterSet):
         if value:
             normalized_phone = normalize_phone(value)
             if normalized_phone:
-                # Ищем по полному номеру или по последним 4-7 цифрам
                 return queryset.filter(
                     Q(client_phone__icontains=normalized_phone)
                     | Q(client_phone__icontains=normalized_phone[-4:])
