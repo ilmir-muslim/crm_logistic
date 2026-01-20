@@ -702,6 +702,12 @@
                     Время забора
                     <span class="sort-icon"></span>
                 </th>
+                <!-- СТОЛБЕЦ "МЕСТА" ПЕРЕМЕЩЕН СЮДА -->
+                <th class="sortable-header {% if sort == 'quantity' %}sorted-{{ order }}{% endif %}" 
+                    data-sort="quantity">
+                    Места
+                    <span class="sort-icon"></span>
+                </th>
                 <th class="sortable-header {% if sort == 'pickup_address' %}sorted-{{ order }}{% endif %}" 
                     data-sort="pickup_address">
                     Адрес забора
@@ -730,11 +736,6 @@
                 <th class="sortable-header {% if sort == 'operator' %}sorted-{{ order }}{% endif %}" 
                     data-sort="operator">
                     Оператор
-                    <span class="sort-icon"></span>
-                </th>
-                <th class="sortable-header {% if sort == 'quantity' %}sorted-{{ order }}{% endif %}" 
-                    data-sort="quantity">
-                    Места
                     <span class="sort-icon"></span>
                 </th>
                 <th>Действия</th>
@@ -772,6 +773,12 @@
                     data-original-to="{{ order.pickup_time_to|time:'H:i'|default:'' }}">
                     {{ order.pickup_time_range }}
                     <button class="save-btn" onclick="saveTimeRangeCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                </td>
+                <!-- ЯЧЕЙКА "МЕСТА" ПЕРЕМЕЩЕНА СЮДА -->
+                <td class="editable-cell" data-field="quantity" data-original="{{ order.quantity }}" data-type="number">
+                    {{ order.quantity }}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
                 <td class="editable-cell" data-field="pickup_address" data-original="{{ order.pickup_address }}" data-full-address="{{ order.pickup_address }}">
@@ -817,11 +824,6 @@
                     {% else %}
                         <span class="text-muted">-</span>
                     {% endif %}
-                    <button class="save-btn" onclick="saveCell(this)">✓</button>
-                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
-                </td>
-                <td class="editable-cell" data-field="quantity" data-original="{{ order.quantity }}" data-type="number">
-                    {{ order.quantity }}
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
