@@ -987,7 +987,7 @@ def get_operators(request):
 @login_required
 def delivery_order_qr_pdf(request, pk):
     """Скачать QR-коды заявки на доставку"""
-    order = get_object_or_404(DeliveryOrder, гk=pk)
+    order = get_object_or_404(DeliveryOrder, pk=pk)
 
     if hasattr(request.user, "profile") and request.user.profile.is_operator:
         if order.operator != request.user:
@@ -1071,7 +1071,7 @@ def delivery_order_qr_pdf(request, pk):
                     margin: 0;
                     padding: 0;
                     font-family: Arial, sans-serif;
-                    font-size: 8px;
+                    font-size: 10px;
                     line-height: 1.1;
                 }}
                 .page {{
@@ -1104,14 +1104,14 @@ def delivery_order_qr_pdf(request, pk):
                 }}
                 .company-name {{
                     font-weight: bold;
-                    font-size: 9px;
+                    font-size: 10px;
                     color: #000;
                     margin-bottom: 0.5mm;
                 }}
                 .order-header {{
                     display: flex;
                     justify-content: space-between;
-                    font-size: 7px;
+                    font-size: 10px;
                     color: #444;
                 }}
                 .address-section {{
@@ -1123,12 +1123,12 @@ def delivery_order_qr_pdf(request, pk):
                 }}
                 .address-label {{
                     font-weight: bold;
-                    font-size: 8px;
+                    font-size: 10px;
                     color: #000;
                     margin-bottom: 0.3mm;
                 }}
                 .address-text {{
-                    font-size: 7.5px;
+                    font-size: 10px;
                     color: #333;
                     word-break: break-word;
                     line-height: 1.2;
@@ -1153,14 +1153,14 @@ def delivery_order_qr_pdf(request, pk):
                 }}
                 .counter {{
                     font-weight: bold;
-                    font-size: 9px;
+                    font-size: 10px;
                     color: #000;
                     margin-bottom: 0.5mm;
                 }}
                 .cargo-info {{
                     display: flex;
                     justify-content: space-between;
-                    font-size: 7px;
+                    font-size: 10px;
                     color: #555;
                     border-top: 0.3mm solid #eee;
                     padding-top: 0.5mm;
