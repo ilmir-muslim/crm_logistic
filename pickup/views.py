@@ -493,24 +493,9 @@ def pickup_order_qr_pdf(request, pk):
         with open(qr_code_path, "rb") as f:
             qr_image_data = base64.b64encode(f.read()).decode("utf-8")
 
-        sender_name = order.get_client_name()
-        pickup_address = order.pickup_address
-        delivery_address = order.delivery_address
-
-        if pickup_address and len(pickup_address) > 40:
-            pickup_display = pickup_address[:37] + "..."
-        else:
-            pickup_display = pickup_address or "Не указан"
-
-        if delivery_address and len(delivery_address) > 40:
-            delivery_display = delivery_address[:37] + "..."
-        else:
-            delivery_display = delivery_address or "Не указан"
-
-        if sender_name and len(sender_name) > 30:
-            sender_display = sender_name[:27] + "..."
-        else:
-            sender_display = sender_name or "Не указан"
+        sender_display = order.get_client_name() or "не указан"
+        pickup_display = order.pickup_address or "не указан"
+        delivery_display = order.delivery_address or "не указан"
 
         contact_person = order.contact_person or ""
 

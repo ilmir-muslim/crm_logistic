@@ -986,8 +986,8 @@ def get_operators(request):
 
 @login_required
 def delivery_order_qr_pdf(request, pk):
-    """Скачать QR-коды заявки на доставку в PDF формате (по одному QR на страницу 75x120 мм)"""
-    order = get_object_or_404(DeliveryOrder, pk=pk)
+    """Скачать QR-коды заявки на доставку"""
+    order = get_object_or_404(DeliveryOrder, гk=pk)
 
     if hasattr(request.user, "profile") and request.user.profile.is_operator:
         if order.operator != request.user:
@@ -1010,20 +1010,10 @@ def delivery_order_qr_pdf(request, pk):
         with open(qr_code_path, "rb") as f:
             qr_image_data = base64.b64encode(f.read()).decode("utf-8")
 
-        sender_address = order.sender.address if order.sender else order.sender_address
-        recipient_address = (
+        sender_display = (order.sender.address if order.sender else order.sender_address) or "не указан"
+        recipient_display = (
             order.recipient.address if order.recipient else order.recipient_address
-        )
-
-        if sender_address and len(sender_address) > 40:
-            sender_display = sender_address[:37] + "..."
-        else:
-            sender_display = sender_address or "Не указан"
-
-        if recipient_address and len(recipient_address) > 40:
-            recipient_display = recipient_address[:37] + "..."
-        else:
-            recipient_display = recipient_address or "Не указан"
+        ) or "Не указан"
 
         qr_items_html = ""
         total_items = order.quantity

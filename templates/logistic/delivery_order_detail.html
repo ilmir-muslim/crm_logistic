@@ -165,14 +165,7 @@
                             Отсканируйте для быстрого просмотра информации о заявке
                         </p>
                         <div class="d-grid gap-2">
-                            <!-- Кнопка для скачивания PNG -->
-                            <a href="{{ order.qr_code.url }}" 
-                               class="btn btn-outline-primary btn-sm" 
-                               download="QR_{{ order.tracking_number }}.png">
-                                <i class="bi bi-download"></i> Скачать PNG
-                            </a>
-                            
-                            <!-- Новая кнопка для скачивания PDF -->
+                            <!-- кнопка для скачивания PDF -->
                             <a href="{% url 'delivery_order_qr_pdf' order.pk %}" 
                                class="btn btn-outline-danger btn-sm">
                                 <i class="bi bi-file-pdf"></i> Скачать PDF
