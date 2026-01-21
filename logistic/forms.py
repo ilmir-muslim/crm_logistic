@@ -185,9 +185,9 @@ class DeliveryOrderCreateForm(forms.ModelForm):
         fields = [
             "date",
             "sender",
-            "sender_address",
+            "pickup_address",
             "recipient",
-            "recipient_address",
+            "delivery_address",
             "fulfillment",
             "quantity",
             "weight",
@@ -208,7 +208,7 @@ class DeliveryOrderCreateForm(forms.ModelForm):
                     "data-counterparty-type": "sender",
                 }
             ),
-            "sender_address": forms.Textarea(
+            "pickup_address": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 3,
@@ -221,7 +221,7 @@ class DeliveryOrderCreateForm(forms.ModelForm):
                     "data-counterparty-type": "recipient",
                 }
             ),
-            "recipient_address": forms.Textarea(
+            "delivery_address": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 3,
@@ -267,15 +267,15 @@ class DeliveryOrderCreateForm(forms.ModelForm):
         }
         labels = {
             "sender": "Отправитель (контрагент)",
-            "sender_address": "Адрес отправки (вручную)",
+            "pickup_address": "Адрес отправки (вручную)",
             "recipient": "Получатель (контрагент)",
-            "recipient_address": "Адрес доставки (вручную)",
+            "delivery_address": "Адрес доставки (вручную)",
         }
         help_texts = {
             "sender": "Выберите существующего контрагента или создайте нового ниже",
             "recipient": "Выберите существующего контрагента или создайте нового ниже",
-            "sender_address": "Заполняется, если отправитель не выбран из списка контрагентов",
-            "recipient_address": "Заполняется, если получатель не выбран из списка контрагентов",
+            "pickup_address": "Заполняется, если отправитель не выбран из списка контрагентов",
+            "delivery_address": "Заполняется, если получатель не выбран из списка контрагентов",
         }
 
     def __init__(self, *args, **kwargs):
@@ -297,18 +297,18 @@ class DeliveryOrderCreateForm(forms.ModelForm):
         cleaned_data = super().clean()
 
         sender = cleaned_data.get("sender")
-        sender_address = cleaned_data.get("sender_address")
+        pickup_address = cleaned_data.get("pickup_address")
         new_sender_name = cleaned_data.get("new_sender_name")
         new_sender_type = cleaned_data.get("new_sender_type")
         new_sender_address = cleaned_data.get("new_sender_address")
 
         recipient = cleaned_data.get("recipient")
-        recipient_address = cleaned_data.get("recipient_address")
+        delivery_address = cleaned_data.get("delivery_address")
         new_recipient_name = cleaned_data.get("new_recipient_name")
         new_recipient_type = cleaned_data.get("new_recipient_type")
         new_recipient_address = cleaned_data.get("new_recipient_address")
 
-        if not sender and not sender_address and not new_sender_name:
+        if not sender and not pickup_address and not new_sender_name:
             raise forms.ValidationError(
                 "Укажите отправителя: выберите существующего контрагента, "
                 "введите адрес вручную или создайте нового контрагента."
@@ -324,7 +324,7 @@ class DeliveryOrderCreateForm(forms.ModelForm):
                     "Для нового отправителя необходимо указать адрес."
                 )
 
-        if not recipient and not recipient_address and not new_recipient_name:
+        if not recipient and not delivery_address and not new_recipient_name:
             raise forms.ValidationError(
                 "Укажите получателя: выберите существующего контрагента, "
                 "введите адрес вручную или создайте нового контрагента."
@@ -355,7 +355,7 @@ class DeliveryOrderCreateForm(forms.ModelForm):
                 created_by=user,
             )
             instance.sender = sender
-            instance.sender_address = ""
+            instance.pickup_address = ""
 
         new_recipient_name = self.cleaned_data.get("new_recipient_name")
         if new_recipient_name:
@@ -366,7 +366,7 @@ class DeliveryOrderCreateForm(forms.ModelForm):
                 created_by=user,
             )
             instance.recipient = recipient
-            instance.recipient_address = ""
+            instance.delivery_address = ""
 
         if commit:
             instance.save()

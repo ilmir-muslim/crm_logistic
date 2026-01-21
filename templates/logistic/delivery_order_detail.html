@@ -60,8 +60,15 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Адрес отправки (склад):</th>
-                        <td><strong>{{ order.sender_address|default:"Не указан" }}</strong></td>
+                        <th>Адрес отправки:</th>
+                        <td>
+                            <strong>{{ order.pickup_address|default:"Не указан" }}</strong>
+                            {% if order.pickup_warehouse %}
+                                <div class="text-muted small mt-1">
+                                    <i class="bi bi-house"></i> Склад: {{ order.pickup_warehouse.name }} ({{ order.pickup_warehouse.city.name }})
+                                </div>
+                            {% endif %}
+                        </td>
                     </tr>
                     <tr>
                         <th>Получатель (контрагент):</th>
@@ -92,8 +99,20 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Адрес доставки (склад):</th>
-                        <td><strong>{{ order.recipient_address|default:"Не указан" }}</strong></td>
+                        <th>Адрес доставки:</th>
+                        <td>
+                            <strong>{{ order.delivery_address|default:"Не указан" }}</strong>
+                            {% if order.delivery_warehouse %}
+                                <div class="text-muted small mt-1">
+                                    <i class="bi bi-house"></i> Склад: {{ order.delivery_warehouse.name }} ({{ order.delivery_warehouse.city.name }})
+                                </div>
+                            {% endif %}
+                            {% if order.delivery_city %}
+                                <div class="text-muted small mt-1">
+                                    <i class="bi bi-geo-alt"></i> Город: {{ order.delivery_city.name }}
+                                </div>
+                            {% endif %}
+                        </td>
                     </tr>
                     <tr>
                         <th>Фулфилмент оператор:</th>
@@ -168,7 +187,7 @@
                             <!-- кнопка для скачивания PDF -->
                             <a href="{% url 'delivery_order_qr_pdf' order.pk %}" 
                                class="btn btn-outline-danger btn-sm">
-                                <i class="bi bi-file-pdf"></i> Скачать PDF
+                                <i class="bi bi-file-pdf"></i> Скачать qr код (PDF)
                             </a>
                         </div>
                     </div>

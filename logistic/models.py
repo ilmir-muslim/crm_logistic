@@ -7,6 +7,7 @@ import qrcode
 import os
 from io import BytesIO
 from django.core.files import File
+from warehouses.models import Warehouse, City  # Добавить импорт
 
 
 class DeliveryOrder(models.Model):
@@ -27,11 +28,21 @@ class DeliveryOrder(models.Model):
         verbose_name="Отправитель",
         help_text="Контрагент, который отправляет груз",
     )
-    sender_address = models.TextField(
+    pickup_address = models.TextField(
         verbose_name="Адрес отправки",
         blank=True,
         null=True,
         help_text="Можно указать вручную, если отправитель не выбран",
+    )
+    # Добавить поле для склада отправки (аналогично PickupOrder.receiving_warehouse)
+    pickup_warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pickup_delivery_orders",
+        verbose_name="Склад отправки",
+        help_text="Склад, откуда отправляется груз",
     )
 
     recipient = models.ForeignKey(
@@ -43,11 +54,31 @@ class DeliveryOrder(models.Model):
         verbose_name="Получатель",
         help_text="Контрагент, который получает груз",
     )
-    recipient_address = models.TextField(
+    delivery_address = models.TextField(
         verbose_name="Адрес доставки",
         blank=True,
         null=True,
         help_text="Можно указать вручную, если получатель не выбран",
+    )
+    # Добавить поле для склада доставки
+    delivery_warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="delivery_delivery_orders",
+        verbose_name="Склад доставки",
+        help_text="Склад, куда доставляется груз",
+    )
+    # Добавить поле для города доставки (аналогично PickupOrder.delivery_city)
+    delivery_city = models.ForeignKey(
+        City,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="delivery_orders",
+        verbose_name="Город доставки",
+        help_text="Город назначения доставки",
     )
 
     fulfillment = models.ForeignKey(
@@ -115,11 +146,11 @@ class DeliveryOrder(models.Model):
         """Возвращает отображаемое имя отправителя"""
         if self.sender:
             return self.sender.name
-        elif self.sender_address:
+        elif self.pickup_address:
             return (
-                self.sender_address[:50] + "..."
-                if len(self.sender_address) > 50
-                else self.sender_address
+                self.pickup_address[:50] + "..."
+                if len(self.pickup_address) > 50
+                else self.pickup_address
             )
         return "Не указан"
 
@@ -127,11 +158,11 @@ class DeliveryOrder(models.Model):
         """Возвращает отображаемое имя получателя"""
         if self.recipient:
             return self.recipient.name
-        elif self.recipient_address:
+        elif self.delivery_address:
             return (
-                self.recipient_address[:50] + "..."
-                if len(self.recipient_address) > 50
-                else self.recipient_address
+                self.delivery_address[:50] + "..."
+                if len(self.delivery_address) > 50
+                else self.delivery_address
             )
         return "Не указан"
 
@@ -139,16 +170,16 @@ class DeliveryOrder(models.Model):
         """Возвращает полную информацию об отправителе"""
         if self.sender:
             return self.sender.get_full_info()
-        elif self.sender_address:
-            return f"Адрес отправки:\n{self.sender_address}"
+        elif self.pickup_address:
+            return f"Адрес отправки:\n{self.pickup_address}"
         return "Отправитель не указан"
 
     def get_full_recipient_info(self):
         """Возвращает полную информацию о получателе"""
         if self.recipient:
             return self.recipient.get_full_info()
-        elif self.recipient_address:
-            return f"Адрес доставки:\n{self.recipient_address}"
+        elif self.delivery_address:
+            return f"Адрес доставки:\n{self.delivery_address}"
         return "Получатель не указан"
 
     def save(self, *args, **kwargs):
@@ -192,7 +223,7 @@ class DeliveryOrder(models.Model):
                 if os.path.exists(self.qr_code.path):
                     return
             except (ValueError, FileNotFoundError, AttributeError):
-                pass  
+                pass
 
         pdf_url = f"{settings.SITE_URL}{reverse('delivery_order_pdf', kwargs={'pk': self.pk})}"
 

@@ -563,7 +563,7 @@ def pickup_order_qr_pdf(request, pk):
                     margin: 0;
                     padding: 0;
                     font-family: Arial, sans-serif;
-                    font-size: 12px;
+                    font-size: 13px;
                     line-height: 1.1;
                 }}
                 .page {{
@@ -596,14 +596,14 @@ def pickup_order_qr_pdf(request, pk):
                 }}
                 .company-name {{
                     font-weight: bold;
-                    font-size: 12px;
+                    font-size: 13px;
                     color: #000;
                     margin-bottom: 0.3mm;
                 }}
                 .order-header {{
                     display: flex;
                     justify-content: space-between;
-                    font-size: 12px;
+                    font-size: 10px;
                     color: #444;
                 }}
                 .info-section {{
@@ -615,12 +615,12 @@ def pickup_order_qr_pdf(request, pk):
                 }}
                 .info-label {{
                     font-weight: bold;
-                    font-size: 12px;
+                    font-size: 13px;
                     color: #000;
                     margin-bottom: 0.1mm;
                 }}
                 .info-text {{
-                    font-size: 12px;
+                    font-size: 13px;
                     color: #333;
                     word-break: break-word;
                 }}
@@ -633,12 +633,12 @@ def pickup_order_qr_pdf(request, pk):
                 }}
                 .address-label {{
                     font-weight: bold;
-                    font-size: 12px;
+                    font-size: 13px;
                     color: #000;
                     margin-bottom: 0.2mm;
                 }}
                 .address-text {{
-                    font-size: 12px;
+                    font-size: 13px;
                     color: #333;
                     word-break: break-word;
                     line-height: 1.2;
@@ -652,8 +652,8 @@ def pickup_order_qr_pdf(request, pk):
                     margin: 0.5mm 0;
                 }}
                 .qr-image {{
-                    width: 65mm;
-                    height: 65mm;
+                    width: 55mm;
+                    height: 55mm;
                     max-width: 90%;
                     max-height: 90%;
                 }}
@@ -663,14 +663,14 @@ def pickup_order_qr_pdf(request, pk):
                 }}
                 .counter {{
                     font-weight: bold;
-                    font-size: 12px;
+                    font-size: 13px;
                     color: #000;
                     margin-bottom: 0.3mm;
                 }}
                 .cargo-info {{
                     display: flex;
                     justify-content: space-between;
-                    font-size: 12px;
+                    font-size: 13px;
                     color: #555;
                     border-top: 0.3mm solid #eee;
                     padding-top: 0.3mm;

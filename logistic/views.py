@@ -206,9 +206,12 @@ def update_delivery_order_field(request, pk):
 
     allowed_fields = [
         "sender",
-        "sender_address",
+        "pickup_address",
+        "pickup_warehouse",  # Добавить
         "recipient",
-        "recipient_address",
+        "delivery_address",
+        "delivery_warehouse",  # Добавить
+        "delivery_city",  # Добавить
         "quantity",
         "weight",
         "volume",
@@ -260,7 +263,27 @@ def update_delivery_order_field(request, pk):
                     )
             else:
                 value = None
-        elif field in ["sender_address", "recipient_address"]:
+        elif field in ["pickup_warehouse", "delivery_warehouse"]:
+            if value:
+                from warehouses.models import Warehouse
+
+                try:
+                    value = Warehouse.objects.get(id=value)
+                except Warehouse.DoesNotExist:
+                    return JsonResponse({"success": False, "error": "Склад не найден"})
+            else:
+                value = None
+        elif field == "delivery_city":
+            if value:
+                from warehouses.models import City
+
+                try:
+                    value = City.objects.get(id=value)
+                except City.DoesNotExist:
+                    return JsonResponse({"success": False, "error": "Город не найден"})
+            else:
+                value = None
+        elif field in ["pickup_address", "delivery_address"]:
             pass
 
         setattr(order, field, value)
@@ -281,8 +304,17 @@ def update_delivery_order_field(request, pk):
         elif field == "recipient":
             display_value = order.get_recipient_display()
             return JsonResponse({"success": True, "display_value": display_value})
-        elif field in ["sender_address", "recipient_address"]:
+        elif field in ["pickup_address", "delivery_address"]:
             display_value = value if value else ""
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "pickup_warehouse":
+            display_value = value.name if value else ""
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "delivery_warehouse":
+            display_value = value.name if value else ""
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "delivery_city":
+            display_value = value.name if value else ""
             return JsonResponse({"success": True, "display_value": display_value})
 
         return JsonResponse({"success": True})
@@ -1010,10 +1042,16 @@ def delivery_order_qr_pdf(request, pk):
         with open(qr_code_path, "rb") as f:
             qr_image_data = base64.b64encode(f.read()).decode("utf-8")
 
-        sender_display = (order.sender.address if order.sender else order.sender_address) or "не указан"
+        sender_display = (
+            order.pickup_address
+            if order.pickup_address and order.pickup_address.strip()
+            else "не указан"
+        )
         recipient_display = (
-            order.recipient.address if order.recipient else order.recipient_address
-        ) or "Не указан"
+            order.delivery_address
+            if order.delivery_address and order.delivery_address.strip()
+            else "Не указан"
+        )
 
         qr_items_html = ""
         total_items = order.quantity
