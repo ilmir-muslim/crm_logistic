@@ -469,7 +469,7 @@ def get_operators(request):
 
 
 def pickup_order_qr_pdf(request, pk):
-    """Скачать QR-коды заявки на забор в PDF формате (несколько QR-кодов по количеству мест)"""
+    """Скачать QR-коды заявки на забор в PDF формате (по одному QR на страницу 75x120 мм)"""
     order = get_object_or_404(PickupOrder, pk=pk)
 
     if hasattr(request.user, "profile") and request.user.profile.is_operator:
@@ -493,41 +493,76 @@ def pickup_order_qr_pdf(request, pk):
         with open(qr_code_path, "rb") as f:
             qr_image_data = base64.b64encode(f.read()).decode("utf-8")
 
-        client_name = order.get_client_name()
-        if len(client_name) > 25:
-            client_name = client_name[:22] + "..." 
+        sender_name = order.get_client_name()
+        pickup_address = order.pickup_address
+        delivery_address = order.delivery_address
 
-        date_display = (
-            order.pickup_date.strftime("%d.%m.%Y")
-            if order.pickup_date
-            else datetime.now().strftime("%d.%m.%Y")
-        )
+        if pickup_address and len(pickup_address) > 40:
+            pickup_display = pickup_address[:37] + "..."
+        else:
+            pickup_display = pickup_address or "Не указан"
+
+        if delivery_address and len(delivery_address) > 40:
+            delivery_display = delivery_address[:37] + "..."
+        else:
+            delivery_display = delivery_address or "Не указан"
+
+        if sender_name and len(sender_name) > 30:
+            sender_display = sender_name[:27] + "..."
+        else:
+            sender_display = sender_name or "Не указан"
+
+        contact_person = order.contact_person or ""
 
         qr_items_html = ""
-        items_per_page = 12  
         total_items = order.quantity
 
         for i in range(1, total_items + 1):
-            if i % items_per_page == 1:
-                if i > 1:
-                    qr_items_html += (
-                        '</div></div><div class="page"><div class="qr-grid">'
-                    )
-                else:
-                    qr_items_html += '<div class="page"><div class="qr-grid">'
-
             qr_items_html += f"""
-            <div class="qr-item">
-                <div class="qr-header">Фулфилмент Царицыно</div>
-                <div class="qr-date">Дата забора: {date_display}</div>
-                <img src="data:image/png;base64,{qr_image_data}" />
-                <div class="qr-client">Клиент: {client_name}</div>
-                <div class="qr-counter">{i} из {total_items}</div>
+            <div class="page">
+                <div class="qr-container">
+                    <div class="header-section">
+                        <div class="company-name">Фулфилмент Царицыно</div>
+                        <div class="order-header">
+                            <div class="order-number">Заявка: {order.tracking_number or f"#{order.id}"}</div>
+                            <div class="order-date">Дата: {order.pickup_date.strftime('%d.%m.%Y') if order.pickup_date else datetime.now().strftime('%d.%m.%Y')}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-section">
+                        <div class="client-block">
+                            <div class="info-label">Клиент:</div>
+                            <div class="info-text">{sender_display}</div>
+                        </div>
+                        {f'<div class="contact-block"><div class="info-label">Контакты:</div><div class="info-text">{contact_person}</div></div>' if contact_person else ''}
+                    </div>
+                    
+                    <div class="address-section">
+                        <div class="address-block">
+                            <div class="address-label">Откуда:</div>
+                            <div class="address-text">{pickup_display}</div>
+                        </div>
+                        <div class="address-block">
+                            <div class="address-label">Куда:</div>
+                            <div class="address-text">{delivery_display}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="qr-code-section">
+                        <img src="data:image/png;base64,{qr_image_data}" class="qr-image" />
+                    </div>
+                    
+                    <div class="footer-section">
+                        <div class="counter">Место {i} из {total_items}</div>
+                        <div class="cargo-info">
+                            <div class="cargo-item">Мест: {order.quantity}</div>
+                            <div class="cargo-item">Вес: {order.weight} кг</div>
+                            <div class="cargo-item">Объем: {order.volume} м³</div>
+                        </div>
+                    </div>
+                </div>
             </div>
             """
-
-            if i == total_items:
-                qr_items_html += "</div></div>"
 
         html_content = f"""
         <!DOCTYPE html>
@@ -536,74 +571,128 @@ def pickup_order_qr_pdf(request, pk):
             <meta charset="utf-8">
             <style>
                 @page {{
-                    size: A4;
-                    margin: 15mm 10mm;
+                    size: 75mm 120mm;
+                    margin: 2mm;
                 }}
                 body {{
                     margin: 0;
                     padding: 0;
                     font-family: Arial, sans-serif;
+                    font-size: 8px;
+                    line-height: 1.1;
                 }}
                 .page {{
                     page-break-after: always;
-                    width: 100%;
-                    height: 100%;
+                    width: 71mm;
+                    height: 116mm;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
                 }}
                 .page:last-child {{
                     page-break-after: avoid;
                 }}
-                .qr-grid {{
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    grid-auto-rows: 60mm; /* Фиксированная высота строки */
-                    gap: 5mm;
+                .qr-container {{
                     width: 100%;
                     height: 100%;
-                }}
-                .qr-item {{
                     display: flex;
                     flex-direction: column;
+                    justify-content: space-between;
                     align-items: center;
-                    justify-content: center;
-                    border: 1px solid #ddd;
-                    border-radius: 2mm;
-                    padding: 3mm;
-                    text-align: center;
-                    overflow: hidden;
+                    padding: 1mm;
                     box-sizing: border-box;
-                    height: 100%;
-                    break-inside: avoid;
+                    border: 0.5mm solid #ccc;
+                    border-radius: 1mm;
                 }}
-                .qr-header {{
-                    font-size: 10px;
+                .header-section {{
+                    width: 100%;
+                    text-align: center;
+                    margin-bottom: 0.5mm;
+                }}
+                .company-name {{
                     font-weight: bold;
-                    margin-bottom: 1mm;
-                    color: #333;
-                }}
-                .qr-date {{
                     font-size: 9px;
-                    margin-bottom: 2mm;
-                    color: #666;
-                }}
-                .qr-item img {{
-                    width: 35mm;
-                    height: 35mm;
-                    margin: 2mm 0;
-                }}
-                .qr-client {{
-                    font-size: 9px;
-                    margin: 1mm 0;
-                    color: #333;
-                    max-width: 100%;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                }}
-                .qr-counter {{
-                    font-size: 9px;
-                    font-weight: bold;
-                    margin-top: 1mm;
                     color: #000;
+                    margin-bottom: 0.3mm;
+                }}
+                .order-header {{
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 7px;
+                    color: #444;
+                }}
+                .info-section {{
+                    width: 100%;
+                    margin-bottom: 0.5mm;
+                }}
+                .client-block, .contact-block {{
+                    margin-bottom: 0.3mm;
+                }}
+                .info-label {{
+                    font-weight: bold;
+                    font-size: 7.5px;
+                    color: #000;
+                    margin-bottom: 0.1mm;
+                }}
+                .info-text {{
+                    font-size: 7.5px;
+                    color: #333;
+                    word-break: break-word;
+                }}
+                .address-section {{
+                    width: 100%;
+                    margin-bottom: 1mm;
+                }}
+                .address-block {{
+                    margin-bottom: 0.5mm;
+                }}
+                .address-label {{
+                    font-weight: bold;
+                    font-size: 8px;
+                    color: #000;
+                    margin-bottom: 0.2mm;
+                }}
+                .address-text {{
+                    font-size: 7.5px;
+                    color: #333;
+                    word-break: break-word;
+                    line-height: 1.2;
+                }}
+                .qr-code-section {{
+                    flex-grow: 1;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    width: 100%;
+                    margin: 0.5mm 0;
+                }}
+                .qr-image {{
+                    width: 65mm;
+                    height: 65mm;
+                    max-width: 90%;
+                    max-height: 90%;
+                }}
+                .footer-section {{
+                    width: 100%;
+                    text-align: center;
+                }}
+                .counter {{
+                    font-weight: bold;
+                    font-size: 9px;
+                    color: #000;
+                    margin-bottom: 0.3mm;
+                }}
+                .cargo-info {{
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 7px;
+                    color: #555;
+                    border-top: 0.3mm solid #eee;
+                    padding-top: 0.3mm;
+                }}
+                .cargo-item {{
+                    flex: 1;
+                    text-align: center;
                 }}
             </style>
         </head>
@@ -632,7 +721,6 @@ def pickup_order_qr_pdf(request, pk):
         traceback.print_exc()
         messages.error(request, f"Ошибка при создании PDF: {str(e)}")
         return redirect("pickup_order_detail", pk=pk)
-
 
 
 @require_POST
