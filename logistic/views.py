@@ -1196,8 +1196,8 @@ def delivery_order_qr_pdf(request, pk):
                 }}
                 .cargo-info {{
                     width: calc(100% + 2mm); 
-                    margin-left: -5mm;
-                    margin-right: -5mm;
+                    margin-left: -6mm;
+                    margin-right: -6mm;
                     font-weight: bold;
                     display: flex;
                     justify-content: space-between;
