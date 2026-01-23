@@ -662,18 +662,22 @@ def pickup_order_qr_pdf(request, pk):
                     text-align: center;
                 }}
                 .counter {{
-                    font-weight: bold;
-                    font-size: 13px;
+                    font-size: 10px;
                     color: #000;
                     margin-bottom: 0.3mm;
                 }}
                 .cargo-info {{
+                    width: calc(100% + 2mm); 
+                    margin-left: -5mm;
+                    margin-right: -5mm;
+                    font-weight: bold;
                     display: flex;
                     justify-content: space-between;
-                    font-size: 10px;
-                    color: #555;
+                    font-size: 13px;
+                    color: #000;
                     border-top: 0.3mm solid #eee;
                     padding-top: 0.3mm;
+                    box-sizing: border-box;
                 }}
                 .cargo-item {{
                     flex: 1;
