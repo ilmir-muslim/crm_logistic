@@ -1,3 +1,4 @@
+### BEGIN: warehouses/admin.py
 from django.contrib import admin
 from django.utils import timezone
 from django import forms
@@ -254,11 +255,8 @@ class WarehouseScheduleAdmin(admin.ModelAdmin):
     search_fields = ("warehouse__name",)
     readonly_fields = ("day_of_week", "warehouse")
 
-    def has_add_permission(self, request):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
+    # УДАЛЕНО: has_add_permission и has_delete_permission
+    # Разрешаем добавление и удаление для каскадных операций
 
     fieldsets = (
         ("Основная информация", {"fields": ("warehouse", "day_of_week", "is_working")}),
@@ -292,3 +290,6 @@ class WarehouseScheduleAdmin(admin.ModelAdmin):
         return obj.working_hours
 
     working_hours_display.short_description = "Время работы"
+
+
+### END: warehouses/admin.py
