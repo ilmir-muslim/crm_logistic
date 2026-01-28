@@ -306,19 +306,6 @@ class WarehouseSchedule(models.Model):
         verbose_name="Начало перерыва", blank=True, null=True
     )
     break_end = models.TimeField(verbose_name="Конец перерыва", blank=True, null=True)
-    pickup_cutoff_time = models.TimeField(
-        verbose_name="Крайний срок приема заявок на забор",
-        help_text="После этого времени заявки на следующий день",
-        default=timezone.datetime.strptime("16:00", "%H:%M").time(),
-        blank=True,
-        null=True,
-    )
-    delivery_cutoff_time = models.TimeField(
-        verbose_name="Крайний срок приема заявок на доставку",
-        default=timezone.datetime.strptime("17:00", "%H:%M").time(),
-        blank=True,
-        null=True,
-    )
 
     class Meta:
         verbose_name = "График работы по дням"

@@ -99,7 +99,7 @@ def check_date_availability_json(request, warehouse_id):
         except ValueError:
             return JsonResponse({"error": "Неверный формат даты"}, status=400)
 
-        day_of_week = check_date.isoweekday()  
+        day_of_week = check_date.isoweekday()
 
         try:
             schedule = WarehouseSchedule.objects.get(
@@ -107,16 +107,6 @@ def check_date_availability_json(request, warehouse_id):
             )
 
             is_available = schedule.is_working
-
-            from django.utils import timezone
-
-            if check_date == timezone.now().date() and is_available:
-                current_time = timezone.now().time()
-                if (
-                    schedule.pickup_cutoff_time
-                    and current_time > schedule.pickup_cutoff_time
-                ):
-                    is_available = False
 
             return JsonResponse(
                 {
@@ -132,11 +122,6 @@ def check_date_availability_json(request, warehouse_id):
                     "closing_time": (
                         schedule.closing_time.strftime("%H:%M")
                         if schedule.closing_time
-                        else None
-                    ),
-                    "pickup_cutoff_time": (
-                        schedule.pickup_cutoff_time.strftime("%H:%M")
-                        if schedule.pickup_cutoff_time
                         else None
                     ),
                     "message": (

@@ -34,20 +34,6 @@ class WarehouseScheduleForm(forms.ModelForm):
         required=False,
     )
 
-    pickup_cutoff_time = forms.TimeField(
-        widget=forms.TimeInput(
-            attrs={"type": "time", "class": "vTimeField", "step": "300"}
-        ),
-        required=False,
-    )
-
-    delivery_cutoff_time = forms.TimeField(
-        widget=forms.TimeInput(
-            attrs={"type": "time", "class": "vTimeField", "step": "300"}
-        ),
-        required=False,
-    )
-
     class Meta:
         model = WarehouseSchedule
         fields = "__all__"

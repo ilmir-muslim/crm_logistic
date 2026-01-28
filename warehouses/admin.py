@@ -12,8 +12,6 @@ from .models import (
 )
 
 
-
-
 class WarehouseScheduleInline(admin.TabularInline):
     model = WarehouseSchedule
     form = WarehouseScheduleForm
@@ -22,45 +20,83 @@ class WarehouseScheduleInline(admin.TabularInline):
     min_num = 7
     can_delete = False
     can_add = False
+    day_count = 0  # Инициализируем счетчик класса
 
-    fieldsets = (
-        (None, {"fields": ("is_working", "day_of_week")}),
-        (
-            "Часы работы",
-            {
-                "fields": ("opening_time", "closing_time"),
-                "classes": ("collapse",),
-            },
-        ),
-        (
-            "Перерыв",
-            {
-                "fields": ("break_start", "break_end"),
-                "classes": ("collapse",),
-            },
-        ),
-        (
-            "Крайние сроки приема",
-            {
-                "fields": ("pickup_cutoff_time", "delivery_cutoff_time"),
-                "classes": ("collapse",),
-            },
-        ),
+    # Исключаем поле day_of_week из отображения
+    exclude = ("day_of_week",)
+
+    # Определяем порядок полей с кастомными названиями дней
+    fields = (
+        "day_display",  # Кастомное текстовое поле для названия дня
+        "is_working",
+        "opening_time",
+        "closing_time",
+        "break_start",
+        "break_end",
     )
 
-    def get_readonly_fields(self, request, obj=None):
-        if obj:
-            return ("day_of_week",)
-        return super().get_readonly_fields(request, obj)
+    # Делаем day_display только для чтения
+    readonly_fields = ("day_display",)
+
+    def day_display(self, obj=None):
+        """
+        Отображает название дня недели.
+        Для существующих объектов берет из БД,
+        для новых - вычисляет по позиции в форме.
+        """
+        # Определяем список дней недели
+        days_of_week = [
+            "Понедельник",
+            "Вторник",
+            "Среда",
+            "Четверг",
+            "Пятница",
+            "Суббота",
+            "Воскресенье",
+        ]
+
+        # Если объект уже существует и сохранен в БД
+        if obj and obj.pk and obj.day_of_week:
+            return f" {obj.get_day_of_week_display()}"
+
+        # Для новых объектов определяем день по порядковому номеру формы
+        # Используем счетчик класса
+        day_index = WarehouseScheduleInline.day_count
+        WarehouseScheduleInline.day_count += 1
+
+        if day_index < len(days_of_week):
+            return days_of_week[day_index]
+
+        return "День недели"
+
+    day_display.short_description = "День недели"
 
     def get_queryset(self, request):
+        """Сортируем записи по дням недели (пн-вс)"""
         qs = super().get_queryset(request)
         return qs.order_by("day_of_week")
 
-    def formfield_for_dbfield(self, db_field, request, **kwargs):
-        if db_field.name == "day_of_week":
-            kwargs["widget"] = forms.TextInput(attrs={"readonly": "readonly"})
-        return super().formfield_for_dbfield(db_field, request, **kwargs)
+    def get_formset(self, request, obj=None, **kwargs):
+        """Создаем формы с уже установленными днями недели"""
+        # Сбрасываем счетчик перед созданием formset
+        WarehouseScheduleInline.day_count = 0
+
+        formset = super().get_formset(request, obj, **kwargs)
+
+        # Для новых объектов (складов) создаем 7 записей с днями недели
+        if not obj:
+            # Устанавливаем initial данные для 7 дней
+            initial_data = []
+            for day_num in range(1, 8):  # от 1 до 7
+                initial_data.append(
+                    {
+                        "day_of_week": day_num,
+                        "is_working": True if day_num <= 5 else False,
+                    }
+                )
+            kwargs["initial"] = initial_data
+
+        return formset
 
 
 @admin.register(City)
@@ -127,16 +163,6 @@ class WarehouseAdmin(admin.ModelAdmin):
                     if is_working
                     else None
                 )
-                pickup_cutoff_time = (
-                    timezone.datetime.strptime("16:00", "%H:%M").time()
-                    if is_working
-                    else None
-                )
-                delivery_cutoff_time = (
-                    timezone.datetime.strptime("17:00", "%H:%M").time()
-                    if is_working
-                    else None
-                )
 
                 WarehouseSchedule.objects.create(
                     warehouse=obj,
@@ -144,8 +170,6 @@ class WarehouseAdmin(admin.ModelAdmin):
                     is_working=is_working,
                     opening_time=opening_time,
                     closing_time=closing_time,
-                    pickup_cutoff_time=pickup_cutoff_time,
-                    delivery_cutoff_time=delivery_cutoff_time,
                 )
 
 
@@ -225,7 +249,6 @@ class WarehouseScheduleAdmin(admin.ModelAdmin):
         "day_of_week_display",
         "is_working",
         "working_hours_display",
-        "cutoff_times",
     )
     list_filter = ("warehouse", "day_of_week", "is_working")
     search_fields = ("warehouse__name",)
@@ -253,13 +276,6 @@ class WarehouseScheduleAdmin(admin.ModelAdmin):
                 "classes": ("collapse",),
             },
         ),
-        (
-            "Крайние сроки приема",
-            {
-                "fields": ("pickup_cutoff_time", "delivery_cutoff_time"),
-                "classes": ("collapse",),
-            },
-        ),
     )
 
     def get_warehouse_name(self, obj):
@@ -276,21 +292,3 @@ class WarehouseScheduleAdmin(admin.ModelAdmin):
         return obj.working_hours
 
     working_hours_display.short_description = "Время работы"
-
-    def cutoff_times(self, obj):
-        if obj.is_working:
-            pickup_str = (
-                obj.pickup_cutoff_time.strftime("%H:%M")
-                if obj.pickup_cutoff_time
-                else "Не указано"
-            )
-            delivery_str = (
-                obj.delivery_cutoff_time.strftime("%H:%M")
-                if obj.delivery_cutoff_time
-                else "Не указано"
-            )
-            return f"Забор: {pickup_str}, Доставка: {delivery_str}"
-        else:
-            return "-"
-
-    cutoff_times.short_description = "Крайние сроки"
