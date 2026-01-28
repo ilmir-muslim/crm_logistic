@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.utils import timezone
 from django import forms
+
+from warehouses.forms import WarehouseScheduleForm
 from .models import (
     City,
     Warehouse,
@@ -10,24 +12,6 @@ from .models import (
 )
 
 
-class WarehouseScheduleForm(forms.ModelForm):
-    """Форма для расписания работы"""
-
-    class Meta:
-        model = WarehouseSchedule
-        fields = "__all__"
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if "day_of_week" in self.fields:
-            instance = kwargs.get("instance")
-            if instance:
-                self.fields["day_of_week"].widget.attrs["readonly"] = True
-                self.fields["day_of_week"].help_text = (
-                    f"День недели: {instance.get_day_of_week_display()}"
-                )
-
-            self.fields["day_of_week"].required = False
 
 
 class WarehouseScheduleInline(admin.TabularInline):
@@ -35,6 +19,7 @@ class WarehouseScheduleInline(admin.TabularInline):
     form = WarehouseScheduleForm
     extra = 0
     max_num = 7
+    min_num = 7
     can_delete = False
     can_add = False
 
@@ -130,30 +115,37 @@ class WarehouseAdmin(admin.ModelAdmin):
         if not change:
             for day in range(1, 8):
                 is_working = True if day <= 5 else False
+
+                # Определяем время в зависимости от того, рабочий ли день
+                opening_time = (
+                    timezone.datetime.strptime("08:00", "%H:%M").time()
+                    if is_working
+                    else None
+                )
+                closing_time = (
+                    timezone.datetime.strptime("20:00", "%H:%M").time()
+                    if is_working
+                    else None
+                )
+                pickup_cutoff_time = (
+                    timezone.datetime.strptime("16:00", "%H:%M").time()
+                    if is_working
+                    else None
+                )
+                delivery_cutoff_time = (
+                    timezone.datetime.strptime("17:00", "%H:%M").time()
+                    if is_working
+                    else None
+                )
+
                 WarehouseSchedule.objects.create(
                     warehouse=obj,
                     day_of_week=day,
                     is_working=is_working,
-                    opening_time=(
-                        timezone.datetime.strptime("08:00", "%H:%M").time()
-                        if is_working
-                        else None
-                    ),
-                    closing_time=(
-                        timezone.datetime.strptime("20:00", "%H:%M").time()
-                        if is_working
-                        else None
-                    ),
-                    pickup_cutoff_time=(
-                        timezone.datetime.strptime("16:00", "%H:%M").time()
-                        if is_working
-                        else None
-                    ),
-                    delivery_cutoff_time=(
-                        timezone.datetime.strptime("17:00", "%H:%M").time()
-                        if is_working
-                        else None
-                    ),
+                    opening_time=opening_time,
+                    closing_time=closing_time,
+                    pickup_cutoff_time=pickup_cutoff_time,
+                    delivery_cutoff_time=delivery_cutoff_time,
                 )
 
 
@@ -237,7 +229,7 @@ class WarehouseScheduleAdmin(admin.ModelAdmin):
     )
     list_filter = ("warehouse", "day_of_week", "is_working")
     search_fields = ("warehouse__name",)
-    readonly_fields = ("day_of_week",)
+    readonly_fields = ("day_of_week", "warehouse")
 
     def has_add_permission(self, request):
         return False
@@ -287,7 +279,17 @@ class WarehouseScheduleAdmin(admin.ModelAdmin):
 
     def cutoff_times(self, obj):
         if obj.is_working:
-            return f"Забор: {obj.pickup_cutoff_time.strftime('%H:%M')}, Доставка: {obj.delivery_cutoff_time.strftime('%H:%M')}"
+            pickup_str = (
+                obj.pickup_cutoff_time.strftime("%H:%M")
+                if obj.pickup_cutoff_time
+                else "Не указано"
+            )
+            delivery_str = (
+                obj.delivery_cutoff_time.strftime("%H:%M")
+                if obj.delivery_cutoff_time
+                else "Не указано"
+            )
+            return f"Забор: {pickup_str}, Доставка: {delivery_str}"
         else:
             return "-"
 

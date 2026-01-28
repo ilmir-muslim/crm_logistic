@@ -70,36 +70,32 @@ class Warehouse(models.Model):
         return f"{self.name} ({self.city.name})"
 
     def get_working_hours(self):
+        """Возвращает график работы склада в читаемом формате"""
         working_schedules = self.schedules.filter(is_working=True).order_by(
             "day_of_week"
         )
         if not working_schedules.exists():
             return "График работы не указан"
 
+        # Просто группируем дни с одинаковым временем работы
         schedule_dict = {}
         for schedule in working_schedules:
-            key = f"{schedule.opening_time.strftime('%H:%M')}-{schedule.closing_time.strftime('%H:%M')}"
+            # Формируем ключ из времени работы
+            time_key = ""
+            if schedule.opening_time and schedule.closing_time:
+                time_key = f"{schedule.opening_time.strftime('%H:%M')}-{schedule.closing_time.strftime('%H:%M')}"
+            else:
+                time_key = "Время не указано"
 
-            if key not in schedule_dict:
-                schedule_dict[key] = []
-            schedule_dict[key].append(schedule.get_day_of_week_display())
+            if time_key not in schedule_dict:
+                schedule_dict[time_key] = []
+            schedule_dict[time_key].append(schedule.get_day_of_week_display())
 
+        # Формируем читаемую строку
         result = []
         for time_range, days in schedule_dict.items():
-            if len(days) == 7:
-                result.append(f"Ежедневно: {time_range}")
-            elif len(days) == 5 and all(
-                day in days
-                for day in ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница"]
-            ):
-                result.append(f"Пн-Пт: {time_range}")
-            elif len(days) == 2 and all(
-                day in days for day in ["Суббота", "Воскресенье"]
-            ):
-                result.append(f"Сб-Вс: {time_range}")
-            else:
-                days_str = ", ".join(days)
-                result.append(f"{days_str}: {time_range}")
+            days_str = ", ".join(days)
+            result.append(f"{days_str}: {time_range}")
 
         return "; ".join(result)
 
@@ -314,10 +310,14 @@ class WarehouseSchedule(models.Model):
         verbose_name="Крайний срок приема заявок на забор",
         help_text="После этого времени заявки на следующий день",
         default=timezone.datetime.strptime("16:00", "%H:%M").time(),
+        blank=True,
+        null=True,
     )
     delivery_cutoff_time = models.TimeField(
         verbose_name="Крайний срок приема заявок на доставку",
         default=timezone.datetime.strptime("17:00", "%H:%M").time(),
+        blank=True,
+        null=True,
     )
 
     class Meta:
@@ -333,11 +333,16 @@ class WarehouseSchedule(models.Model):
     def working_hours(self):
         if not self.is_working:
             return "Выходной"
-        else:
+        elif self.opening_time and self.closing_time:
             return f"{self.opening_time.strftime('%H:%M')}-{self.closing_time.strftime('%H:%M')}"
+        else:
+            return "Время не указано"
 
     def is_available_for_time(self, time):
         if not self.is_working:
+            return False
+
+        if not self.opening_time or not self.closing_time:
             return False
 
         if time < self.opening_time or time > self.closing_time:
