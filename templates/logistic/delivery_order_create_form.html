@@ -104,9 +104,25 @@
                         {% endif %}
                     </div>
                     
+                    <!-- Фулфилмент оператор -->
                     <div class="mb-3">
                         <label class="form-label">Фулфилмент оператор</label>
-                        {{ form.fulfillment }}
+                        {% if is_admin %}
+                            {{ form.fulfillment }}
+                            <small class="form-text text-muted">
+                                Администратор может выбрать любого оператора
+                            </small>
+                        {% else %}
+                            <input type="text" 
+                                   class="form-control" 
+                                   value="{{ request.user.get_full_name|default:request.user.username }}" 
+                                   readonly
+                                   disabled>
+                            <small class="form-text text-muted">
+                                Оператор выбирается автоматически на основе вашей учетной записи
+                            </small>
+                            {{ form.fulfillment.as_hidden }}
+                        {% endif %}
                         {% if form.fulfillment.errors %}
                         <div class="invalid-feedback d-block">
                             {{ form.fulfillment.errors.0 }}
@@ -514,6 +530,14 @@
 #legalFields .form-control,
 #individualFields .form-control {
     margin-bottom: 0.5rem;
+}
+
+/* Стили для поля оператора фулфилмента */
+.form-control[disabled],
+.form-control[readonly] {
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6;
+    color: #495057;
 }
 </style>
 

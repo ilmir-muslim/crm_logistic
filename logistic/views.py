@@ -24,8 +24,17 @@ from weasyprint import HTML
 
 from .models import DeliveryOrder
 from pickup.models import PickupOrder
-from .pdf_utils import create_delivery_order_pdf, create_daily_report_pdf, create_delivery_orders_list_pdf
-from .forms import DailyReportForm, DateRangeReportForm, DeliveryOrderCreateForm, EmailSettingsForm
+from .pdf_utils import (
+    create_delivery_order_pdf,
+    create_daily_report_pdf,
+    create_delivery_orders_list_pdf,
+)
+from .forms import (
+    DailyReportForm,
+    DateRangeReportForm,
+    DeliveryOrderCreateForm,
+    EmailSettingsForm,
+)
 
 
 class DeliveryOrderListView(LoginRequiredMixin, ListView):
@@ -240,6 +249,19 @@ def update_delivery_order_field(request, pk):
             except ValueError:
                 return JsonResponse({"success": False, "error": "Неверный формат даты"})
         elif field == "fulfillment":
+            # Проверяем, может ли пользователь изменять оператора фулфилмента
+            if not (
+                request.user.is_superuser
+                or hasattr(request.user, "profile")
+                and request.user.profile.is_admin
+            ):
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": "Только администратор может изменять оператора фулфилмента",
+                    }
+                )
+
             if value:
                 from django.contrib.auth.models import User
 
@@ -799,7 +821,7 @@ def email_settings_view(request):
         "email_host": current_settings.get("email_host", ""),
         "email_port": current_settings.get("email_port", 587),
         "email_host_user": current_settings.get("email_host_user", ""),
-        "email_host_password": "", 
+        "email_host_password": "",
         "default_from_email": current_settings.get("default_from_email", ""),
         "operator_email": current_settings.get("operator_email", ""),
     }
@@ -968,8 +990,19 @@ class DeliveryOrderCreateView(LoginRequiredMixin, CreateView):
     template_name = "logistic/delivery_order_create_form.html"
     form_class = DeliveryOrderCreateForm
 
+    def get_form_kwargs(self):
+        """Передаем текущего пользователя в форму"""
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         form.instance.operator = self.request.user
+
+        # Если оператор фулфилмента не был выбран (для не-админов), устанавливаем текущего пользователя
+        if not form.instance.fulfillment:
+            form.instance.fulfillment = self.request.user
+
         response = super().form_valid(form)
         messages.success(self.request, "Заявка на доставку успешно создана!")
         return response
@@ -1298,7 +1331,7 @@ def bulk_update_delivery_orders(request):
         for order in orders:
             try:
                 if order.status == "shipped" and field != "status":
-                    continue  
+                    continue
 
                 if field in ["quantity"]:
                     new_value = int(value) if value else 0
@@ -1310,6 +1343,14 @@ def bulk_update_delivery_orders(request):
                     except ValueError:
                         continue
                 elif field == "fulfillment":
+                    # Проверяем права на изменение оператора фулфилмента
+                    if not (
+                        request.user.is_superuser
+                        or hasattr(request.user, "profile")
+                        and request.user.profile.is_admin
+                    ):
+                        continue  # Пропускаем для не-админов
+
                     if value:
                         from django.contrib.auth.models import User
 
@@ -1379,3 +1420,6 @@ def delivery_orders_list_pdf(request):
         traceback.print_exc()
         messages.error(request, f"Ошибка при создании PDF списка: {str(e)[:100]}")
         return redirect("delivery_order_list")
+
+
+### END: logistic/views.py

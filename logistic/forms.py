@@ -279,12 +279,28 @@ class DeliveryOrderCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        # Получаем пользователя из kwargs, если он передан
+        self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         self.fields["status"].initial = "submitted"
 
-        self.fields["fulfillment"].queryset = User.objects.filter(
-            profile__role="operator"
-        ).order_by("first_name", "last_name", "username")
+        # Автоматически выбираем текущего пользователя как оператора фулфилмента
+        if self.user and hasattr(self.user, "profile"):
+            self.fields["fulfillment"].initial = self.user
+
+            # Если пользователь не админ, блокируем поле выбора оператора
+            if not self.user.profile.is_admin:
+                self.fields["fulfillment"].widget.attrs["disabled"] = "disabled"
+                self.fields["fulfillment"].widget.attrs["readonly"] = "readonly"
+                self.fields["fulfillment"].help_text = (
+                    "Оператор выбирается автоматически на основе вашей учетной записи. Изменить может только администратор."
+                )
+            else:
+                # Для админов показываем всех операторов
+                self.fields["fulfillment"].queryset = User.objects.filter(
+                    profile__role="operator"
+                ).order_by("first_name", "last_name", "username")
+                self.fields["fulfillment"].help_text = "Выберите оператора фулфилмента"
 
         self.fields["sender"].queryset = Counterparty.objects.filter(
             is_active=True
@@ -345,6 +361,11 @@ class DeliveryOrderCreateForm(forms.ModelForm):
     def save(self, commit=True, user=None):
         """Сохраняет форму, создавая новых контрагентов при необходимости"""
         instance = super().save(commit=False)
+
+        # Если оператор фулфилмента не выбран (для не-админов поле disabled)
+        # устанавливаем текущего пользователя как оператора
+        if not instance.fulfillment and self.user:
+            instance.fulfillment = self.user
 
         new_sender_name = self.cleaned_data.get("new_sender_name")
         if new_sender_name:
