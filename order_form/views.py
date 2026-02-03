@@ -36,14 +36,17 @@ def get_cities_with_warehouses_data():
                 schedules.append(
                     {
                         "day_of_week": schedule.get_day_of_week_display(),
-                        "opening_time": schedule.opening_time.strftime("%H:%M"),
-                        "closing_time": schedule.closing_time.strftime("%H:%M"),
-                        "pickup_cutoff_time": schedule.pickup_cutoff_time.strftime(
-                            "%H:%M"
+                        "opening_time": (
+                            schedule.opening_time.strftime("%H:%M")
+                            if schedule.opening_time
+                            else ""
                         ),
-                        "delivery_cutoff_time": schedule.delivery_cutoff_time.strftime(
-                            "%H:%M"
+                        "closing_time": (
+                            schedule.closing_time.strftime("%H:%M")
+                            if schedule.closing_time
+                            else ""
                         ),
+                        # Убраны несуществующие поля
                         "is_working": schedule.is_working,
                     }
                 )
