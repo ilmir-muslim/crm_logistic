@@ -20,6 +20,7 @@ from weasyprint import HTML
 from counterparties.models import Counterparty
 from crm_logistic import settings
 from utils.pdf_generator import generate_qr_code_pdf
+from warehouses.models import Warehouse
 
 
 from .models import PickupOrder
@@ -142,6 +143,10 @@ class PickupOrderCreateView(LoginRequiredMixin, CreateView):
         context["counterparties"] = Counterparty.objects.filter(
             is_active=True
         ).order_by("name")
+        context["operators"] = User.objects.filter(
+            is_active=True, profile__role__in=["operator", "logistic", "admin"]
+        ).order_by("first_name", "last_name")
+        context["warehouses"] = Warehouse.objects.all().order_by("city__name", "name")
         return context
 
     def form_valid(self, form):
@@ -164,6 +169,10 @@ class PickupOrderUpdateView(LoginRequiredMixin, UpdateView):
         context["counterparties"] = Counterparty.objects.filter(
             is_active=True
         ).order_by("name")
+        context["operators"] = User.objects.filter(
+            is_active=True, profile__role__in=["operator", "logistic", "admin"]
+        ).order_by("first_name", "last_name")
+        context["warehouses"] = Warehouse.objects.all().order_by("city__name", "name")
         return context
 
     def get_queryset(self):

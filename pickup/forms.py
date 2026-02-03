@@ -1,7 +1,9 @@
 from django import forms
 from django.utils import timezone
+from django.contrib.auth.models import User
 from .models import PickupOrder
 from counterparties.models import Counterparty
+from warehouses.models import Warehouse
 
 
 class PickupOrderForm(forms.ModelForm):
@@ -37,6 +39,22 @@ class PickupOrderForm(forms.ModelForm):
         help_text="Контрагент, который получает груз",
     )
 
+    receiving_warehouse = forms.ModelChoiceField(
+        queryset=Warehouse.objects.all(),
+        required=False,
+        widget=forms.HiddenInput(),
+        label="Склад приемки",
+    )
+
+    receiving_operator = forms.ModelChoiceField(
+        queryset=User.objects.filter(
+            is_active=True, profile__role__in=["operator", "logistic", "admin"]
+        ),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+        label="Оператор приемки",
+    )
+
     class Meta:
         model = PickupOrder
         fields = [
@@ -45,11 +63,13 @@ class PickupOrderForm(forms.ModelForm):
             "pickup_time_to",
             "pickup_address",
             "contact_person",
-            "sender", 
-            "recipient",  
+            "sender",
+            "recipient",
             "marketplace",
             "desired_delivery_date",
             "invoice_number",
+            "receiving_warehouse",
+            "receiving_operator",
             "quantity",
             "weight",
             "volume",
@@ -69,7 +89,7 @@ class PickupOrderForm(forms.ModelForm):
                     "rows": 3,
                     "id": "pickupAddress",
                     "placeholder": "Нажмите кнопку 'Выбрать адрес' для заполнения",
-                    "required": "required", 
+                    "required": "required",
                 }
             ),
             "contact_person": forms.TextInput(
@@ -86,6 +106,12 @@ class PickupOrderForm(forms.ModelForm):
                 attrs={
                     "class": "form-control",
                     "placeholder": "Номер транспортной накладной",
+                }
+            ),
+            "receiving_operator": forms.Select(
+                attrs={
+                    "class": "form-select select2",
+                    "data-placeholder": "Выберите оператора приемки",
                 }
             ),
             "quantity": forms.NumberInput(attrs={"class": "form-control", "min": 1}),

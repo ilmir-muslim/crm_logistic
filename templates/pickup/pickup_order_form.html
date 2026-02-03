@@ -23,8 +23,8 @@
             </div>
             {% endif %}
             
-            <!-- Скрытое поле для склада -->
-            <input type="hidden" name="receiving_warehouse" id="id_receiving_warehouse" value="{{ form.receiving_warehouse.value|default:'' }}">
+            <!-- Скрытые поля для склада приемки -->
+            {{ form.receiving_warehouse }}
             
             <div class="row">
                 <!-- Левая колонка -->
@@ -226,6 +226,40 @@
                         {% endif %}
                     </div>
                     
+                    <!-- Склад приемки -->
+                    <div class="mb-3">
+                        <label class="form-label">Склад приемки</label>
+                        <div class="input-group">
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="receivingWarehouseDisplay" 
+                                   readonly
+                                   placeholder="Нажмите кнопку для выбора склада приемки"
+                                   value="{% if object.receiving_warehouse %}{{ object.receiving_warehouse.name }} ({{ object.receiving_warehouse.city.name }}){% endif %}">
+                            <button type="button" class="btn btn-outline-secondary" onclick="openReceivingWarehouseModal()">
+                                <i class="bi bi-geo-alt"></i> Выбрать склад
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">Склад, куда будет доставлен груз после забора</small>
+                    </div>
+                    
+                    <!-- Оператор приемки -->
+                    <div class="mb-3">
+                        <label for="{{ form.receiving_operator.id_for_label }}" class="form-label">Оператор приемки</label>
+                        <div class="input-group">
+                            {{ form.receiving_operator }}
+                            <button type="button" class="btn btn-outline-secondary" onclick="openOperatorModal()">
+                                <i class="bi bi-person"></i> Выбрать
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">Оператор, который будет принимать груз на складе</small>
+                        {% if form.receiving_operator.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.receiving_operator.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
                     <!-- Описание груза -->
                     <div class="mb-3">
                         <label for="{{ form.cargo_description.id_for_label }}" class="form-label">Описание груза</label>
@@ -287,7 +321,7 @@
     </div>
 </div>
 
-<!-- Модальное окно для выбора адреса -->
+<!-- Модальное окно для выбора адреса забора -->
 <div class="modal fade" id="addressModal" tabindex="-1" aria-labelledby="addressModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -350,6 +384,102 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
         <button type="button" class="btn btn-primary" id="saveAddressBtn">Выбрать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно для выбора склада приемки -->
+<div class="modal fade" id="receivingWarehouseModal" tabindex="-1" aria-labelledby="receivingWarehouseModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="receivingWarehouseModalLabel">Выбор склада приемки</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="receivingCitySelect" class="form-label">Город</label>
+              <select class="form-select" id="receivingCitySelect">
+                <option value="">Выберите город</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="receivingWarehouseSelect" class="form-label">Склад</label>
+              <select class="form-select" id="receivingWarehouseSelect" disabled>
+                <option value="">Сначала выберите город</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div id="receivingWarehouseDetails" class="mt-3" style="display: none;">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">Информация о складе</h6>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Название:</strong> <span id="receivingWarehouseName">-</span></p>
+                  <p><strong>Адрес:</strong> <span id="receivingWarehouseAddress">-</span></p>
+                  <p><strong>Телефон:</strong> <span id="receivingWarehousePhone">-</span></p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Email:</strong> <span id="receivingWarehouseEmail">-</span></p>
+                  <p><strong>График работы:</strong> <span id="receivingWarehouseHours">-</span></p>
+                  <p><strong>Доступная площадь:</strong> <span id="receivingWarehouseArea">-</span> м²</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="saveReceivingWarehouseBtn">Выбрать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно для выбора оператора приемки -->
+<div class="modal fade" id="operatorModal" tabindex="-1" aria-labelledby="operatorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="operatorModalLabel">Выбор оператора приемки</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="operatorSearch" class="form-label">Поиск оператора</label>
+          <input type="text" class="form-control" id="operatorSearch" placeholder="Введите имя, фамилию или логин...">
+        </div>
+        
+        <div class="operator-list" style="max-height: 300px; overflow-y: auto;">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Выбрать</th>
+                <th>ФИО</th>
+                <th>Логин</th>
+                <th>Роль</th>
+              </tr>
+            </thead>
+            <tbody id="operatorList">
+              <!-- Список операторов будет загружен здесь -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="saveOperatorBtn">Выбрать</button>
       </div>
     </div>
   </div>
@@ -566,16 +696,34 @@
     margin-bottom: 15px;
     background-color: #f8f9fa;
 }
+
+.operator-list table tr {
+    cursor: pointer;
+}
+
+.operator-list table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.operator-list table tr.selected {
+    background-color: #e7f1ff;
+}
 </style>
 
 <script>
 let selectedWarehouseId = null;
+let selectedReceivingWarehouseId = null;
+let selectedOperatorId = null;
 let addressModalInstance = null;
+let receivingWarehouseModalInstance = null;
+let operatorModalInstance = null;
 let counterpartyModalInstance = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Инициализация модального окна
+    // Инициализация модальных окон
     initAddressModal();
+    initReceivingWarehouseModal();
+    initOperatorModal();
     initCounterpartyModal();
     
     // Делаем поле адреса забора кликабельным
@@ -585,6 +733,19 @@ document.addEventListener('DOMContentLoaded', function() {
         pickupAddressField.setAttribute('readonly', 'readonly');
         pickupAddressField.setAttribute('onclick', 'openAddressModal()');
         pickupAddressField.setAttribute('placeholder', 'Нажмите для выбора адреса забора');
+    }
+    
+    // Инициализация select2 для оператора приемки
+    const receivingOperatorSelect = document.getElementById('{{ form.receiving_operator.id_for_label }}');
+    if (receivingOperatorSelect) {
+        // Если select2 доступен, инициализируем его
+        if (typeof $.fn.select2 !== 'undefined') {
+            $(receivingOperatorSelect).select2({
+                placeholder: "Выберите оператора приемки",
+                allowClear: true,
+                width: '100%'
+            });
+        }
     }
 });
 
@@ -598,7 +759,6 @@ function initAddressModal() {
         document.getElementById('warehouseSelect').disabled = true;
         document.getElementById('warehouseDetails').style.display = 'none';
         document.getElementById('addressInput').value = '';
-        document.getElementById('warehouseItemsContainer').innerHTML = '';
         selectedWarehouseId = null;
     });
     
@@ -606,7 +766,7 @@ function initAddressModal() {
     document.getElementById('citySelect').addEventListener('change', function() {
         const cityId = this.value;
         if (cityId) {
-            loadWarehousesByCity(cityId);
+            loadWarehousesByCity(cityId, 'warehouseSelect', 'warehouseDetails');
             document.getElementById('warehouseDetails').style.display = 'none';
         } else {
             document.getElementById('warehouseSelect').value = '';
@@ -619,7 +779,7 @@ function initAddressModal() {
     document.getElementById('warehouseSelect').addEventListener('change', function() {
         const warehouseId = this.value;
         if (warehouseId) {
-            loadWarehouseDetails(warehouseId);
+            loadWarehouseDetails(warehouseId, 'warehouse');
         } else {
             document.getElementById('warehouseDetails').style.display = 'none';
             selectedWarehouseId = null;
@@ -638,6 +798,69 @@ function initAddressModal() {
             e.preventDefault();
             saveAddress();
         }
+    });
+}
+
+function initReceivingWarehouseModal() {
+    const modal = document.getElementById('receivingWarehouseModal');
+    
+    // Обработчик скрытия модального окна
+    modal.addEventListener('hidden.bs.modal', function() {
+        document.getElementById('receivingCitySelect').value = '';
+        document.getElementById('receivingWarehouseSelect').value = '';
+        document.getElementById('receivingWarehouseSelect').disabled = true;
+        document.getElementById('receivingWarehouseDetails').style.display = 'none';
+        selectedReceivingWarehouseId = null;
+    });
+    
+    // Обработчик выбора города
+    document.getElementById('receivingCitySelect').addEventListener('change', function() {
+        const cityId = this.value;
+        if (cityId) {
+            loadWarehousesByCity(cityId, 'receivingWarehouseSelect', 'receivingWarehouseDetails');
+            document.getElementById('receivingWarehouseDetails').style.display = 'none';
+        } else {
+            document.getElementById('receivingWarehouseSelect').value = '';
+            document.getElementById('receivingWarehouseSelect').disabled = true;
+            document.getElementById('receivingWarehouseDetails').style.display = 'none';
+        }
+    });
+    
+    // Обработчик выбора склада
+    document.getElementById('receivingWarehouseSelect').addEventListener('change', function() {
+        const warehouseId = this.value;
+        if (warehouseId) {
+            loadWarehouseDetails(warehouseId, 'receivingWarehouse');
+        } else {
+            document.getElementById('receivingWarehouseDetails').style.display = 'none';
+            selectedReceivingWarehouseId = null;
+        }
+    });
+    
+    // Кнопка сохранения склада приемки
+    document.getElementById('saveReceivingWarehouseBtn').addEventListener('click', function() {
+        saveReceivingWarehouse();
+    });
+}
+
+function initOperatorModal() {
+    const modal = document.getElementById('operatorModal');
+    
+    // Обработчик скрытия модального окна
+    modal.addEventListener('hidden.bs.modal', function() {
+        document.getElementById('operatorSearch').value = '';
+        document.getElementById('operatorList').innerHTML = '';
+        selectedOperatorId = null;
+    });
+    
+    // Поиск операторов
+    document.getElementById('operatorSearch').addEventListener('input', function() {
+        loadOperators(this.value);
+    });
+    
+    // Кнопка сохранения оператора
+    document.getElementById('saveOperatorBtn').addEventListener('click', function() {
+        saveOperator();
     });
 }
 
@@ -672,12 +895,32 @@ function openAddressModal() {
     document.getElementById('addressInput').value = currentAddress;
     
     // Загружаем города
-    loadCities();
+    loadCities('citySelect');
     
     // Открываем модальное окно
     const modalElement = document.getElementById('addressModal');
     addressModalInstance = new bootstrap.Modal(modalElement);
     addressModalInstance.show();
+}
+
+function openReceivingWarehouseModal() {
+    // Загружаем города
+    loadCities('receivingCitySelect');
+    
+    // Открываем модальное окно
+    const modalElement = document.getElementById('receivingWarehouseModal');
+    receivingWarehouseModalInstance = new bootstrap.Modal(modalElement);
+    receivingWarehouseModalInstance.show();
+}
+
+function openOperatorModal() {
+    // Загружаем операторов
+    loadOperators('');
+    
+    // Открываем модальное окно
+    const modalElement = document.getElementById('operatorModal');
+    operatorModalInstance = new bootstrap.Modal(modalElement);
+    operatorModalInstance.show();
 }
 
 function openCounterpartyModal(forField) {
@@ -707,8 +950,8 @@ function changeCounterpartyType() {
     }
 }
 
-function loadCities() {
-    const citySelect = document.getElementById('citySelect');
+function loadCities(selectId) {
+    const citySelect = document.getElementById(selectId);
     
     fetch('{% url "cities_json" %}')
         .then(response => response.json())
@@ -727,26 +970,8 @@ function loadCities() {
         });
 }
 
-function loadWarehousesByCity(cityId) {
-    const warehouseSelect = document.getElementById('warehouseSelect');
-    const warehouseItemsContainer = document.getElementById('warehouseItemsContainer');
-    
-    // Если контейнера для списка нет, создаем его
-    if (!warehouseItemsContainer) {
-        const warehouseListDiv = document.getElementById('warehouseList');
-        if (!warehouseListDiv) {
-            // Создаем контейнер для списка складов
-            const detailsDiv = document.getElementById('warehouseDetails');
-            const newWarehouseList = document.createElement('div');
-            newWarehouseList.id = 'warehouseList';
-            newWarehouseList.style.display = 'block';
-            newWarehouseList.innerHTML = `
-                <h6 class="mb-2">Список складов в выбранном городе:</h6>
-                <div class="warehouse-list" id="warehouseItemsContainer"></div>
-            `;
-            detailsDiv.parentNode.insertBefore(newWarehouseList, detailsDiv);
-        }
-    }
+function loadWarehousesByCity(cityId, selectId, detailsId) {
+    const warehouseSelect = document.getElementById(selectId);
     
     fetch(`{% url "warehouses_by_city_json" 0 %}`.replace('0', cityId))
         .then(response => response.json())
@@ -759,41 +984,6 @@ function loadWarehousesByCity(cityId) {
                 warehouseSelect.appendChild(option);
             });
             warehouseSelect.disabled = false;
-            
-            // Обновляем список складов если контейнер существует
-            const itemsContainer = document.getElementById('warehouseItemsContainer');
-            if (itemsContainer) {
-                itemsContainer.innerHTML = '';
-                data.forEach(warehouse => {
-                    const warehouseItem = document.createElement('div');
-                    warehouseItem.className = 'warehouse-item';
-                    warehouseItem.setAttribute('data-warehouse-id', warehouse.id);
-                    warehouseItem.innerHTML = `
-                        <div class="warehouse-name">${warehouse.name}</div>
-                        <div class="warehouse-address">${warehouse.address || 'Адрес не указан'}</div>
-                    `;
-                    
-                    warehouseItem.addEventListener('click', function() {
-                        // Снимаем выделение со всех элементов
-                        document.querySelectorAll('.warehouse-item').forEach(item => {
-                            item.classList.remove('selected');
-                        });
-                        
-                        // Выделяем текущий элемент
-                        this.classList.add('selected');
-                        
-                        // Устанавливаем значение в выпадающем списке
-                        warehouseSelect.value = warehouse.id;
-                        
-                        // Загружаем детали склада
-                        loadWarehouseDetails(warehouse.id);
-                    });
-                    
-                    itemsContainer.appendChild(warehouseItem);
-                });
-                
-                document.getElementById('warehouseList').style.display = 'block';
-            }
         })
         .catch(error => {
             console.error('Ошибка загрузки складов:', error);
@@ -801,7 +991,7 @@ function loadWarehousesByCity(cityId) {
         });
 }
 
-function loadWarehouseDetails(warehouseId) {
+function loadWarehouseDetails(warehouseId, prefix) {
     fetch(`{% url "warehouse_details_json" 0 %}`.replace('0', warehouseId))
         .then(response => response.json())
         .then(data => {
@@ -810,25 +1000,96 @@ function loadWarehouseDetails(warehouseId) {
                 return;
             }
             
-            document.getElementById('warehouseName').textContent = data.name;
-            document.getElementById('warehouseAddress').textContent = data.address;
-            document.getElementById('warehousePhone').textContent = data.phone;
-            document.getElementById('warehouseEmail').textContent = data.email || 'Не указан';
-            document.getElementById('warehouseHours').textContent = data.working_hours;
-            document.getElementById('warehouseArea').textContent = data.available_area;
+            document.getElementById(`${prefix}Name`).textContent = data.name;
+            document.getElementById(`${prefix}Address`).textContent = data.address;
+            document.getElementById(`${prefix}Phone`).textContent = data.phone;
+            document.getElementById(`${prefix}Email`).textContent = data.email || 'Не указан';
+            document.getElementById(`${prefix}Hours`).textContent = data.working_hours;
+            document.getElementById(`${prefix}Area`).textContent = data.available_area;
             
-            document.getElementById('warehouseDetails').style.display = 'block';
-            
-            // Автоматическое заполнение адреса
-            if (data.address && data.address !== '-') {
-                document.getElementById('addressInput').value = data.address;
-            }
+            document.getElementById(`${prefix}Details`).style.display = 'block';
             
             // Сохраняем выбранный склад
-            selectedWarehouseId = warehouseId;
+            if (prefix === 'warehouse') {
+                selectedWarehouseId = warehouseId;
+                // Автоматическое заполнение адреса
+                if (data.address && data.address !== '-') {
+                    document.getElementById('addressInput').value = data.address;
+                }
+            } else if (prefix === 'receivingWarehouse') {
+                selectedReceivingWarehouseId = warehouseId;
+            }
         })
         .catch(error => {
             console.error('Ошибка загрузки деталей склада:', error);
+        });
+}
+
+function loadOperators(searchTerm) {
+    const operatorList = document.getElementById('operatorList');
+    
+    let url = '{% url "get_operators" %}';
+    if (searchTerm) {
+        url += `?search=${encodeURIComponent(searchTerm)}`;
+    }
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            operatorList.innerHTML = '';
+            data.forEach(operator => {
+                const row = document.createElement('tr');
+                row.setAttribute('data-operator-id', operator.id);
+                row.innerHTML = `
+                    <td>
+                        <input type="radio" name="selectedOperator" value="${operator.id}">
+                    </td>
+                    <td>${operator.full_name}</td>
+                    <td>${operator.username}</td>
+                    <td>
+                        <span class="badge bg-info">
+                            ${operator.role === 'operator' ? 'Оператор' : 
+                              operator.role === 'logistic' ? 'Логист' : 
+                              operator.role === 'admin' ? 'Администратор' : 'Неизвестно'}
+                        </span>
+                    </td>
+                `;
+                
+                row.addEventListener('click', function() {
+                    // Снимаем выделение со всех строк
+                    document.querySelectorAll('#operatorList tr').forEach(tr => {
+                        tr.classList.remove('selected');
+                        tr.querySelector('input[type="radio"]').checked = false;
+                    });
+                    
+                    // Выделяем текущую строку
+                    this.classList.add('selected');
+                    this.querySelector('input[type="radio"]').checked = true;
+                    selectedOperatorId = operator.id;
+                });
+                
+                operatorList.appendChild(row);
+            });
+            
+            if (data.length === 0) {
+                operatorList.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">
+                            Операторы не найдены
+                        </td>
+                    </tr>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки операторов:', error);
+            operatorList.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center text-danger">
+                        Ошибка загрузки операторов
+                    </td>
+                </tr>
+            `;
         });
 }
 
@@ -846,9 +1107,6 @@ function saveAddress() {
         pickupAddressField.value = addressInput;
     }
     
-    // Заполняем скрытое поле для склада
-    document.getElementById('id_receiving_warehouse').value = selectedWarehouseId || '';
-    
     // Закрываем модальное окно
     if (addressModalInstance) {
         addressModalInstance.hide();
@@ -860,6 +1118,63 @@ function saveAddress() {
     }
     
     showNotification('Адрес успешно выбран', 'success');
+}
+
+function saveReceivingWarehouse() {
+    if (!selectedReceivingWarehouseId) {
+        showNotification('Пожалуйста, выберите склад', 'error');
+        return;
+    }
+    
+    // Заполняем скрытое поле для склада приемки
+    document.getElementById('{{ form.receiving_warehouse.id_for_label }}').value = selectedReceivingWarehouseId;
+    
+    // Заполняем поле для отображения
+    const warehouseName = document.getElementById('receivingWarehouseName').textContent;
+    const warehouseCity = document.querySelector('#receivingCitySelect option:checked').textContent;
+    document.getElementById('receivingWarehouseDisplay').value = `${warehouseName} (${warehouseCity})`;
+    
+    // Закрываем модальное окно
+    if (receivingWarehouseModalInstance) {
+        receivingWarehouseModalInstance.hide();
+    } else {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('receivingWarehouseModal'));
+        if (modal) {
+            modal.hide();
+        }
+    }
+    
+    showNotification('Склад приемки успешно выбран', 'success');
+}
+
+function saveOperator() {
+    if (!selectedOperatorId) {
+        showNotification('Пожалуйста, выберите оператора', 'error');
+        return;
+    }
+    
+    // Заполняем поле оператора приемки
+    const receivingOperatorSelect = document.getElementById('{{ form.receiving_operator.id_for_label }}');
+    if (receivingOperatorSelect) {
+        receivingOperatorSelect.value = selectedOperatorId;
+        
+        // Обновляем select2 если он инициализирован
+        if (typeof $.fn.select2 !== 'undefined' && $(receivingOperatorSelect).hasClass('select2-hidden-accessible')) {
+            $(receivingOperatorSelect).trigger('change');
+        }
+    }
+    
+    // Закрываем модальное окно
+    if (operatorModalInstance) {
+        operatorModalInstance.hide();
+    } else {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('operatorModal'));
+        if (modal) {
+            modal.hide();
+        }
+    }
+    
+    showNotification('Оператор приемки успешно выбран', 'success');
 }
 
 function saveCounterparty() {
