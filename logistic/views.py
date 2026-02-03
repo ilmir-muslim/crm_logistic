@@ -353,6 +353,7 @@ def dashboard(request):
     if hasattr(user, "profile") and user.profile.is_operator:
         queryset_filter = Q(operator=user)
 
+    # Исправляем delivery_stats
     delivery_stats = {
         "total": DeliveryOrder.objects.filter(queryset_filter).count(),
         "today": DeliveryOrder.objects.filter(queryset_filter & Q(date=today)).count(),
@@ -388,6 +389,7 @@ def dashboard(request):
             or 0
         )
 
+    # ИСПРАВЛЕННЫЙ КОД ДЛЯ pickup_stats - используем актуальные статусы
     pickup_filter = Q()
     if hasattr(user, "profile") and user.profile.is_operator:
         pickup_filter = Q(operator=user)
@@ -397,15 +399,10 @@ def dashboard(request):
         "today": PickupOrder.objects.filter(
             pickup_filter & Q(pickup_date=today)
         ).count(),
-        "new": PickupOrder.objects.filter(pickup_filter & Q(status="new")).count(),
-        "confirmed": PickupOrder.objects.filter(
-            pickup_filter & Q(status="confirmed")
-        ).count(),
-        "picked_up": PickupOrder.objects.filter(
-            pickup_filter & Q(status="picked_up")
-        ).count(),
-        "cancelled": PickupOrder.objects.filter(
-            pickup_filter & Q(status="cancelled")
+        # Используем актуальные статусы из модели PickupOrder
+        "ready": PickupOrder.objects.filter(pickup_filter & Q(status="ready")).count(),
+        "payment": PickupOrder.objects.filter(
+            pickup_filter & Q(status="payment")
         ).count(),
     }
 
@@ -430,7 +427,7 @@ def dashboard(request):
 
     context = {
         "delivery_stats": delivery_stats,
-        "pickup_stats": pickup_stats,
+        "pickup_stats": pickup_stats,  # Теперь содержит правильные статусы
         "delivery_chart_data": delivery_chart_data,
         "recent_deliveries": recent_deliveries,
         "recent_pickups": recent_pickups,
