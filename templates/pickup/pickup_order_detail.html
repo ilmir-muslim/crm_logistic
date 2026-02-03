@@ -72,7 +72,7 @@
                     </tr>
                 </table>
                 
-                <!-- Добавлен блок Контрагенты -->
+                <!-- Блок Контрагенты -->
                 <h5 class="border-bottom pb-2 mb-3 mt-4">Контрагенты</h5>
                 <table class="table table-bordered">
                     <tr>
@@ -138,7 +138,6 @@
                             Содержит основную информацию о заявке
                         </p>
                         <div class="d-grid gap-2">
-                            <!-- кнопка для скачивания PDF -->
                             <a href="{% url 'pickup_order_qr_pdf' order.pk %}" 
                                class="btn btn-outline-danger">
                                 <i class="bi bi-file-pdf"></i> Скачать qr код (PDF)
@@ -153,7 +152,6 @@
                 </div>
                 {% endif %}
 
-                
                 <!-- Информация о статусе и операторе -->
                 <div class="card mb-4">
                     <div class="card-header bg-light">
@@ -203,35 +201,70 @@
                     </div>
                 </div>
                 
-                <!-- Блок связанной доставки -->
-                {% if order.delivery_order %}
-                <div class="alert alert-success">
-                    <h6><i class="bi bi-link-45deg"></i> Связанная заявка на доставку</h6>
-                    <p>
-                        На основе этой заявки создана 
-                        <a href="{% url 'delivery_order_detail' order.delivery_order.pk %}" class="alert-link">
-                            заявка на доставку #{{ order.delivery_order.id }}
-                        </a>
-                    </p>
-                    <div class="mt-2">
-                        <strong>Статус доставки:</strong>
-                        <span class="badge bg-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% else %}secondary{% endif %} fs-6">
-                            {{ order.get_status_display }}
-                        </span>
+                <!-- Блоки преобразования в доставку - теперь всегда видны -->
+                <div id="delivery-conversion-section">
+                    {% if order.delivery_order %}
+                    <!-- Блок: Уже есть связанная доставка -->
+                    <div class="card mb-4 border-success" id="existing-delivery-block">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0"><i class="bi bi-link-45deg"></i> Связанная заявка на доставку</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                На основе этой заявки создана 
+                                <a href="{% url 'delivery_order_detail' order.delivery_order.pk %}" class="fw-bold text-decoration-none">
+                                    заявка на доставку #{{ order.delivery_order.id }}
+                                </a>
+                            </p>
+                            <div class="mt-2">
+                                <strong>Статус доставки:</strong>
+                                <span class="badge bg-{% if order.delivery_order.status == 'submitted' %}info{% elif order.delivery_order.status == 'payment' %}warning{% else %}secondary{% endif %} fs-6 ms-2">
+                                    {{ order.delivery_order.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
+                    {% endif %}
+                    
+                    <!-- Блок: Преобразование в доставку - всегда виден -->
+                    {% if not order.delivery_order %}
+                    <div class="card mb-4 {% if order.is_convertible_to_delivery %}border-info{% else %}border-warning{% endif %}" id="convert-to-delivery-block">
+                        <div class="card-header {% if order.is_convertible_to_delivery %}bg-info text-white{% else %}bg-warning text-dark{% endif %}">
+                            <h6 class="mb-0"><i class="bi bi-lightning-charge"></i> Преобразование в доставку</h6>
+                        </div>
+                        <div class="card-body">
+                            {% if order.is_convertible_to_delivery %}
+                            <p class="card-text">
+                                Эта заявка готова к преобразованию в заявку на доставку.
+                                После преобразования будет автоматически создана новая заявка на доставку.
+                            </p>
+                            <a href="{% url 'convert_to_delivery' order.pk %}" class="btn btn-success w-100 mt-2">
+                                <i class="bi bi-arrow-right-circle"></i> Создать доставку
+                            </a>
+                            {% else %}
+                            <p class="card-text">
+                                Эта заявка не может быть преобразована в доставку.
+                            </p>
+                            <div class="alert alert-warning p-2 mt-2 mb-2">
+                                <small>
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    <strong>Причина:</strong>
+                                    {% if order.status != 'ready' %}
+                                    Заявка должна быть в статусе "Готов к выдаче". Текущий статус: 
+                                    <span class="badge bg-info">{{ order.get_status_display }}</span>
+                                    {% else %}
+                                    Неизвестная причина. Обратитесь к администратору.
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <button class="btn btn-secondary w-100 mt-2" disabled>
+                                <i class="bi bi-slash-circle"></i> Недоступно для преобразования
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
-                {% elif order.is_convertible_to_delivery %}
-                <div class="alert alert-info">
-                    <h6><i class="bi bi-lightning-charge"></i> Преобразование в доставку</h6>
-                    <p>
-                        Эта заявка готова к преобразованию в заявку на доставку.
-                        После преобразования будет автоматически создана новая заявка на доставку.
-                    </p>
-                    <a href="{% url 'convert_to_delivery' order.pk %}" class="btn btn-success w-100">
-                        <i class="bi bi-arrow-right-circle"></i> Создать доставку
-                    </a>
-                </div>
-                {% endif %}
                 
                 <!-- Внутренние заметки -->
                 {% if order.notes %}
@@ -269,4 +302,103 @@
         </div>
     </div>
 </div>
+
+<style>
+/* Гарантируем, что блоки всегда видны */
+#delivery-conversion-section {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+#existing-delivery-block,
+#convert-to-delivery-block {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    animation: none !important;
+}
+
+/* Отключаем любые возможные переходы и анимации */
+#delivery-conversion-section * {
+    animation: none !important;
+    transition: none !important;
+}
+
+/* Явно переопределяем скрытие */
+#delivery-conversion-section[style*="display: none"],
+#existing-delivery-block[style*="display: none"], 
+#convert-to-delivery-block[style*="display: none"] {
+    display: block !important;
+}
+</style>
+
+<script>
+// JavaScript для гарантии видимости блоков
+document.addEventListener('DOMContentLoaded', function() {
+    // Сохраняем блоки в переменные
+    const deliverySection = document.getElementById('delivery-conversion-section');
+    const existingDeliveryBlock = document.getElementById('existing-delivery-block');
+    const convertBlock = document.getElementById('convert-to-delivery-block');
+    
+    // Функция для принудительного отображения блоков
+    function forceDisplayBlocks() {
+        if (deliverySection) {
+            deliverySection.style.display = 'block';
+            deliverySection.style.visibility = 'visible';
+            deliverySection.style.opacity = '1';
+        }
+        
+        if (existingDeliveryBlock) {
+            existingDeliveryBlock.style.display = 'block';
+            existingDeliveryBlock.style.visibility = 'visible';
+            existingDeliveryBlock.style.opacity = '1';
+        }
+        
+        if (convertBlock) {
+            convertBlock.style.display = 'block';
+            convertBlock.style.visibility = 'visible';
+            convertBlock.style.opacity = '1';
+        }
+    }
+    
+    // Вызываем сразу
+    forceDisplayBlocks();
+    
+    // Вызываем периодически (на случай если какой-то скрипт пытается скрыть)
+    setInterval(forceDisplayBlocks, 1000);
+    
+    // Также перехватываем любые попытки изменить стили через MutationObserver
+    if (deliverySection) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && 
+                    (mutation.attributeName === 'style' || 
+                     mutation.attributeName === 'class')) {
+                    forceDisplayBlocks();
+                }
+            });
+        });
+        
+        observer.observe(deliverySection, { 
+            attributes: true, 
+            attributeFilter: ['style', 'class'] 
+        });
+        
+        if (existingDeliveryBlock) {
+            observer.observe(existingDeliveryBlock, { 
+                attributes: true, 
+                attributeFilter: ['style', 'class'] 
+            });
+        }
+        
+        if (convertBlock) {
+            observer.observe(convertBlock, { 
+                attributes: true, 
+                attributeFilter: ['style', 'class'] 
+            });
+        }
+    }
+});
+</script>
 {% endblock %}
