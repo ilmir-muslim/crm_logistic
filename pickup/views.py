@@ -23,7 +23,7 @@ from utils.pdf_generator import generate_qr_code_pdf
 from warehouses.models import Warehouse
 
 
-from .models import PickupOrder
+from .models import PickupOrder, Carrier
 from .filters import PickupOrderFilter
 from .forms import PickupOrderForm
 from .pdf_utils import create_pickup_order_pdf, create_pickup_orders_list_pdf
@@ -147,6 +147,7 @@ class PickupOrderCreateView(LoginRequiredMixin, CreateView):
             is_active=True, profile__role__in=["operator", "logistic", "admin"]
         ).order_by("first_name", "last_name")
         context["warehouses"] = Warehouse.objects.all().order_by("city__name", "name")
+        context["carriers"] = Carrier.objects.filter(is_active=True).order_by("name")
         return context
 
     def form_valid(self, form):
@@ -173,6 +174,7 @@ class PickupOrderUpdateView(LoginRequiredMixin, UpdateView):
             is_active=True, profile__role__in=["operator", "logistic", "admin"]
         ).order_by("first_name", "last_name")
         context["warehouses"] = Warehouse.objects.all().order_by("city__name", "name")
+        context["carriers"] = Carrier.objects.filter(is_active=True).order_by("name")
         return context
 
     def get_queryset(self):
@@ -274,6 +276,7 @@ def update_pickup_order_field(request, pk):
         "status",
         "operator",
         "receiving_warehouse",
+        "carrier",
     ]
 
     if field not in allowed_fields:
@@ -290,7 +293,7 @@ def update_pickup_order_field(request, pk):
             if value and value.strip():
                 value = datetime.strptime(value, "%H:%M").time()
             else:
-                value = None 
+                value = None
         elif field == "desired_delivery_date" and value:
             value = datetime.strptime(value, "%Y-%m-%d").date()
         elif field == "operator":
@@ -313,6 +316,16 @@ def update_pickup_order_field(request, pk):
                     return JsonResponse({"success": False, "error": "Склад не найден"})
             else:
                 value = None
+        elif field == "carrier":
+            if value:
+                try:
+                    value = Carrier.objects.get(id=value)
+                except Carrier.DoesNotExist:
+                    return JsonResponse(
+                        {"success": False, "error": "Перевозчик не найден"}
+                    )
+            else:
+                value = None
 
         setattr(order, field, value)
         order.save()
@@ -331,6 +344,13 @@ def update_pickup_order_field(request, pk):
             display_value = ""
             if order.receiving_warehouse:
                 display_value = f"{order.receiving_warehouse.name} ({order.receiving_warehouse.city.name})"
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "carrier":
+            display_value = ""
+            if order.carrier:
+                display_value = order.carrier.name
+                if order.carrier.contact_person:
+                    display_value += f" ({order.carrier.contact_person})"
             return JsonResponse({"success": True, "display_value": display_value})
         elif field in ["pickup_time_from", "pickup_time_to"]:
             return JsonResponse(
@@ -762,6 +782,7 @@ def bulk_update_pickup_orders(request):
             "receiving_operator",
             "pickup_date",
             "desired_delivery_date",
+            "carrier",
         ]
 
         if field not in allowed_bulk_fields:
@@ -830,6 +851,16 @@ def bulk_update_pickup_orders(request):
                     else:
                         order.desired_delivery_date = None
 
+                elif field == "carrier":
+                    if value:
+                        try:
+                            carrier_value = Carrier.objects.get(id=value)
+                            order.carrier = carrier_value
+                        except Carrier.DoesNotExist:
+                            continue
+                    else:
+                        order.carrier = None
+
                 order.save()
                 updated_count += 1
 
@@ -890,3 +921,47 @@ def pickup_orders_list_pdf(request):
         traceback.print_exc()
         messages.error(request, f"Ошибка при создании PDF: {str(e)[:100]}")
         return redirect("pickup_order_list")
+
+
+@require_POST
+@login_required
+def create_carrier_api(request):
+    """API для создания нового перевозчика"""
+    try:
+        data = json.loads(request.body)
+
+        # Проверяем обязательные поля
+        name = data.get("name")
+        if not name:
+            return JsonResponse(
+                {"success": False, "error": "Название перевозчика обязательно"}
+            )
+
+        # Обрабатываем поле is_active (может быть строкой "true"/"false" или булевым значением)
+        is_active = data.get("is_active", True)
+        if isinstance(is_active, str):
+            # Преобразуем строку "true"/"false" в булево значение
+            is_active = is_active.lower() == "true"
+
+        # Создаем перевозчика
+        carrier = Carrier.objects.create(
+            name=name,
+            contact_person=data.get("contact_person"),
+            phone=data.get("phone"),
+            email=data.get("email"),
+            is_active=is_active,
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "id": carrier.id,
+                "name": carrier.name,
+                "contact_person": carrier.contact_person,
+                "phone": carrier.phone,
+                "email": carrier.email,
+            }
+        )
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})

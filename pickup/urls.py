@@ -32,4 +32,8 @@ urlpatterns = [
         name="pickup_orders_bulk_update",
     ),
     path("list-pdf/", views.pickup_orders_list_pdf, name="pickup_orders_list_pdf"),
+    path(
+        "api/create-carrier/", views.create_carrier_api, name="create_carrier_api"
+    ),  # Добавлено
 ]
+

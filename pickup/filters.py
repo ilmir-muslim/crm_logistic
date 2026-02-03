@@ -1,7 +1,7 @@
 import django_filters
 
 from utils.text_utils import normalize_phone, normalize_search_text
-from .models import PickupOrder
+from .models import PickupOrder, Carrier
 from django.db.models import Q
 
 
@@ -63,6 +63,13 @@ class PickupOrderFilter(django_filters.FilterSet):
         method="filter_contact_person_ignore_case", label="Контактное лицо"
     )
 
+    carrier = django_filters.ModelChoiceFilter(
+        queryset=Carrier.objects.filter(is_active=True),
+        field_name="carrier",
+        label="Перевозчик",
+        empty_label="Все перевозчики",
+    )
+
     class Meta:
         model = PickupOrder
         fields = []
@@ -75,8 +82,8 @@ class PickupOrderFilter(django_filters.FilterSet):
             normalized_value = normalize_search_text(value)
             return queryset.filter(
                 Q(client_name__icontains=normalized_value)
-                | Q(client_name__icontains=value.title())  
-                | Q(client_name__icontains=value.upper()) 
+                | Q(client_name__icontains=value.title())
+                | Q(client_name__icontains=value.upper())
             )
         return queryset
 
@@ -145,3 +152,5 @@ class PickupOrderFilter(django_filters.FilterSet):
                 | Q(contact_person__icontains=value.upper())
             )
         return queryset
+
+

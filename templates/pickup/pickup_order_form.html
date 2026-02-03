@@ -139,6 +139,24 @@
                         </div>
                         {% endif %}
                     </div>
+                    
+                    <!-- Перевозчик -->
+                    <div class="mb-3">
+                        <label for="{{ form.carrier.id_for_label }}" class="form-label">Перевозчик</label>
+                        <div class="input-group">
+                            {{ form.carrier }}
+                            <button type="button" class="btn btn-outline-secondary" 
+                                    onclick="openCarrierModal()">
+                                <i class="bi bi-plus"></i> Создать
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">Компания перевозчик для забора груза (необязательно)</small>
+                        {% if form.carrier.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.carrier.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
                 
                 <!-- Правая колонка -->
@@ -617,6 +635,67 @@
   </div>
 </div>
 
+<!-- Модальное окно для создания перевозчика -->
+<div class="modal fade" id="carrierModal" tabindex="-1" aria-labelledby="carrierModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="carrierModalLabel">Создание нового перевозчика</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="carrierForm">
+          {% csrf_token %}
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="carrierName" class="form-label">Название перевозчика *</label>
+                <input type="text" class="form-control" id="carrierName" name="name" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="carrierContactPerson" class="form-label">Контактное лицо</label>
+                <input type="text" class="form-control" id="carrierContactPerson" name="contact_person">
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="carrierPhone" class="form-label">Телефон</label>
+                <input type="text" class="form-control" id="carrierPhone" name="phone">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="carrierEmail" class="form-label">Email</label>
+                <input type="email" class="form-control" id="carrierEmail" name="email">
+              </div>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="carrierIsActive" name="is_active" checked>
+              <label class="form-check-label" for="carrierIsActive">
+                Активен
+              </label>
+            </div>
+            <small class="form-text text-muted">Если не отмечено, перевозчик не будет показываться в выпадающих списках</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="saveCarrierBtn">Создать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <style>
 .address-field {
     cursor: pointer !important;
@@ -718,6 +797,7 @@ let addressModalInstance = null;
 let receivingWarehouseModalInstance = null;
 let operatorModalInstance = null;
 let counterpartyModalInstance = null;
+let carrierModalInstance = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     // Инициализация модальных окон
@@ -725,6 +805,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initReceivingWarehouseModal();
     initOperatorModal();
     initCounterpartyModal();
+    initCarrierModal();
     
     // Делаем поле адреса забора кликабельным
     const pickupAddressField = document.getElementById('{{ form.pickup_address.id_for_label }}');
@@ -735,18 +816,23 @@ document.addEventListener('DOMContentLoaded', function() {
         pickupAddressField.setAttribute('placeholder', 'Нажмите для выбора адреса забора');
     }
     
-    // Инициализация select2 для оператора приемки
-    const receivingOperatorSelect = document.getElementById('{{ form.receiving_operator.id_for_label }}');
-    if (receivingOperatorSelect) {
-        // Если select2 доступен, инициализируем его
-        if (typeof $.fn.select2 !== 'undefined') {
-            $(receivingOperatorSelect).select2({
-                placeholder: "Выберите оператора приемки",
-                allowClear: true,
-                width: '100%'
-            });
-        }
+    // Простая стилизация для select элементов
+    function enhanceSelectElements() {
+        const selectElements = document.querySelectorAll('select.form-select');
+        selectElements.forEach(select => {
+            select.style.cssText = `
+                background-color: #fff;
+                border: 1px solid #ced4da;
+                border-radius: 0.375rem;
+                padding: 0.375rem 0.75rem;
+                font-size: 1rem;
+                line-height: 1.5;
+                width: 100%;
+            `;
+        });
     }
+    
+    enhanceSelectElements();
 });
 
 function initAddressModal() {
@@ -889,6 +975,29 @@ function initCounterpartyModal() {
     });
 }
 
+function initCarrierModal() {
+    const modal = document.getElementById('carrierModal');
+    
+    // Обработчик скрытия модального окна
+    modal.addEventListener('hidden.bs.modal', function() {
+        document.getElementById('carrierForm').reset();
+        document.getElementById('carrierIsActive').checked = true;
+    });
+    
+    // Кнопка сохранения перевозчика
+    document.getElementById('saveCarrierBtn').addEventListener('click', function() {
+        saveCarrier();
+    });
+    
+    // Сохранение по Ctrl+Enter
+    document.getElementById('carrierForm').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            saveCarrier();
+        }
+    });
+}
+
 function openAddressModal() {
     // Заполняем текущий адрес в модальном окне
     const currentAddress = document.getElementById('{{ form.pickup_address.id_for_label }}').value;
@@ -931,6 +1040,13 @@ function openCounterpartyModal(forField) {
     const modalElement = document.getElementById('counterpartyModal');
     counterpartyModalInstance = new bootstrap.Modal(modalElement);
     counterpartyModalInstance.show();
+}
+
+function openCarrierModal() {
+    // Открываем модальное окно
+    const modalElement = document.getElementById('carrierModal');
+    carrierModalInstance = new bootstrap.Modal(modalElement);
+    carrierModalInstance.show();
 }
 
 function changeCounterpartyType() {
@@ -1158,10 +1274,9 @@ function saveOperator() {
     if (receivingOperatorSelect) {
         receivingOperatorSelect.value = selectedOperatorId;
         
-        // Обновляем select2 если он инициализирован
-        if (typeof $.fn.select2 !== 'undefined' && $(receivingOperatorSelect).hasClass('select2-hidden-accessible')) {
-            $(receivingOperatorSelect).trigger('change');
-        }
+        // Обновляем событие change
+        const event = new Event('change');
+        receivingOperatorSelect.dispatchEvent(event);
     }
     
     // Закрываем модальное окно
@@ -1233,6 +1348,78 @@ function saveCounterparty() {
     .catch(error => {
         console.error('Ошибка при создании контрагента:', error);
         showNotification('Ошибка при создании контрагента', 'error');
+    });
+}
+
+function saveCarrier() {
+    // Собираем данные напрямую из полей формы
+    const carrierData = {
+        name: document.getElementById('carrierName').value.trim(),
+        contact_person: document.getElementById('carrierContactPerson').value.trim(),
+        phone: document.getElementById('carrierPhone').value.trim(),
+        email: document.getElementById('carrierEmail').value.trim(),
+        is_active: document.getElementById('carrierIsActive').checked,  // Это уже булево значение
+    };
+    
+    const csrfToken = document.querySelector('#carrierForm input[name="csrfmiddlewaretoken"]').value;
+    
+    // Проверяем обязательные поля
+    if (!carrierData.name) {
+        showNotification('Пожалуйста, введите название перевозчика', 'error');
+        return;
+    }
+    
+    // Отправляем запрос на создание перевозчика
+    fetch('{% url "create_carrier_api" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(carrierData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Добавляем нового перевозчика в выпадающий список
+            const carrierSelect = document.getElementById('{{ form.carrier.id_for_label }}');
+            if (carrierSelect) {
+                const newOption = document.createElement('option');
+                newOption.value = data.id;
+                newOption.textContent = data.name;
+                if (data.contact_person) {
+                    newOption.textContent += ` (${data.contact_person})`;
+                }
+                newOption.selected = true;
+                carrierSelect.appendChild(newOption);
+                
+                // Обновляем событие change
+                const event = new Event('change');
+                carrierSelect.dispatchEvent(event);
+            }
+            
+            // Закрываем модальное окно
+            if (carrierModalInstance) {
+                carrierModalInstance.hide();
+            } else {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('carrierModal'));
+                if (modal) {
+                    modal.hide();
+                }
+            }
+            
+            // Сбрасываем форму
+            document.getElementById('carrierForm').reset();
+            document.getElementById('carrierIsActive').checked = true;
+            
+            showNotification('Перевозчик успешно создан', 'success');
+        } else {
+            showNotification(`Ошибка при создании перевозчика: ${data.error}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка при создании перевозчика:', error);
+        showNotification('Ошибка при создании перевозчика', 'error');
     });
 }
 

@@ -1,7 +1,7 @@
 from django import forms
 from django.utils import timezone
 from django.contrib.auth.models import User
-from .models import PickupOrder
+from .models import PickupOrder, Carrier
 from counterparties.models import Counterparty
 from warehouses.models import Warehouse
 
@@ -55,6 +55,14 @@ class PickupOrderForm(forms.ModelForm):
         label="Оператор приемки",
     )
 
+    carrier = forms.ModelChoiceField(
+        queryset=Carrier.objects.filter(is_active=True),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+        label="Перевозчик",
+        help_text="Компания перевозчик для забора груза",
+    )
+
     class Meta:
         model = PickupOrder
         fields = [
@@ -70,6 +78,7 @@ class PickupOrderForm(forms.ModelForm):
             "invoice_number",
             "receiving_warehouse",
             "receiving_operator",
+            "carrier",
             "quantity",
             "weight",
             "volume",
@@ -112,6 +121,12 @@ class PickupOrderForm(forms.ModelForm):
                 attrs={
                     "class": "form-select select2",
                     "data-placeholder": "Выберите оператора приемки",
+                }
+            ),
+            "carrier": forms.Select(
+                attrs={
+                    "class": "form-select",
+                    "data-placeholder": "Выберите перевозчика",
                 }
             ),
             "quantity": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
@@ -163,3 +178,5 @@ class PickupOrderForm(forms.ModelForm):
         """Сохраняет форму"""
         instance = super().save(commit=commit)
         return instance
+
+

@@ -70,6 +70,19 @@
                         <th>Контактное лицо для выдачи:</th>
                         <td>{{ order.contact_person|default:"Не указано" }}</td>
                     </tr>
+                    <tr>
+                        <th>Перевозчик:</th>
+                        <td>
+                            {% if order.carrier %}
+                                <strong>{{ order.carrier.name }}</strong><br>
+                                {% if order.carrier.contact_person %}<small>Контактное лицо: {{ order.carrier.contact_person }}</small><br>{% endif %}
+                                {% if order.carrier.phone %}<small>Телефон: {{ order.carrier.phone }}</small><br>{% endif %}
+                                {% if order.carrier.email %}<small>Email: {{ order.carrier.email }}</small>{% endif %}
+                            {% else %}
+                                Не указан
+                            {% endif %}
+                        </td>
+                    </tr>
                 </table>
                 
                 <!-- Блок Контрагенты -->
@@ -188,6 +201,19 @@
                                 <td>
                                     {% if order.receiving_warehouse %}
                                         {{ order.receiving_warehouse.name }} ({{ order.receiving_warehouse.city.name }})
+                                    {% else %}
+                                        <span class="text-muted">Не указан</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Перевозчик:</th>
+                                <td>
+                                    {% if order.carrier %}
+                                        {{ order.carrier.name }}
+                                        {% if order.carrier.contact_person %}
+                                            <br><small>Контакт: {{ order.carrier.contact_person }}</small>
+                                        {% endif %}
                                     {% else %}
                                         <span class="text-muted">Не указан</span>
                                     {% endif %}

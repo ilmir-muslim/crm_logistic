@@ -5,11 +5,62 @@ from django.conf import settings
 from django.utils import timezone
 from logistic.models import DeliveryOrder
 from warehouses.models import Warehouse, City
-from counterparties.models import Counterparty  
+from counterparties.models import Counterparty
 import qrcode
 import os
 from io import BytesIO
 from django.core.files import File
+
+
+class Carrier(models.Model):
+    """
+    Модель перевозчика
+    """
+
+    name = models.CharField(
+        max_length=200,
+        verbose_name="Название перевозчика",
+        help_text="Полное наименование компании перевозчика",
+    )
+    contact_person = models.CharField(
+        max_length=200,
+        verbose_name="Контактное лицо",
+        blank=True,
+        null=True,
+        help_text="ФИО контактного лица перевозчика",
+    )
+    phone = models.CharField(
+        max_length=50,
+        verbose_name="Телефон",
+        blank=True,
+        null=True,
+        help_text="Телефон перевозчика",
+    )
+    email = models.EmailField(
+        verbose_name="Email", blank=True, null=True, help_text="Email перевозчика"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Активен",
+        help_text="Показывать ли перевозчика в выпадающих списках",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+
+    class Meta:
+        verbose_name = "Перевозчик"
+        verbose_name_plural = "Перевозчики"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def get_short_info(self):
+        """Краткая информация о перевозчике"""
+        info = self.name
+        if self.contact_person:
+            info += f" ({self.contact_person})"
+        return info
 
 
 class PickupOrder(models.Model):
@@ -168,7 +219,7 @@ class PickupOrder(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default="ready", 
+        default="ready",
         verbose_name="Статус заявки",
     )
     operator = models.ForeignKey(
@@ -187,6 +238,16 @@ class PickupOrder(models.Model):
         blank=True,
         verbose_name="Связанная заявка на доставку",
         related_name="pickup_source",
+    )
+
+    carrier = models.ForeignKey(
+        Carrier,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Перевозчик",
+        related_name="pickup_orders",
+        help_text="Компания перевозчик для забора груза",
     )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
@@ -225,8 +286,8 @@ class PickupOrder(models.Model):
     def get_status_color(self):
         """Возвращает цвет статуса для отображения"""
         colors = {
-            "ready": "info",  
-            "payment": "warning",  
+            "ready": "info",
+            "payment": "warning",
         }
         return colors.get(self.status, "secondary")
 
@@ -392,3 +453,5 @@ class PickupOrder(models.Model):
         self.save()
 
         return delivery
+
+

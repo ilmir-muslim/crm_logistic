@@ -1,5 +1,53 @@
 from django.contrib import admin
-from .models import PickupOrder
+from .models import PickupOrder, Carrier
+
+
+@admin.register(Carrier)
+class CarrierAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+        "contact_person",
+        "phone",
+        "email",
+        "is_active",
+        "created_at",
+    ]
+    list_filter = [
+        "is_active",
+        "created_at",
+    ]
+    search_fields = [
+        "name",
+        "contact_person",
+        "phone",
+        "email",
+    ]
+    list_per_page = 50
+    date_hierarchy = "created_at"
+
+    fieldsets = (
+        (
+            "Основная информация",
+            {
+                "fields": (
+                    "name",
+                    "contact_person",
+                    "phone",
+                    "email",
+                    "is_active",
+                )
+            },
+        ),
+        (
+            "Системная информация",
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    readonly_fields = ["created_at", "updated_at"]
 
 
 @admin.register(PickupOrder)
@@ -10,13 +58,14 @@ class PickupOrderAdmin(admin.ModelAdmin):
         "pickup_time_range",
         "pickup_address",
         "contact_person",
-        "get_sender_display", 
-        "get_recipient_display",  
+        "get_sender_display",
+        "get_recipient_display",
         "desired_delivery_date",
         "status",
         "invoice_number",
         "receiving_operator",
         "receiving_warehouse",
+        "get_carrier_display",
         "operator",
         "quantity",
         "created_at",
@@ -26,18 +75,20 @@ class PickupOrderAdmin(admin.ModelAdmin):
         "pickup_date",
         "operator",
         "receiving_operator",
+        "carrier",
         "created_at",
     ]
     search_fields = [
         "tracking_number",
-        "sender__name", 
-        "sender__inn", 
-        "recipient__name",  
-        "recipient__inn", 
+        "sender__name",
+        "sender__inn",
+        "recipient__name",
+        "recipient__inn",
         "contact_person",
         "pickup_address",
         "invoice_number",
-        "receiving_warehouse__name",  
+        "receiving_warehouse__name",
+        "carrier__name",
         "cargo_description",
     ]
     list_per_page = 50
@@ -58,7 +109,7 @@ class PickupOrderAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Информация о контрагентах",  
+            "Информация о контрагентах",
             {
                 "fields": (
                     "sender",
@@ -87,6 +138,10 @@ class PickupOrderAdmin(admin.ModelAdmin):
                     "receiving_warehouse",
                 )
             },
+        ),
+        (
+            "Перевозчик",
+            {"fields": ("carrier",)},
         ),
         (
             "Характеристики груза",
@@ -132,6 +187,14 @@ class PickupOrderAdmin(admin.ModelAdmin):
 
     get_recipient_display.short_description = "Получатель"
 
+    def get_carrier_display(self, obj):
+        """Отображение перевозчика в списке"""
+        if obj.carrier:
+            return obj.carrier.name
+        return "Не указан"
+
+    get_carrier_display.short_description = "Перевозчик"
+
     def regenerate_qr_codes(self, request, queryset):
         """Действие для перегенерации QR-кодов"""
         count = 0
@@ -144,3 +207,5 @@ class PickupOrderAdmin(admin.ModelAdmin):
         )
 
     regenerate_qr_codes.short_description = "Перегенерировать QR-коды (ссылка на PDF)"
+
+
