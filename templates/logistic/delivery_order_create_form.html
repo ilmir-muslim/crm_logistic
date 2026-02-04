@@ -312,7 +312,7 @@
   </div>
 </div>
 
-<!-- Модальное окно для создания контрагента -->
+<!-- Модальное окно для создания контрагента - ОБНОВЛЕННОЕ -->
 <div class="modal fade" id="counterpartyModal" tabindex="-1" aria-labelledby="counterpartyModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -321,143 +321,124 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <input type="hidden" id="counterpartyFor" value="">
-        
-        <div class="mb-3">
-          <label for="counterpartyType" class="form-label">Тип контрагента *</label>
-          <select class="form-select" id="counterpartyType" required>
-            <option value="">Выберите тип</option>
-            <option value="legal">Юридическое лицо (ООО, АО)</option>
-            <option value="entrepreneur">Индивидуальный предприниматель (ИП)</option>
-            <option value="individual">Физическое лицо</option>
-            <option value="self_employed">Самозанятый</option>
-          </select>
-        </div>
-        
-        <!-- Общие поля для всех типов -->
-        <div class="row">
-          <div class="col-md-12">
-            <div class="mb-3">
-              <label for="counterpartyName" class="form-label">Наименование/ФИО *</label>
-              <input type="text" class="form-control" id="counterpartyName" required>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Поля для юридических лиц и ИП -->
-        <div id="legalFields" style="display: none;">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="counterpartyFullName" class="form-label">Полное наименование</label>
-                <input type="text" class="form-control" id="counterpartyFullName">
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="counterpartyDirector" class="form-label">ФИО руководителя</label>
-                <input type="text" class="form-control" id="counterpartyDirector">
-              </div>
-            </div>
-          </div>
+        <form id="counterpartyForm">
+          {% csrf_token %}
+          <input type="hidden" id="counterpartyFor" name="for" value="">
           
           <div class="row">
             <div class="col-md-6">
               <div class="mb-3">
-                <label for="counterpartyInn" class="form-label">ИНН *</label>
-                <input type="text" class="form-control" id="counterpartyInn" pattern="\d{10,12}">
+                <label for="counterpartyType" class="form-label">Тип контрагента *</label>
+                <select class="form-select" id="counterpartyType" name="type" required onchange="changeCounterpartyType()">
+                  <option value="legal">Юридическое лицо (ООО, АО)</option>
+                  <option value="entrepreneur">Индивидуальный предприниматель (ИП)</option>
+                  <option value="individual">Физическое лицо</option>
+                  <option value="self_employed">Самозанятый</option>
+                </select>
               </div>
             </div>
             <div class="col-md-6">
               <div class="mb-3">
-                <label for="counterpartyKpp" class="form-label">КПП (для юр. лиц)</label>
-                <input type="text" class="form-control" id="counterpartyKpp" pattern="\d{9}">
+                <label for="counterpartyName" class="form-label">Наименование/ФИО *</label>
+                <input type="text" class="form-control" id="counterpartyName" name="name" required>
               </div>
             </div>
           </div>
           
           <div class="mb-3">
-            <label for="counterpartyOgrn" class="form-label">ОГРН/ОГРНИП</label>
-            <input type="text" class="form-control" id="counterpartyOgrn">
+            <label for="counterpartyFullName" class="form-label">Полное наименование</label>
+            <input type="text" class="form-control" id="counterpartyFullName" name="full_name">
           </div>
-        </div>
-        
-        <!-- Поля для физических лиц -->
-        <div id="individualFields" style="display: none;">
+          
           <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-6">
               <div class="mb-3">
-                <label for="counterpartyPassportSeries" class="form-label">Серия паспорта</label>
-                <input type="text" class="form-control" id="counterpartyPassportSeries" maxlength="4">
+                <label for="counterpartyInn" class="form-label">ИНН</label>
+                <input type="text" class="form-control" id="counterpartyInn" name="inn">
               </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
               <div class="mb-3">
-                <label for="counterpartyPassportNumber" class="form-label">Номер паспорта</label>
-                <input type="text" class="form-control" id="counterpartyPassportNumber" maxlength="6">
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="mb-3">
-                <label for="counterpartyInnIndividual" class="form-label">ИНН (если есть)</label>
-                <input type="text" class="form-control" id="counterpartyInnIndividual">
+                <label for="counterpartyPhone" class="form-label">Телефон</label>
+                <input type="text" class="form-control" id="counterpartyPhone" name="phone">
               </div>
             </div>
           </div>
           
+          <!-- Поля для юридического лица -->
+          <div id="legalFields" style="display: none;">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="counterpartyKpp" class="form-label">КПП</label>
+                  <input type="text" class="form-control" id="counterpartyKpp" name="kpp">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="counterpartyOgrn" class="form-label">ОГРН</label>
+                  <input type="text" class="form-control" id="counterpartyOgrn" name="ogrn">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Поля для физического лица (включая ИП и самозанятых) -->
+          <div id="individualFields" style="display: none;">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="counterpartyPassportSeries" class="form-label">Серия паспорта</label>
+                  <input type="text" class="form-control" id="counterpartyPassportSeries" name="passport_series">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="counterpartyPassportNumber" class="form-label">Номер паспорта</label>
+                  <input type="text" class="form-control" id="counterpartyPassportNumber" name="passport_number">
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="counterpartyPassportIssuedBy" class="form-label">Кем выдан паспорт</label>
+              <textarea class="form-control" id="counterpartyPassportIssuedBy" name="passport_issued_by" rows="2"></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="counterpartyPassportIssuedDate" class="form-label">Дата выдачи паспорта</label>
+              <input type="date" class="form-control" id="counterpartyPassportIssuedDate" name="passport_issued_date">
+            </div>
+          </div>
+          
+          <!-- Общие поля -->
           <div class="mb-3">
-            <label for="counterpartyPassportIssued" class="form-label">Кем выдан паспорт</label>
-            <textarea class="form-control" id="counterpartyPassportIssued" rows="2"></textarea>
+            <label for="counterpartyAddress" class="form-label">Юридический адрес *</label>
+            <textarea class="form-control" id="counterpartyAddress" name="address" rows="2" required></textarea>
           </div>
           
           <div class="mb-3">
-            <label for="counterpartyPassportDate" class="form-label">Дата выдачи паспортa</label>
-            <input type="date" class="form-control" id="counterpartyPassportDate">
+            <label for="counterpartyActualAddress" class="form-label">Фактический адрес</label>
+            <textarea class="form-control" id="counterpartyActualAddress" name="actual_address" rows="2"></textarea>
           </div>
-        </div>
-        
-        <!-- Общие контактные поля -->
-        <div class="mb-3">
-          <label for="counterpartyAddress" class="form-label">Адрес контрагента *</label>
-          <textarea class="form-control" id="counterpartyAddress" rows="3" required></textarea>
-          <small class="form-text text-muted">Юридический адрес контрагента (не адрес склада)</small>
-        </div>
-        
-        <div class="row">
-          <div class="col-md-6">
-            <div class="mb-3">
-              <label for="counterpartyPhone" class="form-label">Телефон</label>
-              <input type="tel" class="form-control" id="counterpartyPhone">
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="counterpartyEmail" class="form-label">Email</label>
+                <input type="email" class="form-control" id="counterpartyEmail" name="email">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="counterpartyContactPerson" class="form-label">Контактное лицо</label>
+                <input type="text" class="form-control" id="counterpartyContactPerson" name="contact_person">
+              </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <div class="mb-3">
-              <label for="counterpartyEmail" class="form-label">Email</label>
-              <input type="email" class="form-control" id="counterpartyEmail">
-            </div>
-          </div>
-        </div>
-        
-        <div class="mb-3">
-          <label for="counterpartyContactPerson" class="form-label">Контактное лицо</label>
-          <input type="text" class="form-control" id="counterpartyContactPerson">
-        </div>
-        
-        <div class="mb-3">
-          <label for="counterpartyNotes" class="form-label">Примечания</label>
-          <textarea class="form-control" id="counterpartyNotes" rows="2"></textarea>
-        </div>
-        
-        <div class="alert alert-info">
-          <small>
-            <i class="bi bi-info-circle"></i> Поля, отмеченные *, обязательны для заполнения.
-            После создания контрагент будет автоматически выбран в форме.
-          </small>
-        </div>
+        </form>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-primary" id="saveCounterpartyBtn">Создать контрагента</button>
+        <button type="button" class="btn btn-primary" id="saveCounterpartyBtn">Создать</button>
       </div>
     </div>
   </div>
@@ -790,24 +771,28 @@ function saveAddress() {
 function initCounterpartyModal() {
     const modal = document.getElementById('counterpartyModal');
     
-    // Обработчик изменения типа контрагента
-    document.getElementById('counterpartyType').addEventListener('change', function() {
-        const type = this.value;
-        updateCounterpartyFields(type);
+    // Вызываем при открытии модального окна для правильного отображения полей
+    modal.addEventListener('show.bs.modal', function() {
+        // Вызываем функцию для правильного отображения полей при открытии
+        setTimeout(changeCounterpartyType, 50);
+    });
+    
+    // Обработчик скрытия модального окна
+    modal.addEventListener('hidden.bs.modal', function() {
+        document.getElementById('counterpartyForm').reset();
+        document.getElementById('legalFields').style.display = 'none';
+        document.getElementById('individualFields').style.display = 'none';
+        document.getElementById('counterpartyFor').value = '';
     });
     
     // Кнопка сохранения контрагента
     document.getElementById('saveCounterpartyBtn').addEventListener('click', function() {
         saveCounterparty();
     });
-    
-    // Очистка формы при закрытии
-    modal.addEventListener('hidden.bs.modal', function() {
-        clearCounterpartyForm();
-    });
 }
 
-function updateCounterpartyFields(type) {
+function changeCounterpartyType() {
+    const type = document.getElementById('counterpartyType').value;
     const legalFields = document.getElementById('legalFields');
     const individualFields = document.getElementById('individualFields');
     
@@ -816,42 +801,12 @@ function updateCounterpartyFields(type) {
     individualFields.style.display = 'none';
     
     // Показываем нужные поля в зависимости от типа
-    if (type === 'legal' || type === 'entrepreneur') {
+    if (type === 'legal') {
         legalFields.style.display = 'block';
-        
-        // Для ИП скрываем КПП
-        if (type === 'entrepreneur') {
-            document.getElementById('counterpartyKpp').parentElement.parentElement.style.display = 'none';
-        } else {
-            document.getElementById('counterpartyKpp').parentElement.parentElement.style.display = 'block';
-        }
-    } else if (type === 'individual' || type === 'self_employed') {
+    } else {
+        // Для всех остальных типов (entrepreneur, individual, self_employed) - поля физлица
         individualFields.style.display = 'block';
     }
-}
-
-function clearCounterpartyForm() {
-    document.getElementById('counterpartyType').value = '';
-    document.getElementById('counterpartyName').value = '';
-    document.getElementById('counterpartyFullName').value = '';
-    document.getElementById('counterpartyDirector').value = '';
-    document.getElementById('counterpartyInn').value = '';
-    document.getElementById('counterpartyKpp').value = '';
-    document.getElementById('counterpartyOgrn').value = '';
-    document.getElementById('counterpartyPassportSeries').value = '';
-    document.getElementById('counterpartyPassportNumber').value = '';
-    document.getElementById('counterpartyInnIndividual').value = '';
-    document.getElementById('counterpartyPassportIssued').value = '';
-    document.getElementById('counterpartyPassportDate').value = '';
-    document.getElementById('counterpartyAddress').value = '';
-    document.getElementById('counterpartyPhone').value = '';
-    document.getElementById('counterpartyEmail').value = '';
-    document.getElementById('counterpartyContactPerson').value = '';
-    document.getElementById('counterpartyNotes').value = '';
-    
-    // Скрываем все дополнительные поля
-    document.getElementById('legalFields').style.display = 'none';
-    document.getElementById('individualFields').style.display = 'none';
 }
 
 function openCounterpartyModal(forWhom) {
@@ -873,74 +828,62 @@ function openCounterpartyModal(forWhom) {
 }
 
 function saveCounterparty() {
+    const form = document.getElementById('counterpartyForm');
+    const formData = new FormData(form);
     const forWhom = document.getElementById('counterpartyFor').value;
-    const type = document.getElementById('counterpartyType').value;
-    const name = document.getElementById('counterpartyName').value.trim();
-    const address = document.getElementById('counterpartyAddress').value.trim();
     
-    // Проверка обязательных полей
-    if (!type || !name || !address) {
-        showNotification('Пожалуйста, заполните обязательные поля: тип, наименование и адрес', 'error');
+    // Проверяем обязательные поля
+    if (!formData.get('name')) {
+        showNotification('Пожалуйста, введите наименование/ФИО', 'error');
         return;
     }
     
-    // Собираем данные
-    const data = {
-        type: type,
-        name: name,
-        address: address,
-        phone: document.getElementById('counterpartyPhone').value.trim(),
-        email: document.getElementById('counterpartyEmail').value.trim(),
-        contact_person: document.getElementById('counterpartyContactPerson').value.trim(),
-        notes: document.getElementById('counterpartyNotes').value.trim(),
-    };
-    
-    // Добавляем поля в зависимости от типа
-    if (type === 'legal' || type === 'entrepreneur') {
-        data.full_name = document.getElementById('counterpartyFullName').value.trim();
-        data.director_name = document.getElementById('counterpartyDirector').value.trim();
-        data.inn = document.getElementById('counterpartyInn').value.trim();
-        data.ogrn = document.getElementById('counterpartyOgrn').value.trim();
-        
-        if (type === 'legal') {
-            data.kpp = document.getElementById('counterpartyKpp').value.trim();
-        }
-    } else if (type === 'individual' || type === 'self_employed') {
-        data.passport_series = document.getElementById('counterpartyPassportSeries').value.trim();
-        data.passport_number = document.getElementById('counterpartyPassportNumber').value.trim();
-        data.passport_issued_by = document.getElementById('counterpartyPassportIssued').value.trim();
-        data.passport_issued_date = document.getElementById('counterpartyPassportDate').value;
-        
-        if (type === 'self_employed') {
-            data.inn = document.getElementById('counterpartyInnIndividual').value.trim();
-        }
+    if (!formData.get('address')) {
+        showNotification('Пожалуйста, введите адрес', 'error');
+        return;
     }
     
     // Отправляем запрос на создание контрагента
     fetch('{% url "create_counterparty_api" %}', {
         method: 'POST',
         headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
             'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(Object.fromEntries(formData))
     })
     .then(response => response.json())
-    .then(result => {
-        if (result.success) {
+    .then(data => {
+        if (data.success) {
+            // Добавляем нового контрагента в выпадающий список
+            const selectId = forWhom === 'sender' ? 'id_sender' : 'id_recipient';
+            const selectField = document.getElementById(selectId);
+            
+            if (selectField) {
+                const newOption = document.createElement('option');
+                newOption.value = data.id;
+                newOption.textContent = data.short_info || data.name;
+                newOption.selected = true;
+                selectField.appendChild(newOption);
+            }
+            
             // Закрываем модальное окно
-            counterpartyModalInstance.hide();
+            if (counterpartyModalInstance) {
+                counterpartyModalInstance.hide();
+            } else {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('counterpartyModal'));
+                if (modal) {
+                    modal.hide();
+                }
+            }
             
-            // Обновляем выпадающий список
-            updateCounterpartySelect(forWhom, result.id, result.name);
-            
-            showNotification('Контрагент успешно создан и выбран', 'success');
+            showNotification('Контрагент успешно создан', 'success');
         } else {
-            showNotification('Ошибка при создании контрагента: ' + result.error, 'error');
+            showNotification(`Ошибка при создании контрагента: ${data.error}`, 'error');
         }
     })
     .catch(error => {
-        console.error('Ошибка:', error);
+        console.error('Ошибка при создании контрагента:', error);
         showNotification('Ошибка при создании контрагента', 'error');
     });
 }
@@ -972,7 +915,7 @@ function loadCounterparties(forWhom, selectId) {
             data.forEach(counterparty => {
                 const option = document.createElement('option');
                 option.value = counterparty.id;
-                option.textContent = counterparty.short_info;
+                option.textContent = counterparty.short_info || counterparty.name;
                 select.appendChild(option);
             });
             
@@ -984,22 +927,6 @@ function loadCounterparties(forWhom, selectId) {
         .catch(error => {
             console.error('Ошибка загрузки контрагентов:', error);
         });
-}
-
-function updateCounterpartySelect(forWhom, id, name) {
-    const selectId = forWhom === 'sender' ? 'id_sender' : 'id_recipient';
-    const select = document.getElementById(selectId);
-    
-    if (!select) return;
-    
-    // Создаем новую опцию
-    const option = document.createElement('option');
-    option.value = id;
-    option.textContent = name;
-    
-    // Добавляем опцию и выбираем её
-    select.appendChild(option);
-    select.value = id;
 }
 
 function showNotification(message, type) {

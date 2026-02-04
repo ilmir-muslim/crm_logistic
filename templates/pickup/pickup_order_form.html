@@ -594,7 +594,7 @@
             </div>
           </div>
           
-          <!-- Поля для физического лица -->
+          <!-- Поля для физического лица (включая ИП и самозанятых) -->
           <div id="individualFields" style="display: none;">
             <div class="row">
               <div class="col-md-6">
@@ -983,6 +983,12 @@ function initOperatorModal() {
 function initCounterpartyModal() {
     const modal = document.getElementById('counterpartyModal');
     
+    // Вызываем при открытии модального окна для правильного отображения полей
+    modal.addEventListener('show.bs.modal', function() {
+        // Вызываем функцию для правильного отображения полей при открытии
+        setTimeout(changeCounterpartyType, 50);
+    });
+    
     // Обработчик скрытия модального окна
     modal.addEventListener('hidden.bs.modal', function() {
         document.getElementById('counterpartyForm').reset();
@@ -1091,7 +1097,8 @@ function changeCounterpartyType() {
     // Показываем нужные поля в зависимости от типа
     if (type === 'legal') {
         legalFields.style.display = 'block';
-    } else if (type === 'individual') {
+    } else {
+        // Для всех остальных типов (entrepreneur, individual, self_employed) - поля физлица
         individualFields.style.display = 'block';
     }
 }
