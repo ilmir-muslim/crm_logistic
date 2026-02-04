@@ -1239,9 +1239,10 @@
                 el.classList.remove('visible');
             });
             
-            // Скрываем поле ИНН для физ.лиц
+            // Управление полем ИНН
             const innField = document.querySelector('.client-legal-fields.client-entrepreneur-fields');
             if (innField) {
+                // Для физ.лиц и самозанятых скрываем ИНН, для юр.лиц и ИП показываем
                 if (clientType === 'individual' || clientType === 'self_employed') {
                     innField.style.display = 'none';
                 } else {
@@ -1249,7 +1250,7 @@
                 }
             }
             
-            // Настраиваем лейбл для поля компании/ФИО
+            // Настраиваем лейбл для поля компании/ФИО и показываем нужные поля
             if (companyLabel && companyHelp) {
                 switch(clientType) {
                     case 'legal':
@@ -1261,6 +1262,7 @@
                         companyLabel.textContent = 'Наименование ИП *';
                         companyHelp.textContent = 'Наименование индивидуального предпринимателя';
                         document.querySelectorAll('.client-entrepreneur-fields').forEach(el => el.classList.add('visible'));
+                        document.querySelectorAll('.client-individual-fields').forEach(el => el.classList.add('visible'));
                         break;
                     case 'individual':
                     case 'self_employed':
