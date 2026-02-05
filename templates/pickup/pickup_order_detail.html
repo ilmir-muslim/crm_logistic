@@ -1,21 +1,23 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %} 
+{% block content %}
 <div class="card">
   <div class="card-header">
     <div class="d-flex justify-content-between align-items-center">
       <div>
         <h4 class="mb-0">
-          {% if order.tracking_number %} {{ order.tracking_number }} {% else %}
-          Заявка на забор #{{ order.id }} {% endif %} - {{ order.get_client_name
-          }}
+          {% if order.tracking_number %} 
+            {{ order.tracking_number }} 
+          {% else %}
+            Заявка на забор #{{ order.id }} 
+          {% endif %} 
+          - {{ order.get_client_name }}
         </h4>
-        <small class="text-muted"
-          >Создано: {{ order.created_at|date:"d.m.Y H:i" }}</small
-        >
+        <small class="text-muted">
+          Создано: {{ order.created_at|date:"d.m.Y H:i" }}
+        </small>
       </div>
       <div class="text-end">
-        <span
-          class="badge bg-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% elif order.status == 'accepted' %}success{% else %}secondary{% endif %} fs-6"
-        >
+        <span class="badge bg-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% elif order.status == 'accepted' %}success{% else %}secondary{% endif %} fs-6">
           {{ order.get_status_display }}
         </span>
       </div>
@@ -28,43 +30,53 @@
         <table class="table table-bordered">
           <tr>
             <th style="width: 40%">Дата забора:</th>
-            <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
+            <td>{{ order.pickup_date|date:"d.m.Y"|default:"Не указана" }}</td>
           </tr>
           <tr>
             <th>Время забора:</th>
-            <td>{{ order.pickup_time_range }}</td>
+            <td>{{ order.pickup_time_range|default:"Не указано" }}</td>
           </tr>
           <tr>
             <th>Отправитель:</th>
             <td>
               {% if order.sender %}
-              <strong>{{ order.sender.name }}</strong><br />
-              {% if order.sender.phone %}<small
-                >Телефон: {{ order.sender.phone }}</small
-              ><br />{% endif %} {% if order.sender.email %}<small
-                >Email: {{ order.sender.email }}</small
-              ><br />{% endif %} {% if order.sender.inn %}<small
-                >ИНН: {{ order.sender.inn }}</small
-              >{% endif %} {% else %} Не указан {% endif %}
+                <strong>{{ order.sender.name }}</strong><br />
+                {% if order.sender.phone %}
+                  <small>Телефон: {{ order.sender.phone }}</small><br />
+                {% endif %} 
+                {% if order.sender.email %}
+                  <small>Email: {{ order.sender.email }}</small><br />
+                {% endif %} 
+                {% if order.sender.inn %}
+                  <small>ИНН: {{ order.sender.inn }}</small>
+                {% endif %} 
+              {% else %} 
+                Не указан 
+              {% endif %}
             </td>
           </tr>
           <tr>
             <th>Получатель:</th>
             <td>
               {% if order.recipient %}
-              <strong>{{ order.recipient.name }}</strong><br />
-              {% if order.recipient.phone %}<small
-                >Телефон: {{ order.recipient.phone }}</small
-              ><br />{% endif %} {% if order.recipient.email %}<small
-                >Email: {{ order.recipient.email }}</small
-              ><br />{% endif %} {% if order.recipient.inn %}<small
-                >ИНН: {{ order.recipient.inn }}</small
-              >{% endif %} {% else %} Не указан {% endif %}
+                <strong>{{ order.recipient.name }}</strong><br />
+                {% if order.recipient.phone %}
+                  <small>Телефон: {{ order.recipient.phone }}</small><br />
+                {% endif %} 
+                {% if order.recipient.email %}
+                  <small>Email: {{ order.recipient.email }}</small><br />
+                {% endif %} 
+                {% if order.recipient.inn %}
+                  <small>ИНН: {{ order.recipient.inn }}</small>
+                {% endif %} 
+              {% else %} 
+                Не указан 
+              {% endif %}
             </td>
           </tr>
           <tr>
             <th>Адрес забора:</th>
-            <td>{{ order.pickup_address }}</td>
+            <td>{{ order.pickup_address|default:"Не указан" }}</td>
           </tr>
           <tr>
             <th>Контактное лицо для выдачи:</th>
@@ -74,14 +86,19 @@
             <th>Перевозчик:</th>
             <td>
               {% if order.carrier %}
-              <strong>{{ order.carrier.name }}</strong><br />
-              {% if order.carrier.contact_person %}<small
-                >Контактное лицо: {{ order.carrier.contact_person }}</small
-              ><br />{% endif %} {% if order.carrier.phone %}<small
-                >Телефон: {{ order.carrier.phone }}</small
-              ><br />{% endif %} {% if order.carrier.email %}<small
-                >Email: {{ order.carrier.email }}</small
-              >{% endif %} {% else %} Не указан {% endif %}
+                <strong>{{ order.carrier.name }}</strong><br />
+                {% if order.carrier.contact_person %}
+                  <small>Контактное лицо: {{ order.carrier.contact_person }}</small><br />
+                {% endif %} 
+                {% if order.carrier.phone %}
+                  <small>Телефон: {{ order.carrier.phone }}</small><br />
+                {% endif %} 
+                {% if order.carrier.email %}
+                  <small>Email: {{ order.carrier.email }}</small>
+                {% endif %} 
+              {% else %} 
+                Не указан 
+              {% endif %}
             </td>
           </tr>
         </table>
@@ -92,16 +109,21 @@
           <tr>
             <th style="width: 40%">Отправитель:</th>
             <td>
-              {% if order.sender %} {{ order.sender.get_short_info|default:"Не
-              указан" }} {% else %} Не указан {% endif %}
+              {% if order.sender %} 
+                {{ order.sender.get_short_info|default:"Не указан" }} 
+              {% else %} 
+                Не указан 
+              {% endif %}
             </td>
           </tr>
           <tr>
             <th>Получатель:</th>
             <td>
-              {% if order.recipient %} {{
-              order.recipient.get_short_info|default:"Не указан" }} {% else %}
-              Не указан {% endif %}
+              {% if order.recipient %} 
+                {{ order.recipient.get_short_info|default:"Не указан" }} 
+              {% else %} 
+                Не указан 
+              {% endif %}
             </td>
           </tr>
         </table>
@@ -110,7 +132,7 @@
         <table class="table table-bordered">
           <tr>
             <th style="width: 40%">Количество мест:</th>
-            <td>{{ order.quantity }}</td>
+            <td>{{ order.quantity|default:"0" }}</td>
           </tr>
           <tr>
             <th>Вес:</th>
@@ -183,43 +205,46 @@
               <tr>
                 <th>Ответственный оператор:</th>
                 <td>
-                  {% if order.operator %} {{
-                  order.operator.get_full_name|default:order.operator.username
-                  }} {% else %}
-                  <span class="text-danger">Не назначен</span>
+                  {% if order.operator %} 
+                    {{ order.operator.get_full_name|default:order.operator.username }}
+                  {% else %}
+                    <span class="text-danger">Не назначен</span>
                   {% endif %}
                 </td>
               </tr>
               <tr>
                 <th>Оператор приемки:</th>
                 <td>
-                  {% if order.receiving_operator %} {{
-                  order.receiving_operator.get_full_name|default:order.receiving_operator.username
-                  }} {% else %}
-                  <span class="text-muted">Не назначен</span>
+                  {% if order.receiving_operator %} 
+                    {{ order.receiving_operator.get_full_name|default:order.receiving_operator.username }}
+                  {% else %}
+                    <span class="text-muted">Не назначен</span>
                   {% endif %}
                 </td>
               </tr>
               <tr>
                 <th>Склад приемки:</th>
                 <td>
-                  {% if order.receiving_warehouse %} {{
-                  order.receiving_warehouse.name }} ({{
-                  order.receiving_warehouse.city.name }}) {% else %}
-                  <span class="text-muted">Не указан</span>
+                  {% if order.receiving_warehouse %} 
+                    {{ order.receiving_warehouse.name }} 
+                    {% if order.receiving_warehouse.city %}
+                      ({{ order.receiving_warehouse.city.name }})
+                    {% endif %}
+                  {% else %}
+                    <span class="text-muted">Не указан</span>
                   {% endif %}
                 </td>
               </tr>
               <tr>
                 <th>Перевозчик:</th>
                 <td>
-                  {% if order.carrier %} {{ order.carrier.name }} {% if
-                  order.carrier.contact_person %}
-                  <br /><small
-                    >Контакт: {{ order.carrier.contact_person }}</small
-                  >
-                  {% endif %} {% else %}
-                  <span class="text-muted">Не указан</span>
+                  {% if order.carrier %} 
+                    {{ order.carrier.name }} 
+                    {% if order.carrier.contact_person %}
+                      <br /><small>Контакт: {{ order.carrier.contact_person }}</small>
+                    {% endif %} 
+                  {% else %}
+                    <span class="text-muted">Не указан</span>
                   {% endif %}
                 </td>
               </tr>
@@ -297,12 +322,11 @@
                 <small>
                   <i class="bi bi-exclamation-triangle"></i>
                   <strong>Причина:</strong>
-                  {% if order.status != 'ready' %} Заявка должна быть в статусе
-                  "Готова к выдаче". Текущий статус:
-                  <span class="badge bg-info"
-                    >{{ order.get_status_display }}</span
-                  >
-                  {% else %} Неизвестная причина. Обратитесь к администратору.
+                  {% if order.status != 'ready' %} 
+                    Заявка должна быть в статусе "Готова к выдаче". 
+                    Текущий статус: <span class="badge bg-info">{{ order.get_status_display }}</span>
+                  {% else %} 
+                    Неизвестная причина. Обратитесь к администратору.
                   {% endif %}
                 </small>
               </div>
