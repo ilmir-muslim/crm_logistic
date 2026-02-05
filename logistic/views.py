@@ -216,11 +216,11 @@ def update_delivery_order_field(request, pk):
     allowed_fields = [
         "sender",
         "pickup_address",
-        "pickup_warehouse",  # Добавить
+        "pickup_warehouse",
         "recipient",
         "delivery_address",
-        "delivery_warehouse",  # Добавить
-        "delivery_city",  # Добавить
+        "delivery_warehouse",
+        "delivery_city",
         "quantity",
         "weight",
         "volume",
@@ -330,10 +330,10 @@ def update_delivery_order_field(request, pk):
             display_value = value if value else ""
             return JsonResponse({"success": True, "display_value": display_value})
         elif field == "pickup_warehouse":
-            display_value = value.name if value else ""
+            display_value = value.address if value else ""
             return JsonResponse({"success": True, "display_value": display_value})
         elif field == "delivery_warehouse":
-            display_value = value.name if value else ""
+            display_value = value.address if value else ""
             return JsonResponse({"success": True, "display_value": display_value})
         elif field == "delivery_city":
             display_value = value.name if value else ""

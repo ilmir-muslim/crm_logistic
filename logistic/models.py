@@ -142,10 +142,13 @@ class DeliveryOrder(models.Model):
     def get_absolute_url(self):
         return reverse("delivery_order_detail", kwargs={"pk": self.pk})
 
+
     def get_sender_display(self):
         """Возвращает отображаемое имя отправителя"""
         if self.sender:
             return self.sender.name
+        elif self.pickup_warehouse:
+            return f"{self.pickup_warehouse.name} ({self.pickup_warehouse.address})"
         elif self.pickup_address:
             return (
                 self.pickup_address[:50] + "..."
@@ -154,10 +157,13 @@ class DeliveryOrder(models.Model):
             )
         return "Не указан"
 
+
     def get_recipient_display(self):
         """Возвращает отображаемое имя получателя"""
         if self.recipient:
             return self.recipient.name
+        elif self.delivery_warehouse:
+            return f"{self.delivery_warehouse.name} ({self.delivery_warehouse.address})"
         elif self.delivery_address:
             return (
                 self.delivery_address[:50] + "..."

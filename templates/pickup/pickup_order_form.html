@@ -620,13 +620,21 @@
             </div>
           </div>
           
-          <!-- Общие поля -->
-          <div class="mb-3">
-            <label for="counterpartyAddress" class="form-label">Юридический адрес *</label>
-            <textarea class="form-control" id="counterpartyAddress" name="address" rows="2" required></textarea>
+          <!-- Поле адреса (разное для разных типов) -->
+          <div id="addressFields">
+            <div class="mb-3" id="legalAddressField">
+              <label for="counterpartyAddress" class="form-label">Юридический адрес *</label>
+              <textarea class="form-control" id="counterpartyAddress" name="address" rows="2" required></textarea>
+            </div>
+            
+            <div class="mb-3" id="physicalAddressField" style="display: none;">
+              <label for="counterpartyPhysicalAddress" class="form-label">Адрес *</label>
+              <textarea class="form-control" id="counterpartyPhysicalAddress" name="physical_address" rows="2"></textarea>
+              <input type="hidden" id="counterpartyAddressForPhysical" name="address">
+            </div>
           </div>
           
-          <div class="mb-3">
+          <div class="mb-3" id="actualAddressField">
             <label for="counterpartyActualAddress" class="form-label">Фактический адрес</label>
             <textarea class="form-control" id="counterpartyActualAddress" name="actual_address" rows="2"></textarea>
           </div>
@@ -983,18 +991,18 @@ function initOperatorModal() {
 function initCounterpartyModal() {
     const modal = document.getElementById('counterpartyModal');
     
-    // Вызываем при открытии модального окна для правильного отображения полей
-    modal.addEventListener('show.bs.modal', function() {
-        // Вызываем функцию для правильного отображения полей при открытии
-        setTimeout(changeCounterpartyType, 50);
-    });
-    
     // Обработчик скрытия модального окна
     modal.addEventListener('hidden.bs.modal', function() {
         document.getElementById('counterpartyForm').reset();
         document.getElementById('legalFields').style.display = 'none';
         document.getElementById('individualFields').style.display = 'none';
         document.getElementById('counterpartyFor').value = '';
+    });
+    
+    // Вызываем при открытии модального окна для правильного отображения полей
+    modal.addEventListener('show.bs.modal', function() {
+        // Вызываем функцию для правильного отображения полей при открытии
+        setTimeout(changeCounterpartyType, 50);
     });
     
     // Кнопка сохранения контрагента
@@ -1089,17 +1097,34 @@ function changeCounterpartyType() {
     const type = document.getElementById('counterpartyType').value;
     const legalFields = document.getElementById('legalFields');
     const individualFields = document.getElementById('individualFields');
+    const legalAddressField = document.getElementById('legalAddressField');
+    const physicalAddressField = document.getElementById('physicalAddressField');
+    const actualAddressField = document.getElementById('actualAddressField');
     
     // Скрываем все поля
     legalFields.style.display = 'none';
     individualFields.style.display = 'none';
+    legalAddressField.style.display = 'none';
+    physicalAddressField.style.display = 'none';
+    
+    // Сбрасываем обязательность
+    document.getElementById('counterpartyAddress').required = false;
+    document.getElementById('counterpartyPhysicalAddress').required = false;
     
     // Показываем нужные поля в зависимости от типа
     if (type === 'legal') {
+        // Юридическое лицо
         legalFields.style.display = 'block';
+        legalAddressField.style.display = 'block';
+        document.getElementById('counterpartyAddress').required = true;
+        actualAddressField.style.display = 'block';
     } else {
-        // Для всех остальных типов (entrepreneur, individual, self_employed) - поля физлица
+        // Все остальные (entrepreneur, individual, self_employed) - физические лица
         individualFields.style.display = 'block';
+        physicalAddressField.style.display = 'block';
+        document.getElementById('counterpartyPhysicalAddress').required = true;
+        // Для физлиц скрываем фактический адрес
+        actualAddressField.style.display = 'none';
     }
 }
 
@@ -1333,6 +1358,7 @@ function saveCounterparty() {
     const form = document.getElementById('counterpartyForm');
     const formData = new FormData(form);
     const forField = document.getElementById('counterpartyFor').value;
+    const type = document.getElementById('counterpartyType').value;
     
     // Проверяем обязательные поля
     if (!formData.get('name')) {
@@ -1340,19 +1366,42 @@ function saveCounterparty() {
         return;
     }
     
-    if (!formData.get('address')) {
-        showNotification('Пожалуйста, введите адрес', 'error');
-        return;
+    // В зависимости от типа, проверяем адрес
+    if (type === 'legal') {
+        if (!formData.get('address')) {
+            showNotification('Пожалуйста, введите юридический адрес', 'error');
+            return;
+        }
+    } else {
+        // Для физлиц используем физический адрес
+        const physicalAddress = document.getElementById('counterpartyPhysicalAddress').value.trim();
+        if (!physicalAddress) {
+            showNotification('Пожалуйста, введите адрес', 'error');
+            return;
+        }
+        // Копируем физический адрес в поле address
+        document.getElementById('counterpartyAddressForPhysical').value = physicalAddress;
+    }
+    
+    // Преобразуем FormData в объект
+    const data = {};
+    for (let [key, value] of formData.entries()) {
+        data[key] = value;
+    }
+    
+    // Для физлиц: если есть physical_address, копируем его в address
+    if (type !== 'legal' && data.physical_address) {
+        data.address = data.physical_address;
     }
     
     // Отправляем запрос на создание контрагента
     fetch('{% url "create_counterparty_api" %}', {
         method: 'POST',
         headers: {
-            'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+            'X-CSRFToken': data.csrfmiddlewaretoken,
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(Object.fromEntries(formData))
+        body: JSON.stringify(data)
     })
     .then(response => response.json())
     .then(data => {

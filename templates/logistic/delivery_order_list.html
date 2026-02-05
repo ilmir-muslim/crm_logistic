@@ -704,16 +704,28 @@
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
-                <td class="editable-cell address-cell" data-field="pickup_address" data-original="{{ order.pickup_address|default:'' }}">
-                    <div class="address-text" title="{{ order.pickup_address|default:'Не указан' }}">
-                        {{ order.pickup_address|default:"Не указан"|truncatechars:30 }}
+                <td class="editable-cell address-cell" 
+                    data-field="pickup_address" 
+                    data-original="{% firstof order.pickup_warehouse.address order.pickup_address '' %}">
+                    <div class="address-text" title="{% firstof order.pickup_warehouse.address order.pickup_address 'Не указан' %}">
+                        {% if order.pickup_warehouse %}
+                            {{ order.pickup_warehouse.address|truncatechars:30 }}
+                        {% else %}
+                            {{ order.pickup_address|default:"Не указан"|truncatechars:30 }}
+                        {% endif %}
                     </div>
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
-                <td class="editable-cell address-cell" data-field="delivery_address" data-original="{{ order.delivery_address|default:'' }}">
-                    <div class="address-text" title="{{ order.delivery_address|default:'Не указан' }}">
-                        {{ order.delivery_address|default:"Не указан"|truncatechars:30 }}
+                <td class="editable-cell address-cell" 
+                    data-field="delivery_address" 
+                    data-original="{% firstof order.delivery_warehouse.address order.delivery_address '' %}">
+                    <div class="address-text" title="{% firstof order.delivery_warehouse.address order.delivery_address 'Не указан' %}">
+                        {% if order.delivery_warehouse %}
+                            {{ order.delivery_warehouse.address|truncatechars:30 }}
+                        {% else %}
+                            {{ order.delivery_address|default:"Не указан"|truncatechars:30 }}
+                        {% endif %}
                     </div>
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>

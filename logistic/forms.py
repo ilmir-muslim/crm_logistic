@@ -124,6 +124,20 @@ class EmailSettingsForm(forms.Form):
 class DeliveryOrderCreateForm(forms.ModelForm):
     """Форма для создания новой заявки на доставку"""
 
+    pickup_warehouse = forms.ModelChoiceField(
+        queryset=Warehouse.objects.all(),
+        required=False,
+        widget=forms.HiddenInput(),
+        label="Склад отправки",
+    )
+
+    delivery_warehouse = forms.ModelChoiceField(
+        queryset=Warehouse.objects.all(),
+        required=False,
+        widget=forms.HiddenInput(),
+        label="Склад доставки",
+    )
+
     new_sender_name = forms.CharField(
         required=False,
         widget=forms.TextInput(
@@ -186,8 +200,10 @@ class DeliveryOrderCreateForm(forms.ModelForm):
             "date",
             "sender",
             "pickup_address",
+            "pickup_warehouse",
             "recipient",
             "delivery_address",
+            "delivery_warehouse",
             "fulfillment",
             "quantity",
             "weight",

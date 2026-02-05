@@ -17,10 +17,6 @@
         <form method="post" novalidate id="deliveryCreateForm">
             {% csrf_token %}
             
-            <!-- Скрытые поля для ID складов -->
-            {{ form.pickup_warehouse_id }}
-            {{ form.delivery_warehouse_id }}
-            
             <div class="row">
                 <!-- Левая колонка: Основная информация -->
                 <div class="col-md-6">
@@ -55,20 +51,28 @@
                     <!-- Адрес отправки - кликабельное поле (СКЛАД) -->
                     <div class="mb-3">
                         <label class="form-label">Адрес отправки *</label>
-                        <textarea name="sender_address" id="senderAddress" rows="3" 
-                                  class="form-control address-field {% if form.sender_address.errors %}is-invalid{% endif %}" 
-                                  readonly required 
-                                  onclick="openAddressModal('pickup')"
-                                  placeholder="Нажмите для выбора адреса отправки">{{ form.sender_address.value|default:'' }}</textarea>
+                        <textarea 
+                            name="pickup_address" 
+                            id="senderAddress" 
+                            rows="3" 
+                            class="form-control address-field {% if form.pickup_address.errors %}is-invalid{% endif %}" 
+                            readonly 
+                            required 
+                            onclick="openAddressModal('pickup')"
+                            placeholder="Нажмите для выбора адреса отправки"
+                        >{{ form.pickup_address.value|default:'' }}</textarea>
                         <small class="form-text text-muted">
                             Нажмите на поле для выбора адреса отправки из списка складов
                         </small>
-                        {% if form.sender_address.errors %}
+                        {% if form.pickup_address.errors %}
                         <div class="invalid-feedback d-block">
-                            {{ form.sender_address.errors.0 }}
+                            {{ form.pickup_address.errors.0 }}
                         </div>
                         {% endif %}
                     </div>
+                    
+                    <!-- Скрытое поле для ID склада отправки -->
+                    {{ form.pickup_warehouse }}
                     
                     <!-- Получатель -->
                     <div class="mb-3">
@@ -89,20 +93,28 @@
                     <!-- Адрес доставки - кликабельное поле (СКЛАД) -->
                     <div class="mb-3">
                         <label class="form-label">Адрес доставки *</label>
-                        <textarea name="recipient_address" id="recipientAddress" rows="3" 
-                                  class="form-control address-field {% if form.recipient_address.errors %}is-invalid{% endif %}" 
-                                  readonly required 
-                                  onclick="openAddressModal('delivery')"
-                                  placeholder="Нажмите для выбора адреса доставки">{{ form.recipient_address.value|default:'' }}</textarea>
+                        <textarea 
+                            name="delivery_address" 
+                            id="recipientAddress" 
+                            rows="3" 
+                            class="form-control address-field {% if form.delivery_address.errors %}is-invalid{% endif %}" 
+                            readonly 
+                            required 
+                            onclick="openAddressModal('delivery')"
+                            placeholder="Нажмите для выбора адреса доставки"
+                        >{{ form.delivery_address.value|default:'' }}</textarea>
                         <small class="form-text text-muted">
                             Нажмите на поле для выбора адреса доставки из списка складов
                         </small>
-                        {% if form.recipient_address.errors %}
+                        {% if form.delivery_address.errors %}
                         <div class="invalid-feedback d-block">
-                            {{ form.recipient_address.errors.0 }}
+                            {{ form.delivery_address.errors.0 }}
                         </div>
                         {% endif %}
                     </div>
+                    
+                    <!-- Скрытое поле для ID склада доставки -->
+                    {{ form.delivery_warehouse }}
                     
                     <!-- Фулфилмент оператор -->
                     <div class="mb-3">
@@ -243,17 +255,16 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <input type="hidden" id="modalAddressType" value="">
-        
+        <!-- Текстовое поле для адреса -->
         <div class="mb-3">
-          <label for="addressInput" class="form-label">Адрес склада</label>
+          <label for="addressInput" class="form-label">Адрес</label>
           <textarea 
             class="form-control" 
             id="addressInput" 
             rows="3" 
             placeholder="Выберите склад для автоматического заполнения"
-            readonly
           ></textarea>
+          <div class="form-text">Можно ввести вручную или выбрать склад для автоматической подстановки адреса</div>
         </div>
 
         <div class="row">
@@ -275,6 +286,7 @@
           </div>
         </div>
         
+        <!-- Список складов с адресами -->
         <div id="warehouseList" class="mt-3" style="display: none;">
           <h6 class="mb-2">Список складов в выбранном городе:</h6>
           <div class="warehouse-list" id="warehouseItemsContainer">
@@ -305,14 +317,14 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn" data-bs-dismiss="modal">Отмена</button>
         <button type="button" class="btn btn-primary" id="saveAddressBtn">Выбрать склад</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Модальное окно для создания контрагента - ОБНОВЛЕННОЕ -->
+<!-- Модальное окно для создания контрагента -->
 <div class="modal fade" id="counterpartyModal" tabindex="-1" aria-labelledby="counterpartyModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -409,13 +421,21 @@
             </div>
           </div>
           
-          <!-- Общие поля -->
-          <div class="mb-3">
-            <label for="counterpartyAddress" class="form-label">Юридический адрес *</label>
-            <textarea class="form-control" id="counterpartyAddress" name="address" rows="2" required></textarea>
+          <!-- Поле адреса (разное для разных типов) -->
+          <div id="addressFields">
+            <div class="mb-3" id="legalAddressField">
+              <label for="counterpartyAddress" class="form-label">Юридический адрес *</label>
+              <textarea class="form-control" id="counterpartyAddress" name="address" rows="2" required></textarea>
+            </div>
+            
+            <div class="mb-3" id="physicalAddressField" style="display: none;">
+              <label for="counterpartyPhysicalAddress" class="form-label">Адрес *</label>
+              <textarea class="form-control" id="counterpartyPhysicalAddress" name="physical_address" rows="2"></textarea>
+              <input type="hidden" id="counterpartyAddressForPhysical" name="address">
+            </div>
           </div>
           
-          <div class="mb-3">
+          <div class="mb-3" id="actualAddressField">
             <label for="counterpartyActualAddress" class="form-label">Фактический адрес</label>
             <textarea class="form-control" id="counterpartyActualAddress" name="actual_address" rows="2"></textarea>
           </div>
@@ -513,7 +533,6 @@
     margin-bottom: 0.5rem;
 }
 
-/* Стили для поля оператора фулфилмента */
 .form-control[disabled],
 .form-control[readonly] {
     background-color: #f8f9fa !important;
@@ -524,26 +543,20 @@
 
 <script>
 let selectedWarehouseId = null;
-let addressModalInstance = null;
-let counterpartyModalInstance = null;
 let currentAddressType = '';
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Инициализация модального окна адреса (склада)
     initAddressModal();
-    
-    // Инициализация модального окна контрагента
     initCounterpartyModal();
-    
-    // Загрузка контрагентов при изменении выбора
-    initCounterpartySelects();
+    loadCounterparties();
 });
 
-// === ФУНКЦИИ ДЛЯ АДРЕСОВ (СКЛАДОВ) ===
+// ==================== ИНИЦИАЛИЗАЦИЯ МОДАЛЬНОГО ОКНА АДРЕСА ====================
+
 function initAddressModal() {
     const modal = document.getElementById('addressModal');
     
-    // Обработчик скрытия модального окна
+    // Очистка при закрытии
     modal.addEventListener('hidden.bs.modal', function() {
         document.getElementById('citySelect').value = '';
         document.getElementById('warehouseSelect').value = '';
@@ -554,6 +567,11 @@ function initAddressModal() {
         document.getElementById('warehouseItemsContainer').innerHTML = '';
         selectedWarehouseId = null;
         currentAddressType = '';
+    });
+    
+    // Загрузка данных при открытии
+    modal.addEventListener('show.bs.modal', function() {
+        loadCities();
     });
     
     // Обработчик выбора города
@@ -601,7 +619,6 @@ function initAddressModal() {
 
 function openAddressModal(type) {
     currentAddressType = type;
-    document.getElementById('modalAddressType').value = type;
     
     // Определяем заголовок модального окна
     const modalTitle = document.getElementById('addressModalLabel');
@@ -618,13 +635,10 @@ function openAddressModal(type) {
         document.getElementById('addressInput').value = currentAddressElement.value || '';
     }
     
-    // Загружаем города
-    loadCities();
-    
     // Открываем модальное окно
     const modalElement = document.getElementById('addressModal');
-    addressModalInstance = new bootstrap.Modal(modalElement);
-    addressModalInstance.show();
+    const modalInstance = new bootstrap.Modal(modalElement);
+    modalInstance.show();
 }
 
 function loadCities() {
@@ -738,15 +752,15 @@ function saveAddress() {
     const addressInput = document.getElementById('addressInput').value.trim();
     
     if (!addressInput) {
-        showNotification('Пожалуйста, выберите склад', 'error');
+        showNotification('Пожалуйста, выберите склад или введите адрес вручную', 'error');
         return;
     }
     
     // Определяем ID поля адреса и скрытого поля
     const addressFieldId = currentAddressType === 'pickup' ? 'senderAddress' : 'recipientAddress';
-    const warehouseFieldId = currentAddressType === 'pickup' ? 'id_pickup_warehouse_id' : 'id_delivery_warehouse_id';
+    const warehouseFieldId = currentAddressType === 'pickup' ? 'id_pickup_warehouse' : 'id_delivery_warehouse';
     
-    // Заполняем поле адреса (СКЛАДА)
+    // Заполняем поле адреса
     document.getElementById(addressFieldId).value = addressInput;
     
     // Заполняем скрытое поле ID склада
@@ -760,24 +774,20 @@ function saveAddress() {
     const modalInstance = bootstrap.Modal.getInstance(modalElement);
     if (modalInstance) {
         modalInstance.hide();
-    } else if (addressModalInstance) {
-        addressModalInstance.hide();
     }
     
-    showNotification('Адрес склада успешно выбран', 'success');
+    showNotification('Адрес успешно выбран', 'success');
 }
 
-// === ФУНКЦИИ ДЛЯ КОНТРАГЕНТОВ ===
+// ==================== ФУНКЦИИ ДЛЯ КОНТРАГЕНТОВ ====================
+
 function initCounterpartyModal() {
     const modal = document.getElementById('counterpartyModal');
     
-    // Вызываем при открытии модального окна для правильного отображения полей
     modal.addEventListener('show.bs.modal', function() {
-        // Вызываем функцию для правильного отображения полей при открытии
         setTimeout(changeCounterpartyType, 50);
     });
     
-    // Обработчик скрытия модального окна
     modal.addEventListener('hidden.bs.modal', function() {
         document.getElementById('counterpartyForm').reset();
         document.getElementById('legalFields').style.display = 'none';
@@ -785,7 +795,6 @@ function initCounterpartyModal() {
         document.getElementById('counterpartyFor').value = '';
     });
     
-    // Кнопка сохранения контрагента
     document.getElementById('saveCounterpartyBtn').addEventListener('click', function() {
         saveCounterparty();
     });
@@ -795,25 +804,34 @@ function changeCounterpartyType() {
     const type = document.getElementById('counterpartyType').value;
     const legalFields = document.getElementById('legalFields');
     const individualFields = document.getElementById('individualFields');
+    const legalAddressField = document.getElementById('legalAddressField');
+    const physicalAddressField = document.getElementById('physicalAddressField');
+    const actualAddressField = document.getElementById('actualAddressField');
     
-    // Скрываем все поля
     legalFields.style.display = 'none';
     individualFields.style.display = 'none';
+    legalAddressField.style.display = 'none';
+    physicalAddressField.style.display = 'none';
     
-    // Показываем нужные поля в зависимости от типа
+    document.getElementById('counterpartyAddress').required = false;
+    document.getElementById('counterpartyPhysicalAddress').required = false;
+    
     if (type === 'legal') {
         legalFields.style.display = 'block';
+        legalAddressField.style.display = 'block';
+        document.getElementById('counterpartyAddress').required = true;
+        actualAddressField.style.display = 'block';
     } else {
-        // Для всех остальных типов (entrepreneur, individual, self_employed) - поля физлица
         individualFields.style.display = 'block';
+        physicalAddressField.style.display = 'block';
+        document.getElementById('counterpartyPhysicalAddress').required = true;
+        actualAddressField.style.display = 'none';
     }
 }
 
 function openCounterpartyModal(forWhom) {
-    // Устанавливаем для кого создаем контрагента
     document.getElementById('counterpartyFor').value = forWhom;
     
-    // Определяем заголовок модального окна
     const modalTitle = document.getElementById('counterpartyModalLabel');
     if (forWhom === 'sender') {
         modalTitle.textContent = 'Создание нового отправителя';
@@ -821,123 +839,127 @@ function openCounterpartyModal(forWhom) {
         modalTitle.textContent = 'Создание нового получателя';
     }
     
-    // Открываем модальное окно
     const modalElement = document.getElementById('counterpartyModal');
-    counterpartyModalInstance = new bootstrap.Modal(modalElement);
-    counterpartyModalInstance.show();
+    const modalInstance = new bootstrap.Modal(modalElement);
+    modalInstance.show();
 }
 
 function saveCounterparty() {
+    const forWhom = document.getElementById('counterpartyFor').value;
     const form = document.getElementById('counterpartyForm');
     const formData = new FormData(form);
-    const forWhom = document.getElementById('counterpartyFor').value;
+    const type = document.getElementById('counterpartyType').value;
     
-    // Проверяем обязательные поля
     if (!formData.get('name')) {
         showNotification('Пожалуйста, введите наименование/ФИО', 'error');
         return;
     }
     
-    if (!formData.get('address')) {
-        showNotification('Пожалуйста, введите адрес', 'error');
-        return;
+    if (type === 'legal') {
+        if (!formData.get('address')) {
+            showNotification('Пожалуйста, введите юридический адрес', 'error');
+            return;
+        }
+    } else {
+        const physicalAddress = document.getElementById('counterpartyPhysicalAddress').value.trim();
+        if (!physicalAddress) {
+            showNotification('Пожалуйста, введите адрес', 'error');
+            return;
+        }
+        document.getElementById('counterpartyAddressForPhysical').value = physicalAddress;
     }
     
-    // Отправляем запрос на создание контрагента
+    const data = {};
+    for (let [key, value] of formData.entries()) {
+        data[key] = value;
+    }
+    
+    if (type !== 'legal' && data.physical_address) {
+        data.address = data.physical_address;
+    }
+    
     fetch('{% url "create_counterparty_api" %}', {
         method: 'POST',
         headers: {
-            'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
             'Content-Type': 'application/json',
+            'X-CSRFToken': data.csrfmiddlewaretoken
         },
-        body: JSON.stringify(Object.fromEntries(formData))
+        body: JSON.stringify(data)
     })
     .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Добавляем нового контрагента в выпадающий список
-            const selectId = forWhom === 'sender' ? 'id_sender' : 'id_recipient';
-            const selectField = document.getElementById(selectId);
+    .then(result => {
+        if (result.success) {
+            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('counterpartyModal'));
+            modalInstance.hide();
             
-            if (selectField) {
-                const newOption = document.createElement('option');
-                newOption.value = data.id;
-                newOption.textContent = data.short_info || data.name;
-                newOption.selected = true;
-                selectField.appendChild(newOption);
-            }
+            updateCounterpartySelect(forWhom, result.id, result.short_info);
             
-            // Закрываем модальное окно
-            if (counterpartyModalInstance) {
-                counterpartyModalInstance.hide();
-            } else {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('counterpartyModal'));
-                if (modal) {
-                    modal.hide();
-                }
-            }
-            
-            showNotification('Контрагент успешно создан', 'success');
+            showNotification('Контрагент успешно создан и выбран', 'success');
         } else {
-            showNotification(`Ошибка при создании контрагента: ${data.error}`, 'error');
+            showNotification('Ошибка при создании контрагента: ' + result.error, 'error');
         }
     })
     .catch(error => {
-        console.error('Ошибка при создании контрагента:', error);
+        console.error('Ошибка:', error);
         showNotification('Ошибка при создании контрагента', 'error');
     });
 }
 
-function initCounterpartySelects() {
-    // Загружаем контрагентов для отправителя
-    loadCounterparties('sender', 'id_sender');
-    
-    // Загружаем контрагентов для получателя
-    loadCounterparties('recipient', 'id_recipient');
-}
-
-function loadCounterparties(forWhom, selectId) {
+function loadCounterparties() {
     fetch('{% url "counterparties_json" %}')
         .then(response => response.json())
         .then(data => {
-            const select = document.getElementById(selectId);
-            if (!select) return;
-            
-            // Сохраняем текущее значение
-            const currentValue = select.value;
-            
-            // Очищаем опции кроме первой
-            while (select.options.length > 1) {
-                select.remove(1);
-            }
-            
-            // Добавляем контрагентов
-            data.forEach(counterparty => {
-                const option = document.createElement('option');
-                option.value = counterparty.id;
-                option.textContent = counterparty.short_info || counterparty.name;
-                select.appendChild(option);
-            });
-            
-            // Восстанавливаем выбранное значение
-            if (currentValue) {
-                select.value = currentValue;
-            }
+            loadCounterpartiesForSelect('sender', 'id_sender', data);
+            loadCounterpartiesForSelect('recipient', 'id_recipient', data);
         })
         .catch(error => {
             console.error('Ошибка загрузки контрагентов:', error);
         });
 }
 
+function loadCounterpartiesForSelect(forWhom, selectId, data) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    const currentValue = select.value;
+    
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
+    
+    data.forEach(counterparty => {
+        const option = document.createElement('option');
+        option.value = counterparty.id;
+        option.textContent = counterparty.short_info;
+        select.appendChild(option);
+    });
+    
+    if (currentValue) {
+        select.value = currentValue;
+    }
+}
+
+function updateCounterpartySelect(forWhom, id, name) {
+    const selectId = forWhom === 'sender' ? 'id_sender' : 'id_recipient';
+    const select = document.getElementById(selectId);
+    
+    if (!select) return;
+    
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = name;
+    
+    select.appendChild(option);
+    select.value = id;
+}
+
 function showNotification(message, type) {
-    // Удаляем старые уведомления
     const oldNotifications = document.querySelectorAll('.notification-alert');
     oldNotifications.forEach(alert => {
         const bsAlert = new bootstrap.Alert(alert);
         bsAlert.close();
     });
     
-    // Создаем новое уведомление
     const alert = document.createElement('div');
     alert.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show notification-alert`;
     alert.style.cssText = `
@@ -960,10 +982,8 @@ function showNotification(message, type) {
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     
-    // Вставляем в body
     document.body.appendChild(alert);
     
-    // Автоматически скрываем через 3 секунды
     setTimeout(() => {
         if (alert.parentNode) {
             const bsAlert = new bootstrap.Alert(alert);
