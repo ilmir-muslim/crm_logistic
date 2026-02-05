@@ -808,7 +808,7 @@ def bulk_update_pickup_orders(request):
                         order.operator = None
 
                 elif field == "status":
-                    if value in ["ready", "payment"]:
+                    if value in ["ready", "payment", "accepted"]:
                         order.status = value
 
                 elif field == "receiving_warehouse":

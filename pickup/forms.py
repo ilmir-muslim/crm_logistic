@@ -156,8 +156,9 @@ class PickupOrderForm(forms.ModelForm):
         )
 
         self.fields["status"].choices = [
-            ("ready", "Готов к выдаче"),
+            ("ready", "Готова к выдаче"),
             ("payment", "На оплате"),
+            ("accepted", "Принята"),
         ]
 
     def clean_pickup_time_from(self):
@@ -178,5 +179,3 @@ class PickupOrderForm(forms.ModelForm):
         """Сохраняет форму"""
         instance = super().save(commit=commit)
         return instance
-
-

@@ -1,539 +1,622 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block content %}
+{% extends 'base.html' %} {% load static %} {% block content %}
 <div class="container-fluid px-4">
-    <!-- Заголовок с современным дизайном -->
-    <div class="row mb-5">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center border-bottom pb-3">
-                <div>
-                    <h1 class="h2 fw-bold text-dark mb-1">
-                        <i class="bi bi-speedometer2 text-primary me-2"></i>Логистический дашборд
-                    </h1>
-                    <p class="text-muted mb-0">Панель управления доставками и заборами грузов</p>
-                </div>
+  <!-- Заголовок с современным дизайном -->
+  <div class="row mb-5">
+    <div class="col-12">
+      <div
+        class="d-flex justify-content-between align-items-center border-bottom pb-3"
+      >
+        <div>
+          <h1 class="h2 fw-bold text-dark mb-1">
+            <i class="bi bi-speedometer2 text-primary me-2"></i>Логистический
+            дашборд
+          </h1>
+          <p class="text-muted mb-0">
+            Панель управления доставками и заборами грузов
+          </p>
+        </div>
+        <div class="d-flex align-items-center">
+          <div class="bg-light rounded-pill px-3 py-2 me-3">
+            <i class="bi bi-calendar-date text-primary me-2"></i>
+            <span class="fw-medium">{{ today|date:"d.m.Y" }}</span>
+          </div>
+          <div class="dropdown">
+            <button
+              class="btn btn-outline-secondary btn-sm dropdown-toggle"
+              type="button"
+              data-bs-toggle="dropdown"
+            >
+              <i class="bi bi-gear"></i> Настройки
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  data-bs-toggle="modal"
+                  data-bs-target="#emailSettingsModal2"
+                >
+                  <i class="bi bi-envelope me-2"></i>Настройка Email</a
+                >
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'reports_dashboard' %}">
+                  <i class="bi bi-bar-chart me-2"></i>Аналитика</a
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Основные метрики -->
+  <div class="row mb-5">
+    <!-- Доставки -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-start border-primary border-4 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small mb-1">ДОСТАВКИ</div>
+              <div class="h4 fw-bold text-dark">{{ delivery_stats.total }}</div>
+              <div class="text-success small">
+                <i class="bi bi-arrow-up me-1"></i>
+                {{ delivery_stats.today }} сегодня
+              </div>
+            </div>
+            <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
+              <i class="bi bi-truck text-primary fs-3"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="d-flex justify-content-between small text-muted mb-1">
+              <span>В обработке</span>
+              <span class="fw-medium">{{ delivery_stats.submitted }}</span>
+            </div>
+            <div class="progress mb-2" style="height: 4px">
+              <div
+                class="progress-bar bg-warning"
+                style="width: {% widthratio delivery_stats.submitted delivery_stats.total 100 %}%"
+              ></div>
+            </div>
+            <div class="d-flex justify-content-between small text-muted mb-1">
+              <span>Отправлено</span>
+              <span class="fw-medium">{{ delivery_stats.shipped }}</span>
+            </div>
+            <div class="progress" style="height: 4px">
+              <div
+                class="progress-bar bg-success"
+                style="width: {% widthratio delivery_stats.shipped delivery_stats.total 100 %}%"
+              ></div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer bg-transparent border-top-0 pt-0">
+          <a
+            href="{% url 'delivery_order_list' %}"
+            class="text-primary small text-decoration-none"
+          >
+            <i class="bi bi-arrow-right me-1"></i>Посмотреть все
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Заборы -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-start border-success border-4 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small mb-1">ЗАБОРЫ</div>
+              <div class="h4 fw-bold text-dark">{{ pickup_stats.total }}</div>
+              <div class="text-info small">
+                <i class="bi bi-exclamation-circle me-1"></i>
+                {{ pickup_stats.ready }} готовы к выдаче
+              </div>
+            </div>
+            <div class="bg-success bg-opacity-10 p-3 rounded-circle">
+              <i class="bi bi-box-seam text-success fs-3"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="badge bg-info rounded-pill">Готова к выдаче</span>
+              <span class="fw-medium">{{ pickup_stats.ready }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="badge bg-warning rounded-pill">На оплате</span>
+              <span class="fw-medium">{{ pickup_stats.payment }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="badge bg-success rounded-pill">Принята</span>
+              <span class="fw-medium"
+                >{{ pickup_stats.accepted|default:0 }}</span
+              >
+            </div>
+          </div>
+        </div>
+        <div class="card-footer bg-transparent border-top-0 pt-0">
+          <a
+            href="{% url 'pickup_order_list' %}"
+            class="text-success small text-decoration-none"
+          >
+            <i class="bi bi-arrow-right me-1"></i>Посмотреть все
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Вес и объем -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-start border-info border-4 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small mb-1">ГРУЗООБОРОТ</div>
+              <div class="h4 fw-bold text-dark">
+                {{ delivery_stats.total_weight|floatformat:0 }} кг
+              </div>
+              <div class="text-info small">
+                <i class="bi bi-box me-1"></i>
+                {{ delivery_stats.total_volume|floatformat:1 }} м³ объем
+              </div>
+            </div>
+            <div class="bg-info bg-opacity-10 p-3 rounded-circle">
+              <i class="bi bi-bar-chart text-info fs-3"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="small text-muted mb-2">Статистика за день</div>
+            <div class="d-flex justify-content-between small mb-1">
+              <span>Доставок сегодня</span>
+              <span class="fw-medium">{{ delivery_stats.today }}</span>
+            </div>
+            <div class="progress mb-3" style="height: 6px">
+              <div
+                class="progress-bar bg-info"
+                style="width: {% widthratio delivery_stats.today delivery_stats.total 100 %}%"
+              ></div>
+            </div>
+            <div class="text-center small text-muted">
+              <i class="bi bi-info-circle me-1"></i>
+              Общий вес всех доставок
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Быстрые действия и отчеты -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-start border-warning border-4 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <div class="text-muted small mb-1">БЫСТРЫЕ ДЕЙСТВИЯ</div>
+              <div class="h6 fw-bold text-dark">Создать заявку</div>
+            </div>
+            <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
+              <i class="bi bi-lightning text-warning fs-3"></i>
+            </div>
+          </div>
+
+          <!-- Кнопки создания заявок -->
+          <div class="d-grid gap-2 mb-4">
+            <a href="{% url 'pickup_order_create' %}" class="btn btn-success">
+              <i class="bi bi-plus-circle me-2"></i>Новый забор
+            </a>
+            <!-- ИСПРАВЛЕНО: заменили ссылку на админку на кастомную форму -->
+            <a href="{% url 'delivery_order_create' %}" class="btn btn-primary">
+              <i class="bi bi-plus-circle me-2"></i>Новая доставка
+            </a>
+          </div>
+
+          <!-- Раздел отчетов -->
+          <div class="border-top pt-4">
+            <div class="text-muted small mb-2">ОТЧЕТЫ И ДОКУМЕНТЫ</div>
+            <div class="list-group list-group-flush">
+              <a
+                href="{% url 'daily_report_pdf' %}"
+                class="list-group-item list-group-item-action border-0 px-0 py-2"
+              >
                 <div class="d-flex align-items-center">
-                    <div class="bg-light rounded-pill px-3 py-2 me-3">
-                        <i class="bi bi-calendar-date text-primary me-2"></i>
-                        <span class="fw-medium">{{ today|date:"d.m.Y" }}</span>
-                    </div>
-                    <div class="dropdown">
-                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" 
-                                data-bs-toggle="dropdown">
-                            <i class="bi bi-gear"></i> Настройки
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#emailSettingsModal2">
-                                <i class="bi bi-envelope me-2"></i>Настройка Email</a></li>
-                            <li><a class="dropdown-item" href="{% url 'reports_dashboard' %}">
-                                <i class="bi bi-bar-chart me-2"></i>Аналитика</a></li>
-                        </ul>
-                    </div>
+                  <div class="bg-danger bg-opacity-10 p-2 rounded me-3">
+                    <i class="bi bi-file-pdf text-danger"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="fw-medium small">Ежедневный отчет (PDF)</div>
+                  </div>
+                  <i class="bi bi-arrow-right text-muted small"></i>
                 </div>
+              </a>
+              <a
+                href="{% url 'daily_report_pdf' %}?date={% now 'Y-m-d' %}"
+                class="list-group-item list-group-item-action border-0 px-0 py-2"
+              >
+                <div class="d-flex align-items-center">
+                  <div class="bg-primary bg-opacity-10 p-2 rounded me-3">
+                    <i class="bi bi-calendar-day text-primary"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="fw-medium small">Отчет за сегодня</div>
+                  </div>
+                  <i class="bi bi-arrow-right text-muted small"></i>
+                </div>
+              </a>
+              <a
+                href="{% url 'reports_dashboard' %}"
+                class="list-group-item list-group-item-action border-0 px-0 py-2"
+              >
+                <div class="d-flex align-items-center">
+                  <div class="bg-warning bg-opacity-10 p-2 rounded me-3">
+                    <i class="bi bi-bar-chart text-warning"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="fw-medium small">Аналитика и отчеты</div>
+                  </div>
+                  <i class="bi bi-arrow-right text-muted small"></i>
+                </div>
+              </a>
             </div>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
 
-    <!-- Основные метрики -->
-    <div class="row mb-5">
-        <!-- Доставки -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-start border-primary border-4 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="text-muted small mb-1">ДОСТАВКИ</div>
-                            <div class="h4 fw-bold text-dark">{{ delivery_stats.total }}</div>
-                            <div class="text-success small">
-                                <i class="bi bi-arrow-up me-1"></i>
-                                {{ delivery_stats.today }} сегодня
-                            </div>
-                        </div>
-                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
-                            <i class="bi bi-truck text-primary fs-3"></i>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between small text-muted mb-1">
-                            <span>В обработке</span>
-                            <span class="fw-medium">{{ delivery_stats.submitted }}</span>
-                        </div>
-                        <div class="progress mb-2" style="height: 4px;">
-                            <div class="progress-bar bg-warning" 
-                                 style="width: {% widthratio delivery_stats.submitted delivery_stats.total 100 %}%"></div>
-                        </div>
-                        <div class="d-flex justify-content-between small text-muted mb-1">
-                            <span>Отправлено</span>
-                            <span class="fw-medium">{{ delivery_stats.shipped }}</span>
-                        </div>
-                        <div class="progress" style="height: 4px;">
-                            <div class="progress-bar bg-success" 
-                                 style="width: {% widthratio delivery_stats.shipped delivery_stats.total 100 %}%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer bg-transparent border-top-0 pt-0">
-                    <a href="{% url 'delivery_order_list' %}" class="text-primary small text-decoration-none">
-                        <i class="bi bi-arrow-right me-1"></i>Посмотреть все
+  <!-- Последние заявки -->
+  <div class="row mb-5">
+    <!-- Последние доставки -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white border-bottom-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold text-dark mb-0">
+              <i class="bi bi-truck text-primary me-2"></i>Последние доставки
+            </h5>
+            <a
+              href="{% url 'delivery_order_list' %}"
+              class="btn btn-sm btn-outline-primary"
+            >
+              Все доставки <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="border-0 ps-4">№</th>
+                  <th class="border-0">Город</th>
+                  <th class="border-0">Дата</th>
+                  <th class="border-0 pe-4">Статус</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for order in recent_deliveries %}
+                <tr class="border-top">
+                  <td class="ps-4">
+                    <a
+                      href="{% url 'delivery_order_detail' order.pk %}"
+                      class="text-decoration-none fw-medium text-dark"
+                    >
+                      {% if order.tracking_number %} {{ order.tracking_number }}
+                      {% else %} #{{ order.id }} {% endif %}
                     </a>
-                </div>
-            </div>
+                  </td>
+                  <td>{{ order.city }}</td>
+                  <td>{{ order.date|date:"d.m.Y" }}</td>
+                  <td class="pe-4">
+                    <span
+                      class="badge bg-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% elif order.status == 'accepted' %}success{% else %}secondary{% endif %} bg-opacity-10 text-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% elif order.status == 'accepted' %}success{% else %}secondary{% endif %} border border-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% elif order.status == 'accepted' %}success{% else %}secondary{% endif %} border-opacity-25 px-3 py-1 rounded-pill"
+                    >
+                      {{ order.get_status_display }}
+                    </span>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td
+                    colspan="4"
+                    class="text-center py-5 text-muted border-top"
+                  >
+                    <i class="bi bi-inbox fs-1 mb-2 d-block"></i>
+                    Нет заявок на доставку
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
+      </div>
+    </div>
 
-        <!-- Заборы -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-start border-success border-4 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="text-muted small mb-1">ЗАБОРЫ</div>
-                            <div class="h4 fw-bold text-dark">{{ pickup_stats.total }}</div>
-                            <div class="text-info small">
-                                <i class="bi bi-exclamation-circle me-1"></i>
-                                {{ pickup_stats.ready }} готовы к выдаче
-                            </div>
-                        </div>
-                        <div class="bg-success bg-opacity-10 p-3 rounded-circle">
-                            <i class="bi bi-box-seam text-success fs-3"></i>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="badge bg-info rounded-pill">Готов к выдаче</span>
-                            <span class="fw-medium">{{ pickup_stats.ready }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="badge bg-warning rounded-pill">На оплате</span>
-                            <span class="fw-medium">{{ pickup_stats.payment }}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer bg-transparent border-top-0 pt-0">
-                    <a href="{% url 'pickup_order_list' %}" class="text-success small text-decoration-none">
-                        <i class="bi bi-arrow-right me-1"></i>Посмотреть все
+    <!-- Последние заборы -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white border-bottom-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold text-dark mb-0">
+              <i class="bi bi-box-seam text-success me-2"></i>Последние заборы
+            </h5>
+            <a
+              href="{% url 'pickup_order_list' %}"
+              class="btn btn-sm btn-outline-success"
+            >
+              Все заборы <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="border-0 ps-4">№</th>
+                  <th class="border-0">Клиент</th>
+                  <th class="border-0">Дата</th>
+                  <th class="border-0 pe-4">Статус</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for order in recent_pickups %}
+                <tr class="border-top">
+                  <td class="ps-4">
+                    <a
+                      href="{% url 'pickup_order_detail' order.pk %}"
+                      class="text-decoration-none fw-medium text-dark"
+                    >
+                      {% if order.tracking_number %} {{ order.tracking_number }}
+                      {% else %} #{{ order.id }} {% endif %}
                     </a>
-                </div>
-            </div>
+                  </td>
+                  <td>{{ order.get_client_name|truncatechars:20 }}</td>
+                  <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
+                  <td class="pe-4">
+                    <span
+                      class="badge bg-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% else %}secondary{% endif %} bg-opacity-10 text-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% else %}secondary{% endif %} border border-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% else %}secondary{% endif %} border-opacity-25 px-3 py-1 rounded-pill"
+                    >
+                      {{ order.get_status_display }}
+                    </span>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td
+                    colspan="4"
+                    class="text-center py-5 text-muted border-top"
+                  >
+                    <i class="bi bi-inbox fs-1 mb-2 d-block"></i>
+                    Нет заявок на забор
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
-
-        <!-- Вес и объем -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-start border-info border-4 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="text-muted small mb-1">ГРУЗООБОРОТ</div>
-                            <div class="h4 fw-bold text-dark">{{ delivery_stats.total_weight|floatformat:0 }} кг</div>
-                            <div class="text-info small">
-                                <i class="bi bi-box me-1"></i>
-                                {{ delivery_stats.total_volume|floatformat:1 }} м³ объем
-                            </div>
-                        </div>
-                        <div class="bg-info bg-opacity-10 p-3 rounded-circle">
-                            <i class="bi bi-bar-chart text-info fs-3"></i>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <div class="small text-muted mb-2">Статистика за день</div>
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span>Доставок сегодня</span>
-                            <span class="fw-medium">{{ delivery_stats.today }}</span>
-                        </div>
-                        <div class="progress mb-3" style="height: 6px;">
-                            <div class="progress-bar bg-info" 
-                                 style="width: {% widthratio delivery_stats.today delivery_stats.total 100 %}%"></div>
-                        </div>
-                        <div class="text-center small text-muted">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Общий вес всех доставок
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Быстрые действия и отчеты -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-start border-warning border-4 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div>
-                            <div class="text-muted small mb-1">БЫСТРЫЕ ДЕЙСТВИЯ</div>
-                            <div class="h6 fw-bold text-dark">Создать заявку</div>
-                        </div>
-                        <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
-                            <i class="bi bi-lightning text-warning fs-3"></i>
-                        </div>
-                    </div>
-                    
-                    <!-- Кнопки создания заявок -->
-                    <div class="d-grid gap-2 mb-4">
-                        <a href="{% url 'pickup_order_create' %}" class="btn btn-success">
-                            <i class="bi bi-plus-circle me-2"></i>Новый забор
-                        </a>
-                        <!-- ИСПРАВЛЕНО: заменили ссылку на админку на кастомную форму -->
-                        <a href="{% url 'delivery_order_create' %}" class="btn btn-primary">
-                            <i class="bi bi-plus-circle me-2"></i>Новая доставка
-                        </a>
-                    </div>
-                    
-                    <!-- Раздел отчетов -->
-                    <div class="border-top pt-4">
-                        <div class="text-muted small mb-2">ОТЧЕТЫ И ДОКУМЕНТЫ</div>
-                        <div class="list-group list-group-flush">
-                            <a href="{% url 'daily_report_pdf' %}" class="list-group-item list-group-item-action border-0 px-0 py-2">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-danger bg-opacity-10 p-2 rounded me-3">
-                                        <i class="bi bi-file-pdf text-danger"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-medium small">Ежедневный отчет (PDF)</div>
-                                    </div>
-                                    <i class="bi bi-arrow-right text-muted small"></i>
-                                </div>
-                            </a>
-                            <a href="{% url 'daily_report_pdf' %}?date={% now 'Y-m-d' %}" 
-                               class="list-group-item list-group-item-action border-0 px-0 py-2">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-primary bg-opacity-10 p-2 rounded me-3">
-                                        <i class="bi bi-calendar-day text-primary"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-medium small">Отчет за сегодня</div>
-                                    </div>
-                                    <i class="bi bi-arrow-right text-muted small"></i>
-                                </div>
-                            </a>
-                            <a href="{% url 'reports_dashboard' %}" 
-                               class="list-group-item list-group-item-action border-0 px-0 py-2">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-warning bg-opacity-10 p-2 rounded me-3">
-                                        <i class="bi bi-bar-chart text-warning"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-medium small">Аналитика и отчеты</div>
-                                    </div>
-                                    <i class="bi bi-arrow-right text-muted small"></i>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
 
-    <!-- Последние заявки -->
-    <div class="row mb-5">
-        <!-- Последние доставки -->
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-white border-bottom-0">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="fw-bold text-dark mb-0">
-                            <i class="bi bi-truck text-primary me-2"></i>Последние доставки
-                        </h5>
-                        <a href="{% url 'delivery_order_list' %}" class="btn btn-sm btn-outline-primary">
-                            Все доставки <i class="bi bi-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="border-0 ps-4">№</th>
-                                    <th class="border-0">Город</th>
-                                    <th class="border-0">Дата</th>
-                                    <th class="border-0 pe-4">Статус</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in recent_deliveries %}
-                                <tr class="border-top">
-                                    <td class="ps-4">
-                                        <a href="{% url 'delivery_order_detail' order.pk %}" 
-                                           class="text-decoration-none fw-medium text-dark">
-                                            {% if order.tracking_number %}
-                                                {{ order.tracking_number }}
-                                            {% else %}
-                                                #{{ order.id }}
-                                            {% endif %}
-                                        </a>
-                                    </td>
-                                    <td>{{ order.city }}</td>
-                                    <td>{{ order.date|date:"d.m.Y" }}</td>
-                                    <td class="pe-4">
-                                        <span class="badge bg-{% if order.status == 'submitted' %}warning{% elif order.status == 'driver_assigned' %}info{% else %}success{% endif %} bg-opacity-10 text-{% if order.status == 'submitted' %}warning{% elif order.status == 'driver_assigned' %}info{% else %}success{% endif %} border border-{% if order.status == 'submitted' %}warning{% elif order.status == 'driver_assigned' %}info{% else %}success{% endif %} border-opacity-25 px-3 py-1 rounded-pill">
-                                            {{ order.get_status_display }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center py-5 text-muted border-top">
-                                        <i class="bi bi-inbox fs-1 mb-2 d-block"></i>
-                                        Нет заявок на доставку
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+  <!-- Клиентские формы и инструменты -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white border-bottom-0">
+          <h5 class="fw-bold text-dark mb-0">
+            <i class="bi bi-link-45deg text-info me-2"></i>Клиентские формы и
+            инструменты
+          </h5>
         </div>
+        <div class="card-body">
+          <div class="row g-4">
+            <!-- Форма забора -->
+            <div class="col-md-6">
+              <div class="d-flex align-items-center p-3 border rounded h-100">
+                <div
+                  class="bg-success bg-opacity-10 p-3 rounded-circle me-3 flex-shrink-0"
+                >
+                  <i class="bi bi-box-arrow-in-down text-success fs-4"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <div class="fw-medium mb-1">Форма забора груза</div>
+                  <p class="text-muted small mb-3">
+                    Для клиентов: отправка формы для получения груза от клиента
+                  </p>
+                  <div class="d-flex flex-wrap gap-2">
+                    <a
+                      href="{% url 'pickup_order_form' %}"
+                      target="_blank"
+                      class="btn btn-outline-success btn-sm"
+                    >
+                      <i class="bi bi-box-arrow-up-right me-1"></i>Открыть форму
+                    </a>
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm copy-link-btn"
+                      data-url="{{ request.build_absolute_uri }}{% url 'pickup_order_form' %}"
+                      data-title="Форма забора груза"
+                    >
+                      <i class="bi bi-link-45deg me-1"></i>Скопировать ссылку
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        <!-- Последние заборы -->
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-white border-bottom-0">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="fw-bold text-dark mb-0">
-                            <i class="bi bi-box-seam text-success me-2"></i>Последние заборы
-                        </h5>
-                        <a href="{% url 'pickup_order_list' %}" class="btn btn-sm btn-outline-success">
-                            Все заборы <i class="bi bi-arrow-right ms-1"></i>
-                        </a>
-                    </div>
+            <!-- Форма доставки -->
+            <div class="col-md-6">
+              <div class="d-flex align-items-center p-3 border rounded h-100">
+                <div
+                  class="bg-primary bg-opacity-10 p-3 rounded-circle me-3 flex-shrink-0"
+                >
+                  <i class="bi bi-truck text-primary fs-4"></i>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="border-0 ps-4">№</th>
-                                    <th class="border-0">Клиент</th>
-                                    <th class="border-0">Дата</th>
-                                    <th class="border-0 pe-4">Статус</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in recent_pickups %}
-                                <tr class="border-top">
-                                    <td class="ps-4">
-                                        <a href="{% url 'pickup_order_detail' order.pk %}" 
-                                           class="text-decoration-none fw-medium text-dark">
-                                            {% if order.tracking_number %}
-                                                {{ order.tracking_number }}
-                                            {% else %}
-                                                #{{ order.id }}
-                                            {% endif %}
-                                        </a>
-                                    </td>
-                                    <td>{{ order.get_client_name|truncatechars:20 }}</td>
-                                    <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
-                                    <td class="pe-4">
-                                        <span class="badge bg-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% else %}secondary{% endif %} bg-opacity-10 text-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% else %}secondary{% endif %} border border-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% else %}secondary{% endif %} border-opacity-25 px-3 py-1 rounded-pill">
-                                            {{ order.get_status_display }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center py-5 text-muted border-top">
-                                        <i class="bi bi-inbox fs-1 mb-2 d-block"></i>
-                                        Нет заявок на забор
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="flex-grow-1">
+                  <div class="fw-medium mb-1">Форма доставки</div>
+                  <p class="text-muted small mb-3">
+                    Для клиентов: отправка формы для доставки груза клиенту
+                  </p>
+                  <div class="d-flex flex-wrap gap-2">
+                    <a
+                      href="{% url 'delivery_order_form' %}"
+                      target="_blank"
+                      class="btn btn-outline-primary btn-sm"
+                    >
+                      <i class="bi bi-box-arrow-up-right me-1"></i>Открыть форму
+                    </a>
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm copy-link-btn"
+                      data-url="{{ request.build_absolute_uri }}{% url 'delivery_order_form' %}"
+                      data-title="Форма доставки груза"
+                    >
+                      <i class="bi bi-link-45deg me-1"></i>Скопировать ссылку
+                    </button>
+                  </div>
                 </div>
+              </div>
             </div>
+          </div>
         </div>
+      </div>
     </div>
-
-    <!-- Клиентские формы и инструменты -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white border-bottom-0">
-                    <h5 class="fw-bold text-dark mb-0">
-                        <i class="bi bi-link-45deg text-info me-2"></i>Клиентские формы и инструменты
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-4">
-                        <!-- Форма забора -->
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center p-3 border rounded h-100">
-                                <div class="bg-success bg-opacity-10 p-3 rounded-circle me-3 flex-shrink-0">
-                                    <i class="bi bi-box-arrow-in-down text-success fs-4"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-medium mb-1">Форма забора груза</div>
-                                    <p class="text-muted small mb-3">Для клиентов: отправка формы для получения груза от клиента</p>
-                                    <div class="d-flex flex-wrap gap-2">
-                                        <a href="{% url 'pickup_order_form' %}" target="_blank" 
-                                           class="btn btn-outline-success btn-sm">
-                                            <i class="bi bi-box-arrow-up-right me-1"></i>Открыть форму
-                                        </a>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm copy-link-btn" 
-                                                data-url="{{ request.build_absolute_uri }}{% url 'pickup_order_form' %}"
-                                                data-title="Форма забора груза">
-                                            <i class="bi bi-link-45deg me-1"></i>Скопировать ссылку
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Форма доставки -->
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center p-3 border rounded h-100">
-                                <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3 flex-shrink-0">
-                                    <i class="bi bi-truck text-primary fs-4"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-medium mb-1">Форма доставки</div>
-                                    <p class="text-muted small mb-3">Для клиентов: отправка формы для доставки груза клиенту</p>
-                                    <div class="d-flex flex-wrap gap-2">
-                                        <a href="{% url 'delivery_order_form' %}" target="_blank" 
-                                           class="btn btn-outline-primary btn-sm">
-                                            <i class="bi bi-box-arrow-up-right me-1"></i>Открыть форму
-                                        </a>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm copy-link-btn" 
-                                                data-url="{{ request.build_absolute_uri }}{% url 'delivery_order_form' %}"
-                                                data-title="Форма доставки груза">
-                                            <i class="bi bi-link-45deg me-1"></i>Скопировать ссылку
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+  </div>
 </div>
 
 <!-- Стили для современного вида -->
 <style>
-:root {
+  :root {
     --border-radius: 12px;
-    --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
     --transition: all 0.2s ease;
-}
+  }
 
-.card {
+  .card {
     border: 1px solid #eef2f7;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-sm);
     transition: var(--transition);
-}
+  }
 
-.card:hover {
+  .card:hover {
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
-}
+  }
 
-.table {
-    --bs-table-striped-bg: rgba(0,0,0,0.01);
-}
+  .table {
+    --bs-table-striped-bg: rgba(0, 0, 0, 0.01);
+  }
 
-.table tbody tr {
+  .table tbody tr {
     transition: var(--transition);
-}
+  }
 
-.table tbody tr:hover {
+  .table tbody tr:hover {
     background-color: rgba(13, 110, 253, 0.02);
-}
+  }
 
-.badge {
+  .badge {
     font-weight: 500;
     letter-spacing: 0.3px;
-}
+  }
 
-.progress {
+  .progress {
     border-radius: 100px;
     background-color: #f8f9fa;
-}
+  }
 
-.btn {
+  .btn {
     border-radius: 8px;
     font-weight: 500;
     transition: var(--transition);
-}
+  }
 
-.btn-sm {
+  .btn-sm {
     border-radius: 6px;
-}
+  }
 
-.border-start {
+  .border-start {
     border-left-width: 4px !important;
-}
+  }
 
-.text-muted {
+  .text-muted {
     color: #6c757d !important;
-}
+  }
 
-.bg-opacity-10 {
+  .bg-opacity-10 {
     background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
-}
+  }
 
-.list-group-item {
+  .list-group-item {
     border-radius: 8px !important;
     margin-bottom: 2px;
-}
+  }
 
-.list-group-item:hover {
+  .list-group-item:hover {
     background-color: rgba(13, 110, 253, 0.03);
-}
+  }
 </style>
 
 <!-- Модальные окна остаются без изменений -->
 <!-- Модальное окно для настройки email (ОБНОВЛЕННАЯ ВЕРСИЯ С АВТОЗАПОЛНЕНИЕМ) -->
-<div class="modal fade" id="emailSettingsModal2" tabindex="-1" 
-     aria-labelledby="emailSettingsModalLabel2" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <!-- ... остальное содержимое модального окна без изменений ... -->
-        </div>
+<div
+  class="modal fade"
+  id="emailSettingsModal2"
+  tabindex="-1"
+  aria-labelledby="emailSettingsModalLabel2"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <!-- ... остальное содержимое модального окна без изменений ... -->
     </div>
+  </div>
 </div>
 
 <!-- Модальное окно помощи по паролю приложения -->
 <div class="modal fade" id="passwordHelpModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <!-- ... содержимое модального окна без изменений ... -->
-        </div>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <!-- ... содержимое модального окна без изменений ... -->
     </div>
+  </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener("DOMContentLoaded", function () {
     // Улучшенный toast для копирования ссылок
     function showCopyToast(url, title) {
-        const toastContainer = document.getElementById('toast-container');
-        if (!toastContainer) {
-            const container = document.createElement('div');
-            container.id = 'toast-container';
-            container.style.cssText = `
+      const toastContainer = document.getElementById("toast-container");
+      if (!toastContainer) {
+        const container = document.createElement("div");
+        container.id = "toast-container";
+        container.style.cssText = `
                 position: fixed;
                 top: 20px;
                 right: 20px;
                 z-index: 1060;
                 max-width: 350px;
             `;
-            document.body.appendChild(container);
-        }
-        
-        const toastId = 'toast-' + Date.now();
-        const toast = document.createElement('div');
-        toast.id = toastId;
-        toast.className = 'toast fade';
-        toast.setAttribute('role', 'alert');
-        toast.setAttribute('aria-live', 'assertive');
-        toast.setAttribute('aria-atomic', 'true');
-        
-        toast.innerHTML = `
+        document.body.appendChild(container);
+      }
+
+      const toastId = "toast-" + Date.now();
+      const toast = document.createElement("div");
+      toast.id = toastId;
+      toast.className = "toast fade";
+      toast.setAttribute("role", "alert");
+      toast.setAttribute("aria-live", "assertive");
+      toast.setAttribute("aria-atomic", "true");
+
+      toast.innerHTML = `
             <div class="toast-header bg-success text-white border-0 rounded-top">
                 <i class="bi bi-check-circle me-2"></i>
                 <strong class="me-auto">${title}</strong>
@@ -548,37 +631,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         `;
-        
-        document.getElementById('toast-container').appendChild(toast);
-        
-        navigator.clipboard.writeText(url).then(() => {
-            const bsToast = new bootstrap.Toast(toast, {
-                autohide: true,
-                delay: 5000
-            });
-            bsToast.show();
-        }).catch(err => {
-            toast.querySelector('.toast-header').className = 'toast-header bg-danger text-white border-0 rounded-top';
-            toast.querySelector('.toast-header strong').textContent = 'Ошибка копирования';
-            toast.querySelector('.toast-body').innerHTML = `
-                <small class="text-muted">${err.message || 'Не удалось скопировать ссылку'}</small>
+
+      document.getElementById("toast-container").appendChild(toast);
+
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          const bsToast = new bootstrap.Toast(toast, {
+            autohide: true,
+            delay: 5000,
+          });
+          bsToast.show();
+        })
+        .catch((err) => {
+          toast.querySelector(".toast-header").className =
+            "toast-header bg-danger text-white border-0 rounded-top";
+          toast.querySelector(".toast-header strong").textContent =
+            "Ошибка копирования";
+          toast.querySelector(".toast-body").innerHTML = `
+                <small class="text-muted">${
+                  err.message || "Не удалось скопировать ссылку"
+                }</small>
             `;
-            const bsToast = new bootstrap.Toast(toast, {
-                autohide: true,
-                delay: 5000
-            });
-            bsToast.show();
+          const bsToast = new bootstrap.Toast(toast, {
+            autohide: true,
+            delay: 5000,
+          });
+          bsToast.show();
         });
     }
-    
+
     // Копирование ссылок
-    document.querySelectorAll('.copy-link-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const url = this.getAttribute('data-url');
-            const title = this.getAttribute('data-title');
-            showCopyToast(url, title);
-        });
+    document.querySelectorAll(".copy-link-btn").forEach((button) => {
+      button.addEventListener("click", function () {
+        const url = this.getAttribute("data-url");
+        const title = this.getAttribute("data-title");
+        showCopyToast(url, title);
+      });
     });
-});
+  });
 </script>
 {% endblock %}

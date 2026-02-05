@@ -78,8 +78,9 @@ class PickupOrder(models.Model):
     ]
 
     STATUS_CHOICES = [
-        ("ready", "Готов к выдаче"),
+        ("ready", "Готова к выдаче"),
         ("payment", "На оплате"),
+        ("accepted", "Принята"),
     ]
 
     pickup_date = models.DateField(
@@ -288,6 +289,7 @@ class PickupOrder(models.Model):
         colors = {
             "ready": "info",
             "payment": "warning",
+            "accepted": "success",
         }
         return colors.get(self.status, "secondary")
 
@@ -453,5 +455,3 @@ class PickupOrder(models.Model):
         self.save()
 
         return delivery
-
-

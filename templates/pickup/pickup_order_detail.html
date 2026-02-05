@@ -1,430 +1,462 @@
-{% extends 'base.html' %}
-
-{% block content %}
+{% extends 'base.html' %} {% block content %}
 <div class="card">
-    <div class="card-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h4 class="mb-0">
-                    {% if order.tracking_number %}
-                        {{ order.tracking_number }}
-                    {% else %}
-                        Заявка на забор #{{ order.id }}
-                    {% endif %}
-                    - {{ order.get_client_name }}
-                </h4>
-                <small class="text-muted">Создано: {{ order.created_at|date:"d.m.Y H:i" }}</small>
+  <div class="card-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h4 class="mb-0">
+          {% if order.tracking_number %} {{ order.tracking_number }} {% else %}
+          Заявка на забор #{{ order.id }} {% endif %} - {{ order.get_client_name
+          }}
+        </h4>
+        <small class="text-muted"
+          >Создано: {{ order.created_at|date:"d.m.Y H:i" }}</small
+        >
+      </div>
+      <div class="text-end">
+        <span
+          class="badge bg-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% elif order.status == 'accepted' %}success{% else %}secondary{% endif %} fs-6"
+        >
+          {{ order.get_status_display }}
+        </span>
+      </div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-7">
+        <h5 class="border-bottom pb-2 mb-3">Основная информация</h5>
+        <table class="table table-bordered">
+          <tr>
+            <th style="width: 40%">Дата забора:</th>
+            <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
+          </tr>
+          <tr>
+            <th>Время забора:</th>
+            <td>{{ order.pickup_time_range }}</td>
+          </tr>
+          <tr>
+            <th>Отправитель:</th>
+            <td>
+              {% if order.sender %}
+              <strong>{{ order.sender.name }}</strong><br />
+              {% if order.sender.phone %}<small
+                >Телефон: {{ order.sender.phone }}</small
+              ><br />{% endif %} {% if order.sender.email %}<small
+                >Email: {{ order.sender.email }}</small
+              ><br />{% endif %} {% if order.sender.inn %}<small
+                >ИНН: {{ order.sender.inn }}</small
+              >{% endif %} {% else %} Не указан {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th>Получатель:</th>
+            <td>
+              {% if order.recipient %}
+              <strong>{{ order.recipient.name }}</strong><br />
+              {% if order.recipient.phone %}<small
+                >Телефон: {{ order.recipient.phone }}</small
+              ><br />{% endif %} {% if order.recipient.email %}<small
+                >Email: {{ order.recipient.email }}</small
+              ><br />{% endif %} {% if order.recipient.inn %}<small
+                >ИНН: {{ order.recipient.inn }}</small
+              >{% endif %} {% else %} Не указан {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th>Адрес забора:</th>
+            <td>{{ order.pickup_address }}</td>
+          </tr>
+          <tr>
+            <th>Контактное лицо для выдачи:</th>
+            <td>{{ order.contact_person|default:"Не указано" }}</td>
+          </tr>
+          <tr>
+            <th>Перевозчик:</th>
+            <td>
+              {% if order.carrier %}
+              <strong>{{ order.carrier.name }}</strong><br />
+              {% if order.carrier.contact_person %}<small
+                >Контактное лицо: {{ order.carrier.contact_person }}</small
+              ><br />{% endif %} {% if order.carrier.phone %}<small
+                >Телефон: {{ order.carrier.phone }}</small
+              ><br />{% endif %} {% if order.carrier.email %}<small
+                >Email: {{ order.carrier.email }}</small
+              >{% endif %} {% else %} Не указан {% endif %}
+            </td>
+          </tr>
+        </table>
+
+        <!-- Блок Контрагенты -->
+        <h5 class="border-bottom pb-2 mb-3 mt-4">Контрагенты</h5>
+        <table class="table table-bordered">
+          <tr>
+            <th style="width: 40%">Отправитель:</th>
+            <td>
+              {% if order.sender %} {{ order.sender.get_short_info|default:"Не
+              указан" }} {% else %} Не указан {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th>Получатель:</th>
+            <td>
+              {% if order.recipient %} {{
+              order.recipient.get_short_info|default:"Не указан" }} {% else %}
+              Не указан {% endif %}
+            </td>
+          </tr>
+        </table>
+
+        <h5 class="border-bottom pb-2 mb-3 mt-4">Характеристики груза</h5>
+        <table class="table table-bordered">
+          <tr>
+            <th style="width: 40%">Количество мест:</th>
+            <td>{{ order.quantity }}</td>
+          </tr>
+          <tr>
+            <th>Вес:</th>
+            <td>{{ order.weight|default:"Не указан" }} кг</td>
+          </tr>
+          <tr>
+            <th>Объем:</th>
+            <td>{{ order.volume|default:"Не указан" }} м³</td>
+          </tr>
+          <tr>
+            <th>Описание груза:</th>
+            <td>
+              {{ order.cargo_description|default:"Нет описания"|linebreaks }}
+            </td>
+          </tr>
+          <tr>
+            <th>Особые требования:</th>
+            <td>{{ order.special_requirements|default:"Нет"|linebreaks }}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="col-md-5">
+        <!-- QR-код -->
+        {% if order.qr_code %}
+        <div class="card mb-4">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">QR-код заявки на забор</h6>
+          </div>
+          <div class="card-body text-center">
+            <img
+              src="{{ order.qr_code.url }}"
+              alt="QR-код заявки {{ order.tracking_number }}"
+              class="img-fluid mb-3"
+              style="max-width: 250px"
+            />
+            <p class="text-muted small">
+              Содержит основную информацию о заявке
+            </p>
+            <div class="d-grid gap-2">
+              <a
+                href="{% url 'pickup_order_qr_pdf' order.pk %}"
+                class="btn btn-outline-danger"
+              >
+                <i class="bi bi-file-pdf"></i> Скачать qr код (PDF)
+              </a>
+
+              <a
+                href="{% url 'pickup_order_pdf' order.pk %}"
+                class="btn btn-danger"
+              >
+                <i class="bi bi-file-pdf"></i> Скачать заявку (PDF)
+              </a>
             </div>
-            <div class="text-end">
-                <span class="badge bg-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% else %}secondary{% endif %} fs-6">
-                    {{ order.get_status_display }}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Информация о статусе и операторе -->
+        <div class="card mb-4">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">Информация о заявке</h6>
+          </div>
+          <div class="card-body">
+            <table class="table table-sm mb-0">
+              <tr>
+                <th>Номер накладной:</th>
+                <td>{{ order.invoice_number|default:"Не указан" }}</td>
+              </tr>
+              <tr>
+                <th>Ответственный оператор:</th>
+                <td>
+                  {% if order.operator %} {{
+                  order.operator.get_full_name|default:order.operator.username
+                  }} {% else %}
+                  <span class="text-danger">Не назначен</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th>Оператор приемки:</th>
+                <td>
+                  {% if order.receiving_operator %} {{
+                  order.receiving_operator.get_full_name|default:order.receiving_operator.username
+                  }} {% else %}
+                  <span class="text-muted">Не назначен</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th>Склад приемки:</th>
+                <td>
+                  {% if order.receiving_warehouse %} {{
+                  order.receiving_warehouse.name }} ({{
+                  order.receiving_warehouse.city.name }}) {% else %}
+                  <span class="text-muted">Не указан</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th>Перевозчик:</th>
+                <td>
+                  {% if order.carrier %} {{ order.carrier.name }} {% if
+                  order.carrier.contact_person %}
+                  <br /><small
+                    >Контакт: {{ order.carrier.contact_person }}</small
+                  >
+                  {% endif %} {% else %}
+                  <span class="text-muted">Не указан</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th>Обновлено:</th>
+                <td>{{ order.updated_at|date:"d.m.Y H:i" }}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Блоки преобразования в доставку - теперь всегда видны -->
+        <div id="delivery-conversion-section">
+          {% if order.delivery_order %}
+          <!-- Блок: Уже есть связанная доставка -->
+          <div class="card mb-4 border-success" id="existing-delivery-block">
+            <div class="card-header bg-success text-white">
+              <h6 class="mb-0">
+                <i class="bi bi-link-45deg"></i> Связанная заявка на доставку
+              </h6>
+            </div>
+            <div class="card-body">
+              <p class="card-text">
+                На основе этой заявки создана
+                <a
+                  href="{% url 'delivery_order_detail' order.delivery_order.pk %}"
+                  class="fw-bold text-decoration-none"
+                >
+                  заявка на доставку #{{ order.delivery_order.id }}
+                </a>
+              </p>
+              <div class="mt-2">
+                <strong>Статус доставки:</strong>
+                <span
+                  class="badge bg-{% if order.delivery_order.status == 'submitted' %}info{% elif order.delivery_order.status == 'payment' %}warning{% else %}secondary{% endif %} fs-6 ms-2"
+                >
+                  {{ order.delivery_order.get_status_display }}
                 </span>
+              </div>
             </div>
-        </div>
-    </div>
-    <div class="card-body">
+          </div>
+          {% endif %}
 
-        <div class="row">
-            <div class="col-md-7">
-                <h5 class="border-bottom pb-2 mb-3">Основная информация</h5>
-                <table class="table table-bordered">
-                    <tr>
-                        <th style="width: 40%">Дата забора:</th>
-                        <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Время забора:</th>
-                        <td>{{ order.pickup_time_range }}</td>
-                    </tr>
-                    <tr>
-                        <th>Отправитель:</th>
-                        <td>
-                            {% if order.sender %}
-                                <strong>{{ order.sender.name }}</strong><br>
-                                {% if order.sender.phone %}<small>Телефон: {{ order.sender.phone }}</small><br>{% endif %}
-                                {% if order.sender.email %}<small>Email: {{ order.sender.email }}</small><br>{% endif %}
-                                {% if order.sender.inn %}<small>ИНН: {{ order.sender.inn }}</small>{% endif %}
-                            {% else %}
-                                Не указан
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Получатель:</th>
-                        <td>
-                            {% if order.recipient %}
-                                <strong>{{ order.recipient.name }}</strong><br>
-                                {% if order.recipient.phone %}<small>Телефон: {{ order.recipient.phone }}</small><br>{% endif %}
-                                {% if order.recipient.email %}<small>Email: {{ order.recipient.email }}</small><br>{% endif %}
-                                {% if order.recipient.inn %}<small>ИНН: {{ order.recipient.inn }}</small>{% endif %}
-                            {% else %}
-                                Не указан
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Адрес забора:</th>
-                        <td>{{ order.pickup_address }}</td>
-                    </tr>
-                    <tr>
-                        <th>Контактное лицо для выдачи:</th>
-                        <td>{{ order.contact_person|default:"Не указано" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Перевозчик:</th>
-                        <td>
-                            {% if order.carrier %}
-                                <strong>{{ order.carrier.name }}</strong><br>
-                                {% if order.carrier.contact_person %}<small>Контактное лицо: {{ order.carrier.contact_person }}</small><br>{% endif %}
-                                {% if order.carrier.phone %}<small>Телефон: {{ order.carrier.phone }}</small><br>{% endif %}
-                                {% if order.carrier.email %}<small>Email: {{ order.carrier.email }}</small>{% endif %}
-                            {% else %}
-                                Не указан
-                            {% endif %}
-                        </td>
-                    </tr>
-                </table>
-                
-                <!-- Блок Контрагенты -->
-                <h5 class="border-bottom pb-2 mb-3 mt-4">Контрагенты</h5>
-                <table class="table table-bordered">
-                    <tr>
-                        <th style="width: 40%">Отправитель:</th>
-                        <td>
-                            {% if order.sender %}
-                                {{ order.sender.get_short_info|default:"Не указан" }}
-                            {% else %}
-                                Не указан
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Получатель:</th>
-                        <td>
-                            {% if order.recipient %}
-                                {{ order.recipient.get_short_info|default:"Не указан" }}
-                            {% else %}
-                                Не указан
-                            {% endif %}
-                        </td>
-                    </tr>
-                </table>
-                
-                <h5 class="border-bottom pb-2 mb-3 mt-4">Характеристики груза</h5>
-                <table class="table table-bordered">
-                    <tr>
-                        <th style="width: 40%">Количество мест:</th>
-                        <td>{{ order.quantity }}</td>
-                    </tr>
-                    <tr>
-                        <th>Вес:</th>
-                        <td>{{ order.weight|default:"Не указан" }} кг</td>
-                    </tr>
-                    <tr>
-                        <th>Объем:</th>
-                        <td>{{ order.volume|default:"Не указан" }} м³</td>
-                    </tr>
-                    <tr>
-                        <th>Описание груза:</th>
-                        <td>{{ order.cargo_description|default:"Нет описания"|linebreaks }}</td>
-                    </tr>
-                    <tr>
-                        <th>Особые требования:</th>
-                        <td>{{ order.special_requirements|default:"Нет"|linebreaks }}</td>
-                    </tr>
-                </table>
+          <!-- Блок: Преобразование в доставку - всегда виден -->
+          {% if not order.delivery_order %}
+          <div
+            class="card mb-4 {% if order.is_convertible_to_delivery %}border-info{% else %}border-warning{% endif %}"
+            id="convert-to-delivery-block"
+          >
+            <div
+              class="card-header {% if order.is_convertible_to_delivery %}bg-info text-white{% else %}bg-warning text-dark{% endif %}"
+            >
+              <h6 class="mb-0">
+                <i class="bi bi-lightning-charge"></i> Преобразование в доставку
+              </h6>
             </div>
-            
-            <div class="col-md-5">
-                <!-- QR-код -->
-                {% if order.qr_code %}
-                <div class="card mb-4">
-                    <div class="card-header bg-light">
-                        <h6 class="mb-0">QR-код заявки на забор</h6>
-                    </div>
-                    <div class="card-body text-center">
-                        <img src="{{ order.qr_code.url }}" 
-                             alt="QR-код заявки {{ order.tracking_number }}" 
-                             class="img-fluid mb-3"
-                             style="max-width: 250px;">
-                        <p class="text-muted small">
-                            Содержит основную информацию о заявке
-                        </p>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'pickup_order_qr_pdf' order.pk %}" 
-                               class="btn btn-outline-danger">
-                                <i class="bi bi-file-pdf"></i> Скачать qr код (PDF)
-                            </a>
-                            
-                            <a href="{% url 'pickup_order_pdf' order.pk %}" 
-                               class="btn btn-danger">
-                                <i class="bi bi-file-pdf"></i> Скачать заявку (PDF)
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
+            <div class="card-body">
+              {% if order.is_convertible_to_delivery %}
+              <p class="card-text">
+                Эта заявка готова к преобразованию в заявку на доставку. После
+                преобразования будет автоматически создана новая заявка на
+                доставку.
+              </p>
+              <a
+                href="{% url 'convert_to_delivery' order.pk %}"
+                class="btn btn-success w-100 mt-2"
+              >
+                <i class="bi bi-arrow-right-circle"></i> Создать доставку
+              </a>
+              {% else %}
+              <p class="card-text">
+                Эта заявка не может быть преобразована в доставку.
+              </p>
+              <div class="alert alert-warning p-2 mt-2 mb-2">
+                <small>
+                  <i class="bi bi-exclamation-triangle"></i>
+                  <strong>Причина:</strong>
+                  {% if order.status != 'ready' %} Заявка должна быть в статусе
+                  "Готова к выдаче". Текущий статус:
+                  <span class="badge bg-info"
+                    >{{ order.get_status_display }}</span
+                  >
+                  {% else %} Неизвестная причина. Обратитесь к администратору.
+                  {% endif %}
+                </small>
+              </div>
+              <button class="btn btn-secondary w-100 mt-2" disabled>
+                <i class="bi bi-slash-circle"></i> Недоступно для преобразования
+              </button>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
 
-                <!-- Информация о статусе и операторе -->
-                <div class="card mb-4">
-                    <div class="card-header bg-light">
-                        <h6 class="mb-0">Информация о заявке</h6>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-sm mb-0">
-                            <tr>
-                                <th>Номер накладной:</th>
-                                <td>{{ order.invoice_number|default:"Не указан" }}</td>
-                            </tr>
-                            <tr>
-                                <th>Ответственный оператор:</th>
-                                <td>
-                                    {% if order.operator %}
-                                        {{ order.operator.get_full_name|default:order.operator.username }}
-                                    {% else %}
-                                        <span class="text-danger">Не назначен</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Оператор приемки:</th>
-                                <td>
-                                    {% if order.receiving_operator %}
-                                        {{ order.receiving_operator.get_full_name|default:order.receiving_operator.username }}
-                                    {% else %}
-                                        <span class="text-muted">Не назначен</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Склад приемки:</th>
-                                <td>
-                                    {% if order.receiving_warehouse %}
-                                        {{ order.receiving_warehouse.name }} ({{ order.receiving_warehouse.city.name }})
-                                    {% else %}
-                                        <span class="text-muted">Не указан</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Перевозчик:</th>
-                                <td>
-                                    {% if order.carrier %}
-                                        {{ order.carrier.name }}
-                                        {% if order.carrier.contact_person %}
-                                            <br><small>Контакт: {{ order.carrier.contact_person }}</small>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="text-muted">Не указан</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Обновлено:</th>
-                                <td>{{ order.updated_at|date:"d.m.Y H:i" }}</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-                
-                <!-- Блоки преобразования в доставку - теперь всегда видны -->
-                <div id="delivery-conversion-section">
-                    {% if order.delivery_order %}
-                    <!-- Блок: Уже есть связанная доставка -->
-                    <div class="card mb-4 border-success" id="existing-delivery-block">
-                        <div class="card-header bg-success text-white">
-                            <h6 class="mb-0"><i class="bi bi-link-45deg"></i> Связанная заявка на доставку</h6>
-                        </div>
-                        <div class="card-body">
-                            <p class="card-text">
-                                На основе этой заявки создана 
-                                <a href="{% url 'delivery_order_detail' order.delivery_order.pk %}" class="fw-bold text-decoration-none">
-                                    заявка на доставку #{{ order.delivery_order.id }}
-                                </a>
-                            </p>
-                            <div class="mt-2">
-                                <strong>Статус доставки:</strong>
-                                <span class="badge bg-{% if order.delivery_order.status == 'submitted' %}info{% elif order.delivery_order.status == 'payment' %}warning{% else %}secondary{% endif %} fs-6 ms-2">
-                                    {{ order.delivery_order.get_status_display }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Блок: Преобразование в доставку - всегда виден -->
-                    {% if not order.delivery_order %}
-                    <div class="card mb-4 {% if order.is_convertible_to_delivery %}border-info{% else %}border-warning{% endif %}" id="convert-to-delivery-block">
-                        <div class="card-header {% if order.is_convertible_to_delivery %}bg-info text-white{% else %}bg-warning text-dark{% endif %}">
-                            <h6 class="mb-0"><i class="bi bi-lightning-charge"></i> Преобразование в доставку</h6>
-                        </div>
-                        <div class="card-body">
-                            {% if order.is_convertible_to_delivery %}
-                            <p class="card-text">
-                                Эта заявка готова к преобразованию в заявку на доставку.
-                                После преобразования будет автоматически создана новая заявка на доставку.
-                            </p>
-                            <a href="{% url 'convert_to_delivery' order.pk %}" class="btn btn-success w-100 mt-2">
-                                <i class="bi bi-arrow-right-circle"></i> Создать доставку
-                            </a>
-                            {% else %}
-                            <p class="card-text">
-                                Эта заявка не может быть преобразована в доставку.
-                            </p>
-                            <div class="alert alert-warning p-2 mt-2 mb-2">
-                                <small>
-                                    <i class="bi bi-exclamation-triangle"></i>
-                                    <strong>Причина:</strong>
-                                    {% if order.status != 'ready' %}
-                                    Заявка должна быть в статусе "Готов к выдаче". Текущий статус: 
-                                    <span class="badge bg-info">{{ order.get_status_display }}</span>
-                                    {% else %}
-                                    Неизвестная причина. Обратитесь к администратору.
-                                    {% endif %}
-                                </small>
-                            </div>
-                            <button class="btn btn-secondary w-100 mt-2" disabled>
-                                <i class="bi bi-slash-circle"></i> Недоступно для преобразования
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-                
-                <!-- Внутренние заметки -->
-                {% if order.notes %}
-                <div class="card mt-4">
-                    <div class="card-header bg-light">
-                        <h6 class="mb-0">Внутренние заметки</h6>
-                    </div>
-                    <div class="card-body">
-                        {{ order.notes|linebreaks }}
-                    </div>
-                </div>
-                {% endif %}
-            </div>
+        <!-- Внутренние заметки -->
+        {% if order.notes %}
+        <div class="card mt-4">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">Внутренние заметки</h6>
+          </div>
+          <div class="card-body">{{ order.notes|linebreaks }}</div>
         </div>
+        {% endif %}
+      </div>
     </div>
-    <div class="card-footer">
-        <div class="d-flex justify-content-between">
-            <div>
-                <a href="{% url 'pickup_order_list' %}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Назад к списку
-                </a>
-            </div>
-            <div>
-                <a href="{% url 'pickup_order_update' order.pk %}" class="btn btn-primary me-2">
-                    <i class="bi bi-pencil"></i> Редактировать
-                </a>
-                <a href="{% url 'admin:pickup_pickuporder_change' order.pk %}" 
-                   class="btn btn-outline-dark">
-                    <i class="bi bi-gear"></i> В админку
-                </a>
-                <button onclick="window.print()" class="btn btn-outline-info ms-2">
-                    <i class="bi bi-printer"></i> Печать
-                </button>
-            </div>
-        </div>
+  </div>
+  <div class="card-footer">
+    <div class="d-flex justify-content-between">
+      <div>
+        <a href="{% url 'pickup_order_list' %}" class="btn btn-secondary">
+          <i class="bi bi-arrow-left"></i> Назад к списку
+        </a>
+      </div>
+      <div>
+        <a
+          href="{% url 'pickup_order_update' order.pk %}"
+          class="btn btn-primary me-2"
+        >
+          <i class="bi bi-pencil"></i> Редактировать
+        </a>
+        <a
+          href="{% url 'admin:pickup_pickuporder_change' order.pk %}"
+          class="btn btn-outline-dark"
+        >
+          <i class="bi bi-gear"></i> В админку
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-info ms-2">
+          <i class="bi bi-printer"></i> Печать
+        </button>
+      </div>
     </div>
+  </div>
 </div>
 
 <style>
-/* Гарантируем, что блоки всегда видны */
-#delivery-conversion-section {
+  /* Гарантируем, что блоки всегда видны */
+  #delivery-conversion-section {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
-}
+  }
 
-#existing-delivery-block,
-#convert-to-delivery-block {
+  #existing-delivery-block,
+  #convert-to-delivery-block {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
     animation: none !important;
-}
+  }
 
-/* Отключаем любые возможные переходы и анимации */
-#delivery-conversion-section * {
+  /* Отключаем любые возможные переходы и анимации */
+  #delivery-conversion-section * {
     animation: none !important;
     transition: none !important;
-}
+  }
 
-/* Явно переопределяем скрытие */
-#delivery-conversion-section[style*="display: none"],
-#existing-delivery-block[style*="display: none"], 
-#convert-to-delivery-block[style*="display: none"] {
+  /* Явно переопределяем скрытие */
+  #delivery-conversion-section[style*="display: none"],
+  #existing-delivery-block[style*="display: none"],
+  #convert-to-delivery-block[style*="display: none"] {
     display: block !important;
-}
+  }
 </style>
 
 <script>
-// JavaScript для гарантии видимости блоков
-document.addEventListener('DOMContentLoaded', function() {
+  // JavaScript для гарантии видимости блоков
+  document.addEventListener("DOMContentLoaded", function () {
     // Сохраняем блоки в переменные
-    const deliverySection = document.getElementById('delivery-conversion-section');
-    const existingDeliveryBlock = document.getElementById('existing-delivery-block');
-    const convertBlock = document.getElementById('convert-to-delivery-block');
-    
+    const deliverySection = document.getElementById(
+      "delivery-conversion-section"
+    );
+    const existingDeliveryBlock = document.getElementById(
+      "existing-delivery-block"
+    );
+    const convertBlock = document.getElementById("convert-to-delivery-block");
+
     // Функция для принудительного отображения блоков
     function forceDisplayBlocks() {
-        if (deliverySection) {
-            deliverySection.style.display = 'block';
-            deliverySection.style.visibility = 'visible';
-            deliverySection.style.opacity = '1';
-        }
-        
-        if (existingDeliveryBlock) {
-            existingDeliveryBlock.style.display = 'block';
-            existingDeliveryBlock.style.visibility = 'visible';
-            existingDeliveryBlock.style.opacity = '1';
-        }
-        
-        if (convertBlock) {
-            convertBlock.style.display = 'block';
-            convertBlock.style.visibility = 'visible';
-            convertBlock.style.opacity = '1';
-        }
+      if (deliverySection) {
+        deliverySection.style.display = "block";
+        deliverySection.style.visibility = "visible";
+        deliverySection.style.opacity = "1";
+      }
+
+      if (existingDeliveryBlock) {
+        existingDeliveryBlock.style.display = "block";
+        existingDeliveryBlock.style.visibility = "visible";
+        existingDeliveryBlock.style.opacity = "1";
+      }
+
+      if (convertBlock) {
+        convertBlock.style.display = "block";
+        convertBlock.style.visibility = "visible";
+        convertBlock.style.opacity = "1";
+      }
     }
-    
+
     // Вызываем сразу
     forceDisplayBlocks();
-    
+
     // Вызываем периодически (на случай если какой-то скрипт пытается скрыть)
     setInterval(forceDisplayBlocks, 1000);
-    
+
     // Также перехватываем любые попытки изменить стили через MutationObserver
     if (deliverySection) {
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.type === 'attributes' && 
-                    (mutation.attributeName === 'style' || 
-                     mutation.attributeName === 'class')) {
-                    forceDisplayBlocks();
-                }
-            });
+      const observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+          if (
+            mutation.type === "attributes" &&
+            (mutation.attributeName === "style" ||
+              mutation.attributeName === "class")
+          ) {
+            forceDisplayBlocks();
+          }
         });
-        
-        observer.observe(deliverySection, { 
-            attributes: true, 
-            attributeFilter: ['style', 'class'] 
+      });
+
+      observer.observe(deliverySection, {
+        attributes: true,
+        attributeFilter: ["style", "class"],
+      });
+
+      if (existingDeliveryBlock) {
+        observer.observe(existingDeliveryBlock, {
+          attributes: true,
+          attributeFilter: ["style", "class"],
         });
-        
-        if (existingDeliveryBlock) {
-            observer.observe(existingDeliveryBlock, { 
-                attributes: true, 
-                attributeFilter: ['style', 'class'] 
-            });
-        }
-        
-        if (convertBlock) {
-            observer.observe(convertBlock, { 
-                attributes: true, 
-                attributeFilter: ['style', 'class'] 
-            });
-        }
+      }
+
+      if (convertBlock) {
+        observer.observe(convertBlock, {
+          attributes: true,
+          attributeFilter: ["style", "class"],
+        });
+      }
     }
-});
+  });
 </script>
 {% endblock %}

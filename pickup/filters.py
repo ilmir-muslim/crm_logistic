@@ -34,8 +34,9 @@ class PickupOrderFilter(django_filters.FilterSet):
 
     status = django_filters.ChoiceFilter(
         choices=[
-            ("ready", "Готов к выдаче"),
+            ("ready", "Готова к выдаче"),
             ("payment", "На оплате"),
+            ("accepted", "Принята"),
         ],
         empty_label="Все статусы",
     )
@@ -152,5 +153,3 @@ class PickupOrderFilter(django_filters.FilterSet):
                 | Q(contact_person__icontains=value.upper())
             )
         return queryset
-
-

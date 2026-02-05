@@ -404,6 +404,10 @@ def dashboard(request):
         "payment": PickupOrder.objects.filter(
             pickup_filter & Q(status="payment")
         ).count(),
+        # ДОБАВЛЕНО: статус "accepted"
+        "accepted": PickupOrder.objects.filter(
+            pickup_filter & Q(status="accepted")
+        ).count(),
     }
 
     seven_days_ago = today - timedelta(days=7)

@@ -233,7 +233,10 @@
         color: #6c757d !important; 
         font-weight: 600 !important;
     }
-
+    .status-accepted {  
+        color: #198754 !important; 
+        font-weight: 600 !important;
+    }
     /* Стили для номера накладной */
     .invoice-number {
         font-family: monospace;
@@ -625,8 +628,9 @@
                 <label class="form-label">Статус</label>
                 <select name="status" class="form-select">
                     <option value="">Все</option>
-                    <option value="ready" {% if request.GET.status == 'ready' %}selected{% endif %}>Готов к выдаче</option>
+                    <option value="ready" {% if request.GET.status == 'ready' %}selected{% endif %}>Готова к выдаче</option>
                     <option value="payment" {% if request.GET.status == 'payment' %}selected{% endif %}>На оплате</option>
+                    <option value="accepted" {% if request.GET.status == 'accepted' %}selected{% endif %}>Принята</option>
                 </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
@@ -1271,8 +1275,9 @@ function initBulkEditing() {
                         <label for="bulkEditValue" class="form-label">Новый статус</label>
                         <select class="form-select" id="bulkEditValue">
                             <option value="">Выберите статус</option>
-                            <option value="ready">Готов к выдаче</option>
+                            <option value="ready">Готова к выдаче</option>
                             <option value="payment">На оплате</option>
+                            <option value="accepted">Принята</option> 
                         </select>
                     `;
                     break;
@@ -2173,8 +2178,9 @@ function startEditing(cell) {
         let options = [];
         if (field === 'status') {
             options = [
-                {value: 'ready', text: 'Готов к выдаче'},
-                {value: 'payment', text: 'На оплате'}
+                {value: 'ready', text: 'Готова к выдаче'},
+                {value: 'payment', text: 'На оплате'},
+                {value: 'accepted', text: 'Принята'},
             ];
         } else if (field === 'operator') {
             // Опции для оператора
