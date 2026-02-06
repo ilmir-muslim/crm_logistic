@@ -701,12 +701,6 @@
                     Дата забора
                     <span class="sort-icon"></span>
                 </th>
-                <th class="sortable-header {% if sort == 'pickup_time_from' %}sorted-{{ order }}{% endif %}" 
-                    data-sort="pickup_time_from">
-                    Время забора
-                    <span class="sort-icon"></span>
-                </th>
-                <!-- СТОЛБЕЦ "МЕСТА" ПЕРЕМЕЩЕН СЮДА -->
                 <th class="sortable-header {% if sort == 'quantity' %}sorted-{{ order }}{% endif %}" 
                     data-sort="quantity">
                     Места
@@ -715,11 +709,6 @@
                 <th class="sortable-header {% if sort == 'pickup_address' %}sorted-{{ order }}{% endif %}" 
                     data-sort="pickup_address">
                     Адрес забора
-                    <span class="sort-icon"></span>
-                </th>
-                <th class="sortable-header {% if sort == 'contact_person' %}sorted-{{ order }}{% endif %}" 
-                    data-sort="contact_person">
-                    Контактное лицо
                     <span class="sort-icon"></span>
                 </th>
                 <th class="sortable-header {% if sort == 'desired_delivery_date' %}sorted-{{ order }}{% endif %}" 
@@ -740,6 +729,16 @@
                 <th class="sortable-header {% if sort == 'operator' %}sorted-{{ order }}{% endif %}" 
                     data-sort="operator">
                     Оператор
+                    <span class="sort-icon"></span>
+                </th>
+                <th class="sortable-header {% if sort == 'receiving_operator' %}sorted-{{ order }}{% endif %}" 
+                    data-sort="receiving_operator">
+                    Оператор приемки
+                    <span class="sort-icon"></span>
+                </th>
+                <th class="sortable-header {% if sort == 'receiving_warehouse' %}sorted-{{ order }}{% endif %}" 
+                    data-sort="receiving_warehouse">
+                    Склад приемки
                     <span class="sort-icon"></span>
                 </th>
                 <th>Действия</th>
@@ -770,16 +769,6 @@
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
-                <td class="editable-cell editable-time-range" 
-                    data-field-from="pickup_time_from" 
-                    data-field-to="pickup_time_to"
-                    data-original-from="{{ order.pickup_time_from|time:'H:i'|default:'' }}" 
-                    data-original-to="{{ order.pickup_time_to|time:'H:i'|default:'' }}">
-                    {{ order.pickup_time_range }}
-                    <button class="save-btn" onclick="saveTimeRangeCell(this)">✓</button>
-                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
-                </td>
-                <!-- ЯЧЕЙКА "МЕСТА" ПЕРЕМЕЩЕНА СЮДА -->
                 <td class="editable-cell" data-field="quantity" data-original="{{ order.quantity }}" data-type="number">
                     {{ order.quantity }}
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
@@ -790,11 +779,6 @@
                     {% if order.receiving_warehouse %}
                         <span class="badge bg-info ms-2" title="Склад: {{ order.receiving_warehouse.name }} ({{ order.receiving_warehouse.city.name }})">📦</span>
                     {% endif %}
-                    <button class="save-btn" onclick="saveCell(this)">✓</button>
-                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
-                </td>
-                <td class="editable-cell" data-field="contact_person" data-original="{{ order.contact_person|default:order.get_client_name }}">
-                    {{ order.contact_person|default:order.get_client_name|truncatechars:20 }}
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
@@ -825,6 +809,24 @@
                 <td class="editable-cell" data-field="operator" data-original="{{ order.operator.id|default:'' }}" data-type="select">
                     {% if order.operator %}
                         <span class="operator-name">{{ order.operator.get_full_name|default:order.operator.username|truncatechars:20 }}</span>
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                </td>
+                <td class="editable-cell" data-field="receiving_operator" data-original="{{ order.receiving_operator.id|default:'' }}" data-type="select">
+                    {% if order.receiving_operator %}
+                        <span class="operator-name">{{ order.receiving_operator.get_full_name|default:order.receiving_operator.username|truncatechars:20 }}</span>
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                    <button class="save-btn" onclick="saveCell(this)">✓</button>
+                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+                </td>
+                <td class="editable-cell" data-field="receiving_warehouse" data-original="{{ order.receiving_warehouse.id|default:'' }}" data-type="select">
+                    {% if order.receiving_warehouse %}
+                        <span class="warehouse-name">{{ order.receiving_warehouse.name|truncatechars:20 }}</span>
                     {% else %}
                         <span class="text-muted">-</span>
                     {% endif %}
@@ -1862,12 +1864,6 @@ function initInlineEditing() {
                 return;
             }
             
-            // Если это ячейка времени - используем специальную функцию
-            if (this.classList.contains('editable-time-range')) {
-                startTimeRangeEditing(this);
-                return;
-            }
-            
             // Для остальных ячеек - двойной клик
             if (e.detail === 2) {
                 startEditing(this);
@@ -1905,244 +1901,30 @@ function loadOperatorsList() {
     });
 }
 
-// ==================== ФУНКЦИИ ДЛЯ РЕДАКТИРОВАНИЯ ДИАПАЗОНА ВРЕМЕНИ ====================
-
-function startTimeRangeEditing(cell) {
-    // Если уже редактируем другую ячейку, сохраняем ее
-    if (editingCell && editingCell !== cell) {
-        if (editingCell.classList.contains('editable-time-range')) {
-            saveTimeRangeCell(editingCell.querySelector('.save-btn'));
-        } else {
-            saveCell(editingCell.querySelector('.save-btn'));
-        }
-    }
-    
-    const originalFrom = cell.getAttribute('data-original-from') || '';
-    const originalTo = cell.getAttribute('data-original-to') || '';
-    
-    // Сохраняем оригинальное содержимое
-    cell.setAttribute('data-original-content', cell.innerHTML);
-    cell.classList.add('editing');
-    editingCell = cell;
-    
-    // Создаем контейнер для двух полей ввода
-    const container = document.createElement('div');
-    container.className = 'time-range-container';
-    
-    // Поле для времени "от"
-    const fromWrapper = document.createElement('div');
-    fromWrapper.className = 'time-input-wrapper';
-    const fromInput = document.createElement('input');
-    fromInput.type = 'time';
-    fromInput.className = 'editable-time';
-    fromInput.value = originalFrom;
-    fromInput.placeholder = '00:00';
-    fromWrapper.appendChild(fromInput);
-    
-    // Разделитель
-    const separator = document.createElement('div');
-    separator.className = 'time-separator';
-    separator.textContent = '—';
-    
-    // Поле для времени "до"
-    const toWrapper = document.createElement('div');
-    toWrapper.className = 'time-input-wrapper';
-    const toInput = document.createElement('input');
-    toInput.type = 'time';
-    toInput.className = 'editable-time';
-    toInput.value = originalTo;
-    toInput.placeholder = '23:59';
-    toWrapper.appendChild(toInput);
-    
-    // Собираем контейнер
-    container.appendChild(fromWrapper);
-    container.appendChild(separator);
-    container.appendChild(toWrapper);
-    
-    // Очищаем ячейку и добавляем контейнер
-    cell.innerHTML = '';
-    cell.appendChild(container);
-    
-    // Фокус на первом поле
-    fromInput.focus();
-    
-    // Сохраняем ссылки на поля для удобства
-    cell._fromInput = fromInput;
-    cell._toInput = toInput;
-    
-    // Обработка нажатия Enter и Escape
-    fromInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault(); 
-            saveTimeRangeCell(cell);
-        } else if (e.key === 'Escape') {
-            cancelTimeRangeEditing(cell);
-        }
-    });
-
-    toInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault(); 
-            saveTimeRangeCell(cell);
-        } else if (e.key === 'Escape') {
-            cancelTimeRangeEditing(cell);
-        }
-    });
-
-    
-    // Сохранение при потере фокуса
-    fromInput.addEventListener('blur', function() {
-        setTimeout(() => {
-            if (!cell.contains(document.activeElement)) {
-                saveTimeRangeCell(cell);
-            }
-        }, 100);
-    });
-    
-    toInput.addEventListener('blur', function() {
-        setTimeout(() => {
-            if (!cell.contains(document.activeElement)) {
-                saveTimeRangeCell(cell);
-            }
-        }, 100);
-    });
-}
-
-function saveTimeRangeCell(cellElement) {
-    // Если cellElement - это кнопка, находим родительскую ячейку
-    let cell = cellElement;
-    if (cellElement.tagName === 'BUTTON') {
-        cell = cellElement.parentElement;
-    }
-    
-    const fromValue = cell._fromInput ? cell._fromInput.value : '';
-    const toValue = cell._toInput ? cell._toInput.value : '';
-    const orderId = cell.closest('tr').getAttribute('data-order-id');
-    
-    // Валидация: если указано только одно время, считаем его временем "от"
-    if (fromValue && !toValue) {
-        showNotification('Укажите конечное время или оставьте оба поля пустыми', 'warning');
-        return;
-    }
-    
-    // Если указано время "до", но не указано время "от" - предупреждение
-    if (!fromValue && toValue) {
-        showNotification('Укажите начальное время', 'warning');
-        return;
-    }
-    
-    // Валидация: время "до" должно быть позже времени "от"
-    if (fromValue && toValue) {
-        if (fromValue >= toValue) {
-            showNotification('Время "до" должно быть позже времени "от"', 'error');
-            return;
-        }
-    }
-    
-    // Отправка на сервер
-    saveTimeRangeToServer(orderId, fromValue, toValue, cell);
-}
-
-function saveTimeRangeToServer(orderId, fromValue, toValue, cell) {
-    const url = `{% url 'pickup_order_update_field' 0 %}`.replace('0', orderId);
+// Загрузка списка складов
+function loadWarehousesList() {
     const csrfToken = getCookie('csrftoken');
     
-    // Показываем индикатор загрузки
-    cell.classList.add('loading');
-    
-    // Сначала обновляем время "от"
-    fetch(url, {
-        method: 'POST',
+    fetch('{% url "warehouses_json" %}', {
+        method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({
-            field: 'pickup_time_from',
-            value: fromValue
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Затем обновляем время "до"
-            return fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({
-                    field: 'pickup_time_to',
-                    value: toValue
-                })
-            });
-        } else {
-            throw new Error(data.error || 'Ошибка обновления времени');
         }
     })
-    .then(response => response.json())
-    .then(data => {
-        cell.classList.remove('loading');
-        
-        if (data.success) {
-            // Обновляем отображение в ячейке
-            updateTimeRangeCellDisplay(cell, fromValue, toValue);
-            
-            showNotification('Время забора обновлено', 'success');
-            editingCell = null;
-        } else {
-            showNotification('Ошибка: ' + data.error, 'error');
-            cancelTimeRangeEditing(cell);
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        return response.json();
+    })
+    .then(data => {
+        warehousesList = data;
+        console.log('Склады загружены:', warehousesList.length);
     })
     .catch(error => {
-        cell.classList.remove('loading');
-        console.error('Error:', error);
-        showNotification('Ошибка сети при сохранении: ' + error.message, 'error');
-        cancelTimeRangeEditing(cell);
+        console.error('Ошибка загрузки складов:', error);
+        warehousesList = [];
     });
-}
-
-function updateTimeRangeCellDisplay(cell, fromValue, toValue) {
-    cell.classList.remove('editing');
-    
-    // Формируем отображаемое значение
-    let displayValue = '-';
-    if (fromValue && toValue) {
-        displayValue = `${fromValue}-${toValue}`;
-    } else if (fromValue) {
-        displayValue = `${fromValue}`;
-    } else if (toValue) {
-        displayValue = `${toValue}`;
-    }
-    
-    cell.innerHTML = `
-        ${displayValue}
-        <button class="save-btn" onclick="saveTimeRangeCell(this)">✓</button>
-        <button class="cancel-btn" onclick="cancelTimeRangeEditing(this.parentElement)">✗</button>
-    `;
-    
-    // Обновляем data-атрибуты
-    cell.setAttribute('data-original-from', fromValue || '');
-    cell.setAttribute('data-original-to', toValue || '');
-    
-    // Очищаем временные ссылки
-    delete cell._fromInput;
-    delete cell._toInput;
-}
-
-function cancelTimeRangeEditing(cell) {
-    const originalContent = cell.getAttribute('data-original-content');
-    if (originalContent) {
-        cell.innerHTML = originalContent;
-    }
-    cell.classList.remove('editing');
-    editingCell = null;
-    
-    // Очищаем временные ссылки
-    delete cell._fromInput;
-    delete cell._toInput;
 }
 
 // ==================== ФУНКЦИИ ДЛЯ ОБЫЧНОГО РЕДАКТИРОВАНИЯ ====================
@@ -2150,18 +1932,15 @@ function cancelTimeRangeEditing(cell) {
 function startEditing(cell) {
     // Если уже редактируем другую ячейку, сохраняем ее
     if (editingCell && editingCell !== cell) {
-        if (editingCell.classList.contains('editable-time-range')) {
-            saveTimeRangeCell(editingCell.querySelector('.save-btn'));
-        } else {
-            saveCell(editingCell.querySelector('.save-btn'));
-        }
+        saveCell(editingCell.querySelector('.save-btn'));
     }
     
     const field = cell.getAttribute('data-field');
     const originalValue = cell.getAttribute('data-original') || '';
     const type = cell.getAttribute('data-type') || 'text';
     const isStatusCell = field === 'status';
-    const isOperatorCell = field === 'operator';
+    const isOperatorCell = field === 'operator' || field === 'receiving_operator';
+    const isWarehouseCell = field === 'receiving_warehouse';
     
     // Сохраняем оригинальное содержимое
     cell.setAttribute('data-original-content', cell.innerHTML);
@@ -2170,7 +1949,7 @@ function startEditing(cell) {
     
     let inputElement;
     
-    if (type === 'select' || isStatusCell || isOperatorCell) {
+    if (type === 'select' || isStatusCell || isOperatorCell || isWarehouseCell) {
         inputElement = document.createElement('select');
         inputElement.className = 'editable-select';
         
@@ -2182,7 +1961,7 @@ function startEditing(cell) {
                 {value: 'payment', text: 'На оплате'},
                 {value: 'accepted', text: 'Принята'},
             ];
-        } else if (field === 'operator') {
+        } else if (field === 'operator' || field === 'receiving_operator') {
             // Опции для оператора
             options = [
                 {value: '', text: 'Не назначен'}
@@ -2192,6 +1971,18 @@ function startEditing(cell) {
                 options.push({
                     value: operator.id,
                     text: operator.full_name || operator.username
+                });
+            });
+        } else if (field === 'receiving_warehouse') {
+            // Опции для склада
+            options = [
+                {value: '', text: 'Не выбран'}
+            ];
+            // Добавляем склады из списка
+            warehousesList.forEach(warehouse => {
+                options.push({
+                    value: warehouse.id,
+                    text: warehouse.name
                 });
             });
         } else {
@@ -2283,9 +2074,9 @@ function saveCell(cell) {
         return;
     }
     
-    // Для оператора: если пустое значение, отправляем null
+    // Для оператора и склада: если пустое значение, отправляем null
     let valueToSend = newValue;
-    if (field === 'operator' && newValue === '') {
+    if ((field === 'operator' || field === 'receiving_operator' || field === 'receiving_warehouse') && newValue === '') {
         valueToSend = null;
     }
     
@@ -2324,9 +2115,15 @@ function saveToServer(orderId, field, value, cell, type) {
             let displayValue = data.display_value;
             
             // Для оператора получаем имя из списка
-            if (field === 'operator') {
+            if (field === 'operator' || field === 'receiving_operator') {
                 const operator = operatorsList.find(op => op.id.toString() === value);
                 displayValue = operator ? operator.full_name || operator.username : '';
+            }
+            
+            // Для склада получаем имя из списка
+            if (field === 'receiving_warehouse') {
+                const warehouse = warehousesList.find(wh => wh.id.toString() === value);
+                displayValue = warehouse ? warehouse.name : '';
             }
             
             updateCellDisplay(cell, field, value, displayValue, type);
@@ -2360,7 +2157,7 @@ function updateCellDisplay(cell, field, value, displayValue, type) {
             <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
         `;
         cell.setAttribute('data-original', value);
-    } else if (field === 'operator') {
+    } else if (field === 'operator' || field === 'receiving_operator') {
         // Обновляем отображение оператора
         let operatorName = '-';
         if (value && displayValue) {
@@ -2373,6 +2170,23 @@ function updateCellDisplay(cell, field, value, displayValue, type) {
         
         cell.innerHTML = `
             <span class="operator-name">${operatorName}</span>
+            <button class="save-btn" onclick="saveCell(this)">✓</button>
+            <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
+        `;
+        cell.setAttribute('data-original', value || '');
+    } else if (field === 'receiving_warehouse') {
+        // Обновляем отображение склада
+        let warehouseName = '-';
+        if (value && displayValue) {
+            warehouseName = displayValue;
+        } else if (value) {
+            // Пытаемся найти имя склада по ID
+            const warehouse = warehousesList.find(wh => wh.id.toString() === value.toString());
+            warehouseName = warehouse ? warehouse.name : `Склад #${value}`;
+        }
+        
+        cell.innerHTML = `
+            <span class="warehouse-name">${warehouseName}</span>
             <button class="save-btn" onclick="saveCell(this)">✓</button>
             <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
         `;
@@ -2425,7 +2239,7 @@ function updateCellDisplay(cell, field, value, displayValue, type) {
         `;
         cell.setAttribute('data-original', value);
         cell.setAttribute('data-full-address', value);
-    } else if (field === 'contact_person' || field === 'client_name') {
+    } else if (field === 'client_name') {
         cell.innerHTML = `
             ${value.length > 20 ? value.substring(0, 20) + '...' : value}
             <button class="save-btn" onclick="saveCell(this)">✓</button>
@@ -2519,22 +2333,11 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// Обновление кнопки массового редактирования при изменении выбора заявок
-function updateBulkEditButton() {
-    const bulkEditBtn = document.getElementById('openBulkEditBtn');
-    if (!bulkEditBtn) return;
-    
-    const selected = document.querySelectorAll('.order-checkbox:checked');
-    bulkEditBtn.disabled = selected.length === 0;
-}
-
 // Глобальные функции для использования в onclick
 window.saveCell = saveCell;
 window.cancelEditing = cancelEditing;
 window.startEditStatus = startEditStatus;
 window.openAddressModal = openAddressModal;
-window.saveTimeRangeCell = saveTimeRangeCell;
-window.cancelTimeRangeEditing = cancelTimeRangeEditing;
 
 // Обработка нажатия Enter для сохранения при редактировании
 document.addEventListener('keydown', function(e) {
@@ -2551,13 +2354,7 @@ document.addEventListener('keydown', function(e) {
         if (editingCell) {
             e.preventDefault();
             e.stopPropagation();
-            
-            // Сохраняем в зависимости от типа ячейки
-            if (editingCell.classList.contains('editable-time-range')) {
-                saveTimeRangeCell(editingCell);
-            } else {
-                saveCell(editingCell);
-            }
+            saveCell(editingCell);
         }
     }
 });
@@ -2571,6 +2368,7 @@ document.addEventListener('DOMContentLoaded', function() {
         initInlineEditing();
         initAddressModal();
         loadOperatorsList();
+        loadWarehousesList();
     }
     
     // Инициализация массового редактирования (для всех, кроме операторов)

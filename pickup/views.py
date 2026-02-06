@@ -78,13 +78,13 @@ class PickupOrderListView(LoginRequiredMixin, ListView):
         allowed_sort_fields = [
             "invoice_number",
             "pickup_date",
-            "pickup_time",
             "pickup_address",
-            "contact_person",
             "desired_delivery_date",
             "status",
             "client_name",
             "operator",
+            "receiving_operator",
+            "receiving_warehouse",
             "quantity",
         ]
 
