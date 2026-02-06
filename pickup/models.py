@@ -174,7 +174,7 @@ class PickupOrder(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name="Оператор приемки",
+        verbose_name="Оператор фулфилмента",
         related_name="receiving_orders",
     )
 
@@ -230,6 +230,17 @@ class PickupOrder(models.Model):
         blank=True,
         verbose_name="Ответственный оператор",
         related_name="pickup_orders",
+    )
+
+    logistic = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Логист",
+        related_name="logistic_pickup_orders",
+        help_text="Логист, ответственный за заявку",
+        limit_choices_to={"profile__role": "logistic"},
     )
 
     delivery_order = models.OneToOneField(

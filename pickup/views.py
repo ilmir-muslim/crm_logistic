@@ -29,6 +29,16 @@ from .forms import PickupOrderForm
 from .pdf_utils import create_pickup_order_pdf, create_pickup_orders_list_pdf
 
 
+def get_user_display_name(user):
+    """Возвращает отображаемое имя пользователя"""
+    if user.first_name and user.last_name:
+        return f"{user.last_name} {user.first_name}"
+    elif user.first_name:
+        return user.first_name
+    else:
+        return user.username
+
+
 class PickupOrderListView(LoginRequiredMixin, ListView):
     model = PickupOrder
     template_name = "pickup/pickup_order_list.html"
@@ -101,6 +111,11 @@ class PickupOrderListView(LoginRequiredMixin, ListView):
             and hasattr(self.request.user, "profile")
             and self.request.user.profile.role == "logistic"
         )
+        context["is_admin"] = (
+            self.request.user.is_authenticated
+            and hasattr(self.request.user, "profile")
+            and self.request.user.profile.role == "admin"
+        )
         context["sort"] = self.request.GET.get("sort", "pickup_date")
         context["order"] = self.request.GET.get("order", "desc")
         return context
@@ -138,6 +153,12 @@ class PickupOrderCreateView(LoginRequiredMixin, CreateView):
     template_name = "pickup/pickup_order_form.html"
     form_class = PickupOrderForm
 
+    def get_form_kwargs(self):
+        """Передаем текущего пользователя в форму"""
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["counterparties"] = Counterparty.objects.filter(
@@ -164,6 +185,12 @@ class PickupOrderUpdateView(LoginRequiredMixin, UpdateView):
     model = PickupOrder
     template_name = "pickup/pickup_order_form.html"
     form_class = PickupOrderForm
+
+    def get_form_kwargs(self):
+        """Передаем текущего пользователя в форму"""
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -276,6 +303,8 @@ def update_pickup_order_field(request, pk):
         "status",
         "operator",
         "receiving_warehouse",
+        "receiving_operator",
+        "logistic",
         "carrier",
     ]
 
@@ -316,6 +345,26 @@ def update_pickup_order_field(request, pk):
                     return JsonResponse({"success": False, "error": "Склад не найден"})
             else:
                 value = None
+        elif field == "receiving_operator":
+            if value:
+                try:
+                    value = User.objects.get(id=value)
+                except User.DoesNotExist:
+                    return JsonResponse(
+                        {"success": False, "error": "Пользователь не найден"}
+                    )
+            else:
+                value = None
+        elif field == "logistic":
+            if value:
+                try:
+                    value = User.objects.get(id=value)
+                except User.DoesNotExist:
+                    return JsonResponse(
+                        {"success": False, "error": "Пользователь не найден"}
+                    )
+            else:
+                value = None
         elif field == "carrier":
             if value:
                 try:
@@ -336,9 +385,17 @@ def update_pickup_order_field(request, pk):
         elif field == "operator":
             display_value = ""
             if order.operator:
-                display_value = (
-                    order.operator.get_full_name() or order.operator.username
-                )
+                display_value = get_user_display_name(order.operator)
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "receiving_operator":
+            display_value = ""
+            if order.receiving_operator:
+                display_value = get_user_display_name(order.receiving_operator)
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "logistic":
+            display_value = ""
+            if order.logistic:
+                display_value = get_user_display_name(order.logistic)
             return JsonResponse({"success": True, "display_value": display_value})
         elif field == "receiving_warehouse":
             display_value = ""
@@ -489,8 +546,8 @@ def get_operators(request):
                 "username": operator.username,
                 "first_name": operator.first_name,
                 "last_name": operator.last_name,
-                "full_name": f"{operator.first_name} {operator.last_name}".strip()
-                or operator.username,
+                "full_name": get_user_display_name(operator),
+                "role": operator.profile.role if hasattr(operator, "profile") else None,
             }
         )
 
@@ -780,6 +837,7 @@ def bulk_update_pickup_orders(request):
             "status",
             "receiving_warehouse",
             "receiving_operator",
+            "logistic",
             "pickup_date",
             "desired_delivery_date",
             "carrier",
@@ -830,6 +888,16 @@ def bulk_update_pickup_orders(request):
                             continue
                     else:
                         order.receiving_operator = None
+
+                elif field == "logistic":
+                    if value:
+                        try:
+                            logistic_value = User.objects.get(id=value)
+                            order.logistic = logistic_value
+                        except User.DoesNotExist:
+                            continue
+                    else:
+                        order.logistic = None
 
                 elif field == "pickup_date":
                     if value:

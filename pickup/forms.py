@@ -52,7 +52,15 @@ class PickupOrderForm(forms.ModelForm):
         ),
         required=False,
         widget=forms.Select(attrs={"class": "form-select"}),
-        label="Оператор приемки",
+        label="Оператор фулфилмента",
+    )
+
+    logistic = forms.ModelChoiceField(
+        queryset=User.objects.filter(is_active=True, profile__role="logistic"),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+        label="Логист",
+        help_text="Ответственный логист",
     )
 
     carrier = forms.ModelChoiceField(
@@ -78,6 +86,7 @@ class PickupOrderForm(forms.ModelForm):
             "invoice_number",
             "receiving_warehouse",
             "receiving_operator",
+            "logistic",
             "carrier",
             "quantity",
             "weight",
@@ -119,8 +128,14 @@ class PickupOrderForm(forms.ModelForm):
             ),
             "receiving_operator": forms.Select(
                 attrs={
-                    "class": "form-select select2",
-                    "data-placeholder": "Выберите оператора приемки",
+                    "class": "form-select",
+                    "data-placeholder": "Выберите оператора фулфилмента",
+                }
+            ),
+            "logistic": forms.Select(
+                attrs={
+                    "class": "form-select",
+                    "data-placeholder": "Выберите логиста",
                 }
             ),
             "carrier": forms.Select(
@@ -147,6 +162,7 @@ class PickupOrderForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
 
         today = timezone.now().date()
@@ -160,6 +176,64 @@ class PickupOrderForm(forms.ModelForm):
             ("payment", "На оплате"),
             ("accepted", "Принята"),
         ]
+
+        # Настройка отображения имен пользователей
+        for field_name in ["receiving_operator", "logistic"]:
+            self.fields[field_name].label_from_instance = self.get_user_display_name
+
+        # Логика в зависимости от роли пользователя
+        if self.user and hasattr(self.user, "profile"):
+            user_role = self.user.profile.role
+
+            if user_role == "logistic":
+                # Для логиста: поле логиста заполняется автоматически и недоступно для редактирования
+                self.fields["logistic"].initial = self.user
+                self.fields["logistic"].disabled = True
+                self.fields["logistic"].widget.attrs["readonly"] = True
+                self.fields["logistic"].help_text = (
+                    "Заполняется автоматически (вы логист)"
+                )
+
+                # Оператора фулфилмента логист может выбирать
+                self.fields["receiving_operator"].queryset = User.objects.filter(
+                    is_active=True, profile__role="operator"
+                )
+
+            elif user_role == "operator":
+                # Для оператора фулфилмента: поле оператора заполняется автоматически и недоступно для редактирования
+                self.fields["receiving_operator"].initial = self.user
+                self.fields["receiving_operator"].disabled = True
+                self.fields["receiving_operator"].widget.attrs["readonly"] = True
+                self.fields["receiving_operator"].help_text = (
+                    "Заполняется автоматически (вы оператор фулфилмента)"
+                )
+
+                # Логиста оператор может выбирать
+                self.fields["logistic"].queryset = User.objects.filter(
+                    is_active=True, profile__role="logistic"
+                )
+
+            elif user_role == "admin":
+                # Админ может выбирать и оператора и логиста
+                self.fields["receiving_operator"].queryset = User.objects.filter(
+                    is_active=True, profile__role__in=["operator", "admin"]
+                )
+                self.fields["logistic"].queryset = User.objects.filter(
+                    is_active=True, profile__role__in=["logistic", "admin"]
+                )
+                self.fields["receiving_operator"].help_text = (
+                    "Выберите оператора фулфилмента"
+                )
+                self.fields["logistic"].help_text = "Выберите логиста"
+
+    def get_user_display_name(self, user):
+        """Возвращает отображаемое имя пользователя (Фамилия Имя)"""
+        if user.first_name and user.last_name:
+            return f"{user.last_name} {user.first_name}"
+        elif user.first_name:
+            return user.first_name
+        else:
+            return user.username
 
     def clean_pickup_time_from(self):
         """Очистка поля времени"""
@@ -176,6 +250,18 @@ class PickupOrderForm(forms.ModelForm):
         return time
 
     def save(self, commit=True):
-        """Сохраняет форму"""
-        instance = super().save(commit=commit)
+        """Сохраняет форму с учетом ролей пользователей"""
+        instance = super().save(commit=False)
+
+        # Установка значений в зависимости от роли пользователя
+        if self.user and hasattr(self.user, "profile"):
+            user_role = self.user.profile.role
+
+            if user_role == "logistic":
+                instance.logistic = self.user
+            elif user_role == "operator":
+                instance.receiving_operator = self.user
+
+        if commit:
+            instance.save()
         return instance

@@ -277,23 +277,30 @@
                         <small class="form-text text-muted">Склад, куда будет доставлен груз после забора</small>
                     </div>
                     
-                    <!-- Оператор приемки -->
+                    <!-- Оператор фулфилмента -->
                     <div class="mb-3">
-                        <label for="{{ form.receiving_operator.id_for_label }}" class="form-label">Оператор приемки</label>
-                        <div class="d-flex">
-                            <div class="flex-grow-1 me-2">
-                                {{ form.receiving_operator }}
-                            </div>
-                            <div class="flex-shrink-0">
-                                <button type="button" class="btn btn-outline-secondary" onclick="openOperatorModal()">
-                                    <i class="bi bi-person"></i> Выбрать
-                                </button>
-                            </div>
-                        </div>
-                        <small class="form-text text-muted">Оператор, который будет принимать груз на складе</small>
+                        <label for="{{ form.receiving_operator.id_for_label }}" class="form-label">Оператор фулфилмента</label>
+                        {{ form.receiving_operator }}
+                        {% if form.receiving_operator.help_text %}
+                        <small class="form-text text-muted">{{ form.receiving_operator.help_text }}</small>
+                        {% endif %}
                         {% if form.receiving_operator.errors %}
                         <div class="invalid-feedback">
                             {{ form.receiving_operator.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Логист -->
+                    <div class="mb-3">
+                        <label for="{{ form.logistic.id_for_label }}" class="form-label">Логист</label>
+                        {{ form.logistic }}
+                        {% if form.logistic.help_text %}
+                        <small class="form-text text-muted">{{ form.logistic.help_text }}</small>
+                        {% endif %}
+                        {% if form.logistic.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.logistic.errors.0 }}
                         </div>
                         {% endif %}
                     </div>
@@ -480,44 +487,6 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
         <button type="button" class="btn btn-primary" id="saveReceivingWarehouseBtn">Выбрать</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Модальное окно для выбора оператора приемки -->
-<div class="modal fade" id="operatorModal" tabindex="-1" aria-labelledby="operatorModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="operatorModalLabel">Выбор оператора приемки</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label for="operatorSearch" class="form-label">Поиск оператора</label>
-          <input type="text" class="form-control" id="operatorSearch" placeholder="Введите имя, фамилию или логин...">
-        </div>
-        
-        <div class="operator-list" style="max-height: 300px; overflow-y: auto;">
-          <table class="table table-hover">
-            <thead>
-              <tr>
-                <th>Выбрать</th>
-                <th>ФИО</th>
-                <th>Логин</th>
-                <th>Роль</th>
-              </tr>
-            </thead>
-            <tbody id="operatorList">
-              <!-- Список операторов будет загружен здесь -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-primary" id="saveOperatorBtn">Выбрать</button>
       </div>
     </div>
   </div>
@@ -804,18 +773,6 @@
     background-color: #f8f9fa;
 }
 
-.operator-list table tr {
-    cursor: pointer;
-}
-
-.operator-list table tr:hover {
-    background-color: #f8f9fa;
-}
-
-.operator-list table tr.selected {
-    background-color: #e7f1ff;
-}
-
 /* Стили для уменьшенных полей ввода */
 .d-flex .form-select {
     width: 100%;
@@ -825,15 +782,20 @@
 .d-flex .btn {
     white-space: nowrap;
 }
+
+/* Стили для disabled полей */
+.form-select:disabled {
+    background-color: #e9ecef;
+    opacity: 1;
+    cursor: not-allowed;
+}
 </style>
 
 <script>
 let selectedWarehouseId = null;
 let selectedReceivingWarehouseId = null;
-let selectedOperatorId = null;
 let addressModalInstance = null;
 let receivingWarehouseModalInstance = null;
-let operatorModalInstance = null;
 let counterpartyModalInstance = null;
 let carrierModalInstance = null;
 
@@ -841,7 +803,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Инициализация модальных окон
     initAddressModal();
     initReceivingWarehouseModal();
-    initOperatorModal();
     initCounterpartyModal();
     initCarrierModal();
     
@@ -967,27 +928,6 @@ function initReceivingWarehouseModal() {
     });
 }
 
-function initOperatorModal() {
-    const modal = document.getElementById('operatorModal');
-    
-    // Обработчик скрытия модального окна
-    modal.addEventListener('hidden.bs.modal', function() {
-        document.getElementById('operatorSearch').value = '';
-        document.getElementById('operatorList').innerHTML = '';
-        selectedOperatorId = null;
-    });
-    
-    // Поиск операторов
-    document.getElementById('operatorSearch').addEventListener('input', function() {
-        loadOperators(this.value);
-    });
-    
-    // Кнопка сохранения оператора
-    document.getElementById('saveOperatorBtn').addEventListener('click', function() {
-        saveOperator();
-    });
-}
-
 function initCounterpartyModal() {
     const modal = document.getElementById('counterpartyModal');
     
@@ -1064,16 +1004,6 @@ function openReceivingWarehouseModal() {
     const modalElement = document.getElementById('receivingWarehouseModal');
     receivingWarehouseModalInstance = new bootstrap.Modal(modalElement);
     receivingWarehouseModalInstance.show();
-}
-
-function openOperatorModal() {
-    // Загружаем операторов
-    loadOperators('');
-    
-    // Открываем модальное окно
-    const modalElement = document.getElementById('operatorModal');
-    operatorModalInstance = new bootstrap.Modal(modalElement);
-    operatorModalInstance.show();
 }
 
 function openCounterpartyModal(forField) {
@@ -1203,74 +1133,6 @@ function loadWarehouseDetails(warehouseId, prefix) {
         });
 }
 
-function loadOperators(searchTerm) {
-    const operatorList = document.getElementById('operatorList');
-    
-    let url = '{% url "get_operators" %}';
-    if (searchTerm) {
-        url += `?search=${encodeURIComponent(searchTerm)}`;
-    }
-    
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            operatorList.innerHTML = '';
-            data.forEach(operator => {
-                const row = document.createElement('tr');
-                row.setAttribute('data-operator-id', operator.id);
-                row.innerHTML = `
-                    <td>
-                        <input type="radio" name="selectedOperator" value="${operator.id}">
-                    </td>
-                    <td>${operator.full_name}</td>
-                    <td>${operator.username}</td>
-                    <td>
-                        <span class="badge bg-info">
-                            ${operator.role === 'operator' ? 'Оператор' : 
-                              operator.role === 'logistic' ? 'Логист' : 
-                              operator.role === 'admin' ? 'Администратор' : 'Неизвестно'}
-                        </span>
-                    </td>
-                `;
-                
-                row.addEventListener('click', function() {
-                    // Снимаем выделение со всех строк
-                    document.querySelectorAll('#operatorList tr').forEach(tr => {
-                        tr.classList.remove('selected');
-                        tr.querySelector('input[type="radio"]').checked = false;
-                    });
-                    
-                    // Выделяем текущую строку
-                    this.classList.add('selected');
-                    this.querySelector('input[type="radio"]').checked = true;
-                    selectedOperatorId = operator.id;
-                });
-                
-                operatorList.appendChild(row);
-            });
-            
-            if (data.length === 0) {
-                operatorList.innerHTML = `
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">
-                            Операторы не найдены
-                        </td>
-                    </tr>
-                `;
-            }
-        })
-        .catch(error => {
-            console.error('Ошибка загрузки операторов:', error);
-            operatorList.innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center text-danger">
-                        Ошибка загрузки операторов
-                    </td>
-                </tr>
-            `;
-        });
-}
-
 function saveAddress() {
     const addressInput = document.getElementById('addressInput').value.trim();
     
@@ -1323,35 +1185,6 @@ function saveReceivingWarehouse() {
     }
     
     showNotification('Склад приемки успешно выбран', 'success');
-}
-
-function saveOperator() {
-    if (!selectedOperatorId) {
-        showNotification('Пожалуйста, выберите оператора', 'error');
-        return;
-    }
-    
-    // Заполняем поле оператора приемки
-    const receivingOperatorSelect = document.getElementById('{{ form.receiving_operator.id_for_label }}');
-    if (receivingOperatorSelect) {
-        receivingOperatorSelect.value = selectedOperatorId;
-        
-        // Обновляем событие change
-        const event = new Event('change');
-        receivingOperatorSelect.dispatchEvent(event);
-    }
-    
-    // Закрываем модальное окно
-    if (operatorModalInstance) {
-        operatorModalInstance.hide();
-    } else {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('operatorModal'));
-        if (modal) {
-            modal.hide();
-        }
-    }
-    
-    showNotification('Оператор приемки успешно выбран', 'success');
 }
 
 function saveCounterparty() {

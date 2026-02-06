@@ -64,6 +64,7 @@ class PickupOrderAdmin(admin.ModelAdmin):
         "status",
         "invoice_number",
         "receiving_operator",
+        "logistic",
         "receiving_warehouse",
         "get_carrier_display",
         "operator",
@@ -75,6 +76,7 @@ class PickupOrderAdmin(admin.ModelAdmin):
         "pickup_date",
         "operator",
         "receiving_operator",
+        "logistic",
         "carrier",
         "created_at",
     ]
@@ -135,6 +137,7 @@ class PickupOrderAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "receiving_operator",
+                    "logistic",
                     "receiving_warehouse",
                 )
             },
@@ -207,5 +210,3 @@ class PickupOrderAdmin(admin.ModelAdmin):
         )
 
     regenerate_qr_codes.short_description = "Перегенерировать QR-коды (ссылка на PDF)"
-
-
