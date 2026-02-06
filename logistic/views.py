@@ -1026,7 +1026,7 @@ class DeliveryOrderCreateView(LoginRequiredMixin, CreateView):
 
 @login_required
 def get_logistics(request):
-    """API для получения списка логистов"""
+    """API для получения списка логистов с полными именами"""
     from django.contrib.auth.models import User
 
     logistics = User.objects.filter(is_active=True, profile__role="logistic").order_by(
@@ -1035,14 +1035,14 @@ def get_logistics(request):
 
     logistics_list = []
     for logistic in logistics:
+        full_name = logistic.get_full_name()
         logistics_list.append(
             {
                 "id": logistic.id,
                 "username": logistic.username,
                 "first_name": logistic.first_name,
                 "last_name": logistic.last_name,
-                "full_name": f"{logistic.first_name} {logistic.last_name}".strip()
-                or logistic.username,
+                "full_name": full_name.strip() if full_name else logistic.username,
             }
         )
 
@@ -1420,4 +1420,3 @@ def delivery_orders_list_pdf(request):
         traceback.print_exc()
         messages.error(request, f"Ошибка при создании PDF списка: {str(e)[:100]}")
         return redirect("delivery_order_list")
-

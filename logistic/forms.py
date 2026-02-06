@@ -6,6 +6,17 @@ from warehouses.models import City, Warehouse
 from counterparties.models import Counterparty
 
 
+class LogisticModelChoiceField(forms.ModelChoiceField):
+    """Кастомное поле для выбора логиста с отображением полного имени"""
+
+    def label_from_instance(self, obj):
+        """Возвращает полное имя пользователя или логин, если имя отсутствует"""
+        full_name = obj.get_full_name()
+        if full_name and full_name.strip():
+            return full_name
+        return obj.username
+
+
 class DailyReportForm(forms.Form):
     """Форма для выбора даты ежедневного отчета"""
 
@@ -244,7 +255,6 @@ class DeliveryOrderCreateForm(forms.ModelForm):
                     "placeholder": "Адрес доставки (если получатель не выбран)",
                 }
             ),
-            "logistic": forms.Select(attrs={"class": "form-select"}),
             "quantity": forms.NumberInput(
                 attrs={"class": "form-control", "min": "1", "required": "required"}
             ),
@@ -302,6 +312,17 @@ class DeliveryOrderCreateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["status"].initial = "submitted"
 
+        # Используем кастомное поле для выбора логиста
+        self.fields["logistic"] = LogisticModelChoiceField(
+            queryset=User.objects.filter(profile__role="logistic").order_by(
+                "first_name", "last_name", "username"
+            ),
+            required=False,
+            widget=forms.Select(attrs={"class": "form-select"}),
+            label="Логист",
+            help_text="Логист, ответственный за заявку",
+        )
+
         # Автоматически выбираем текущего пользователя как логиста, если он логист
         if self.user and hasattr(self.user, "profile"):
             if self.user.profile.is_logistic:
@@ -317,10 +338,7 @@ class DeliveryOrderCreateForm(forms.ModelForm):
                     "Логист выбирается автоматически на основе вашей учетной записи. Изменить может только администратор."
                 )
             else:
-                # Для админов показываем всех логистов
-                self.fields["logistic"].queryset = User.objects.filter(
-                    profile__role="logistic"
-                ).order_by("first_name", "last_name", "username")
+                # Для админов показываем всех логистов с полными именами
                 self.fields["logistic"].help_text = "Выберите логиста"
 
         self.fields["sender"].queryset = Counterparty.objects.filter(
@@ -419,5 +437,3 @@ class DeliveryOrderCreateForm(forms.ModelForm):
             instance.save()
 
         return instance
-
-
