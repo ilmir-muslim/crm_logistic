@@ -33,7 +33,7 @@ urlpatterns = [
     path("reports/", views.reports_dashboard, name="reports_dashboard"),
     path("reports/daily/", views.generate_daily_report, name="generate_daily_report"),
     path("reports/statistics/", views.statistics_report, name="statistics_report"),
-    path("get-operators/", views.get_operators, name="get_operators"),
+    path("get-logistics/", views.get_logistics, name="get_logistics"),
     path(
         "delivery/<int:pk>/update-field/",
         views.update_delivery_order_field,
@@ -47,3 +47,4 @@ urlpatterns = [
     ),
     path("list-pdf/", views.delivery_orders_list_pdf, name="delivery_orders_list_pdf"),
 ]
+

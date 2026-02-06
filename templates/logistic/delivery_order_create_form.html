@@ -116,28 +116,38 @@
                     <!-- Скрытое поле для ID склада доставки -->
                     {{ form.delivery_warehouse }}
                     
-                    <!-- Фулфилмент оператор -->
+                    <!-- Логист -->
                     <div class="mb-3">
-                        <label class="form-label">Фулфилмент оператор</label>
+                        <label class="form-label">Логист</label>
                         {% if is_admin %}
-                            {{ form.fulfillment }}
+                            {{ form.logistic }}
                             <small class="form-text text-muted">
-                                Администратор может выбрать любого оператора
+                                Администратор может выбрать любого логиста
                             </small>
-                        {% else %}
+                        {% elif is_logistic %}
                             <input type="text" 
                                    class="form-control" 
                                    value="{{ request.user.get_full_name|default:request.user.username }}" 
                                    readonly
                                    disabled>
                             <small class="form-text text-muted">
-                                Оператор выбирается автоматически на основе вашей учетной записи
+                                Логист выбирается автоматически на основе вашей учетной записи
                             </small>
-                            {{ form.fulfillment.as_hidden }}
+                            {{ form.logistic.as_hidden }}
+                        {% else %}
+                            <input type="text" 
+                                   class="form-control" 
+                                   value="Не назначен" 
+                                   readonly
+                                   disabled>
+                            <small class="form-text text-muted">
+                                Только администратор или логист могут назначить логиста
+                            </small>
+                            {{ form.logistic.as_hidden }}
                         {% endif %}
-                        {% if form.fulfillment.errors %}
+                        {% if form.logistic.errors %}
                         <div class="invalid-feedback d-block">
-                            {{ form.fulfillment.errors.0 }}
+                            {{ form.logistic.errors.0 }}
                         </div>
                         {% endif %}
                     </div>

@@ -322,6 +322,12 @@ class DeliveryOrderFormView(FormView):
         try:
             subject = f"Заявка на доставку #{order.tracking_number} принята"
 
+            # Получаем название города и склада из ForeignKey объектов
+            city_name = order.delivery_city.name if order.delivery_city else "Не указан"
+            warehouse_name = (
+                order.pickup_warehouse.name if order.pickup_warehouse else "Не указан"
+            )
+
             message = f"""
             Ваша заявка на доставку груза #{order.tracking_number} принята.
             
@@ -329,8 +335,8 @@ class DeliveryOrderFormView(FormView):
             Компания: {company_name}
             Контактное лицо: {contact_name}
             Дата доставки: {order.date}
-            Город: {order.city}
-            Склад отправки: {order.warehouse}
+            Город: {city_name}
+            Склад отправки: {warehouse_name}
             
             Мы свяжемся с вами в ближайшее время.
             

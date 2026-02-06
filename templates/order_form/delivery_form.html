@@ -220,6 +220,7 @@
             color: white;
             border: none;
             padding: 0.75rem;
+            text-align: left;
             font-weight: 500;
         }
         
@@ -647,17 +648,17 @@
                             </div>
                             
                             <div class="col-md-6">
-                                <label for="{{ form.fulfillment.id_for_label }}" class="form-label required">
-                                    Фулфилмент оператор *
+                                <label for="{{ form.logistic.id_for_label }}" class="form-label">
+                                    Логист
                                 </label>
-                                {{ form.fulfillment }}
-                                {% if form.fulfillment.errors %}
+                                {{ form.logistic }}
+                                {% if form.logistic.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {{ form.fulfillment.errors.0 }}
+                                    {{ form.logistic.errors.0 }}
                                 </div>
                                 {% endif %}
                                 <div class="form-text">
-                                    Например: Фулфилмент Царицыно
+                                    Логист, ответственный за заявку
                                 </div>
                             </div>
                             

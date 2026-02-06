@@ -22,7 +22,7 @@
         
         <div class="alert alert-info">
             <strong>Внимание!</strong> Вы можете изменить только данные водителя и статус.
-            Основные данные заявки (город, вес, объем) защищены от изменений.
+            Основные данные заявки (адреса, вес, объем) защищены от изменений.
         </div>
         
         <form method="post">
@@ -51,23 +51,46 @@
                     <div class="row">
                         <div class="col-md-4">
                             <p><strong>Номер:</strong> {{ object.tracking_number|default:"#"|add:object.id }}</p>
-                            <p><strong>Город:</strong> {{ object.city }}</p>
+                            <p><strong>Дата доставки:</strong> {{ object.date|date:"d.m.Y" }}</p>
+                            <p><strong>Логист:</strong> {{ object.get_logistic_display }}</p>
                         </div>
                         <div class="col-md-4">
-                            <p><strong>Склад отправки:</strong> {{ object.warehouse }}</p>
-                            <p><strong>Склад приемки:</strong> 
-                                {% if object.receiving_warehouse %}
-                                    {{ object.receiving_warehouse }}
-                                {% elif object.delivery_address %}
-                                    Адрес доставки
+                            <p><strong>Отправитель:</strong> {{ object.get_sender_display }}</p>
+                            <p><strong>Адрес отправки:</strong> 
+                                {% if object.pickup_address %}
+                                    {{ object.pickup_address|truncatechars:50 }}
+                                {% elif object.pickup_warehouse %}
+                                    {{ object.pickup_warehouse.address }}
                                 {% else %}
                                     Не указан
                                 {% endif %}
                             </p>
                         </div>
                         <div class="col-md-4">
+                            <p><strong>Получатель:</strong> {{ object.get_recipient_display }}</p>
+                            <p><strong>Адрес доставки:</strong> 
+                                {% if object.delivery_address %}
+                                    {{ object.delivery_address|truncatechars:50 }}
+                                {% elif object.delivery_warehouse %}
+                                    {{ object.delivery_warehouse.address }}
+                                {% else %}
+                                    Не указан
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-3">
                             <p><strong>Места:</strong> {{ object.quantity }}</p>
-                            <p><strong>Вес/Объем:</strong> {{ object.weight }} кг / {{ object.volume }} м³</p>
+                        </div>
+                        <div class="col-md-3">
+                            <p><strong>Вес:</strong> {{ object.weight }} кг</p>
+                        </div>
+                        <div class="col-md-3">
+                            <p><strong>Объем:</strong> {{ object.volume }} м³</p>
+                        </div>
+                        <div class="col-md-3">
+                            <p><strong>Статус:</strong> {{ object.get_status_display }}</p>
                         </div>
                     </div>
                 </div>

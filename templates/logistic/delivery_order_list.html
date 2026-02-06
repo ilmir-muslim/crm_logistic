@@ -920,7 +920,7 @@
               <option value="driver_phone">Телефон водителя</option>
               <option value="vehicle">Транспортное средство</option>
               <option value="date">Дата доставки</option>
-              <option value="fulfillment">Фулфилмент оператор</option>
+              <option value="logistic">Логист</option>
               <option value="quantity">Количество мест</option>
               <option value="weight">Вес (кг)</option>
               <option value="volume">Объем (м³)</option>
@@ -948,12 +948,12 @@
 <script>
 // Глобальные переменные для хранения состояния
 let editingCell = null;
-let operatorsList = [];
+let logisticsList = [];
 let currentAddressCell = null;
 let currentAddressField = null; // 'pickup_address' или 'delivery_address'
 let bulkEditModal = null;
 
-// Загружаем список операторов при загрузке страницы
+// Загружаем список логистов при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     // Проверяем, является ли пользователь оператором
     const isOperator = {{ is_operator|yesno:"true,false" }};
@@ -962,7 +962,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Только для не-операторов (логистов и админов) инициализируем редактирование
         initInlineEditing();
         initAddressModal();
-        loadOperatorsList();
+        loadLogisticsList();
     }
     
     // Инициализация массового выбора
@@ -1310,11 +1310,11 @@ function initInlineEditing() {
     });
 }
 
-// Загрузка списка операторов
-function loadOperatorsList() {
+// Загрузка списка логистов
+function loadLogisticsList() {
     const csrfToken = getCookie('csrftoken');
     
-    fetch('{% url "get_operators" %}', {
+    fetch('{% url "get_logistics" %}', {
         method: 'GET',
         headers: {
             'X-CSRFToken': csrfToken
@@ -1327,13 +1327,13 @@ function loadOperatorsList() {
         return response.json();
     })
     .then(data => {
-        operatorsList = data;
-        console.log('Операторы загружены:', operatorsList.length);
+        logisticsList = data;
+        console.log('Логисты загружены:', logisticsList.length);
     })
     .catch(error => {
-        console.error('Ошибка загрузки операторов:', error);
+        console.error('Ошибка загрузки логистов:', error);
         // Запасной вариант: статический список
-        operatorsList = [
+        logisticsList = [
             {id: '', name: 'Не назначен'}
         ];
     });
@@ -1909,13 +1909,13 @@ function initBulkEditing() {
                     `;
                     break;
                     
-                case 'fulfillment':
-                    // Загружаем операторов для выбора
-                    loadFulfillmentOperatorsForBulk();
+                case 'logistic':
+                    // Загружаем логистов для выбора
+                    loadLogisticsForBulk();
                     inputHtml = `
-                        <label for="bulkEditValue" class="form-label">Фулфилмент оператор</label>
+                        <label for="bulkEditValue" class="form-label">Логист</label>
                         <select class="form-select" id="bulkEditValue">
-                            <option value="">Загрузка операторов...</option>
+                            <option value="">Загрузка логистов...</option>
                         </select>
                     `;
                     break;
@@ -1953,11 +1953,11 @@ function initBulkEditing() {
     }
 }
 
-// Загрузка операторов фулфилмента для выпадающего списка
-function loadFulfillmentOperatorsForBulk() {
+// Загрузка логистов для выпадающего списка
+function loadLogisticsForBulk() {
     const csrfToken = getCookie('csrftoken');
     
-    fetch('{% url "get_operators" %}', {
+    fetch('{% url "get_logistics" %}', {
         method: 'GET',
         headers: {
             'X-CSRFToken': csrfToken
@@ -1967,17 +1967,17 @@ function loadFulfillmentOperatorsForBulk() {
     .then(data => {
         const select = document.getElementById('bulkEditValue');
         if (select) {
-            select.innerHTML = '<option value="">Выберите оператора</option>';
-            data.forEach(operator => {
+            select.innerHTML = '<option value="">Выберите логиста</option>';
+            data.forEach(logistic => {
                 const option = document.createElement('option');
-                option.value = operator.id;
-                option.textContent = operator.full_name || operator.username;
+                option.value = logistic.id;
+                option.textContent = logistic.full_name || logistic.username;
                 select.appendChild(option);
             });
         }
     })
     .catch(error => {
-        console.error('Ошибка загрузки операторов:', error);
+        console.error('Ошибка загрузки логистов:', error);
         const select = document.getElementById('bulkEditValue');
         if (select) {
             select.innerHTML = '<option value="">Ошибка загрузки</option>';

@@ -115,8 +115,8 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Фулфилмент оператор:</th>
-                        <td>{{ order.fulfillment|default:"Не указан" }}</td>
+                        <th>Логист:</th>
+                        <td>{{ order.get_logistic_display|default:"Не назначен" }}</td>
                     </tr>
                     <tr>
                         <th>Количество мест:</th>

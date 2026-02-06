@@ -12,16 +12,20 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
         "status",
         "quantity",
         "driver_name",
+        "logistic_display",
     ]
-    list_filter = ["status", "date"]
+    list_filter = ["status", "date", "logistic"]
     search_fields = [
         "tracking_number",
         "sender__name",
-        "sender_address",
+        "pickup_address",
         "recipient__name",
-        "recipient_address",
+        "delivery_address",
         "driver_name",
         "vehicle",
+        "logistic__username",
+        "logistic__first_name",
+        "logistic__last_name",
     ]
     readonly_fields = [
         "qr_code_preview",
@@ -29,6 +33,7 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
         "tracking_number",
         "sender_display",
         "recipient_display",
+        "logistic_display",
     ]
     fieldsets = (
         (
@@ -38,10 +43,13 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
                     "tracking_number",
                     "date",
                     "sender",
-                    "sender_address",
+                    "pickup_address",
+                    "pickup_warehouse",
                     "recipient",
-                    "recipient_address",
-                    "fulfillment",
+                    "delivery_address",
+                    "delivery_warehouse",
+                    "delivery_city",
+                    "logistic",
                     "status",
                 )
             },
@@ -49,7 +57,15 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
         ("Характеристики груза", {"fields": ("quantity", "weight", "volume")}),
         (
             "Информация о перевозке",
-            {"fields": ("driver_name", "driver_phone", "vehicle", "operator")},
+            {
+                "fields": (
+                    "driver_name",
+                    "driver_phone",
+                    "vehicle",
+                    "driver_pass_info",
+                    "operator",
+                )
+            },
         ),
         ("QR-код", {"fields": ("qr_code_preview", "qr_code")}),
         ("Системная информация", {"fields": ("created_at",), "classes": ("collapse",)}),
@@ -59,11 +75,13 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
         """Отображение отправителя в списке"""
         if obj.sender:
             return f"{obj.sender.name} ({obj.sender.get_type_display()})"
-        elif obj.sender_address:
+        elif obj.pickup_warehouse:
+            return f"{obj.pickup_warehouse.name} ({obj.pickup_warehouse.address})"
+        elif obj.pickup_address:
             return (
-                obj.sender_address[:50] + "..."
-                if len(obj.sender_address) > 50
-                else obj.sender_address
+                obj.pickup_address[:50] + "..."
+                if len(obj.pickup_address) > 50
+                else obj.pickup_address
             )
         return "Не указан"
 
@@ -73,15 +91,27 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
         """Отображение получателя в списке"""
         if obj.recipient:
             return f"{obj.recipient.name} ({obj.recipient.get_type_display()})"
-        elif obj.recipient_address:
+        elif obj.delivery_warehouse:
+            return f"{obj.delivery_warehouse.name} ({obj.delivery_warehouse.address})"
+        elif obj.delivery_address:
             return (
-                obj.recipient_address[:50] + "..."
-                if len(obj.recipient_address) > 50
-                else obj.recipient_address
+                obj.delivery_address[:50] + "..."
+                if len(obj.delivery_address) > 50
+                else obj.delivery_address
             )
         return "Не указан"
 
     recipient_display.short_description = "Получатель"
+
+    def logistic_display(self, obj):
+        """Отображение логиста в списке"""
+        if obj.logistic:
+            if obj.logistic.get_full_name():
+                return obj.logistic.get_full_name()
+            return obj.logistic.username
+        return "Не назначен"
+
+    logistic_display.short_description = "Логист"
 
     def qr_code_preview(self, obj):
         if obj.qr_code:
@@ -104,3 +134,5 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
         )
 
     regenerate_qr_codes.short_description = "Перегенерировать QR-коды (ссылка на PDF)"
+
+

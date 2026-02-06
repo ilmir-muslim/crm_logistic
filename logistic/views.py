@@ -55,7 +55,7 @@ class DeliveryOrderListView(LoginRequiredMixin, ListView):
         city = self.request.GET.get("city")
         warehouse = self.request.GET.get("warehouse")
         status = self.request.GET.get("status")
-        fulfillment = self.request.GET.get("fulfillment")
+        logistic = self.request.GET.get("logistic")
 
         if date_gte:
             queryset = queryset.filter(date__gte=date_gte)
@@ -67,8 +67,8 @@ class DeliveryOrderListView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(warehouse_id=warehouse)
         if status:
             queryset = queryset.filter(status=status)
-        if fulfillment:
-            queryset = queryset.filter(fulfillment_id=fulfillment)
+        if logistic:
+            queryset = queryset.filter(logistic_id=logistic)
 
         sort = self.request.GET.get("sort", "date")
         order = self.request.GET.get("order", "desc")
@@ -77,7 +77,7 @@ class DeliveryOrderListView(LoginRequiredMixin, ListView):
             "date",
             "city",
             "warehouse",
-            "fulfillment",
+            "logistic",
             "quantity",
             "weight",
             "status",
@@ -112,8 +112,8 @@ class DeliveryOrderListView(LoginRequiredMixin, ListView):
 
         from django.contrib.auth.models import User
 
-        context["operators_list"] = User.objects.filter(
-            is_active=True, profile__role="operator"
+        context["logistics_list"] = User.objects.filter(
+            is_active=True, profile__role="logistic"
         ).order_by("first_name", "last_name", "username")
 
         from warehouses.models import City, Warehouse
@@ -124,12 +124,10 @@ class DeliveryOrderListView(LoginRequiredMixin, ListView):
             Warehouse.objects.select_related("city").all().order_by("name")
         )
 
-        if self.request.GET.get("fulfillment"):
+        if self.request.GET.get("logistic"):
             try:
-                fulfillment_user = User.objects.get(
-                    id=self.request.GET.get("fulfillment")
-                )
-                context["selected_fulfillment"] = fulfillment_user
+                logistic_user = User.objects.get(id=self.request.GET.get("logistic"))
+                context["selected_logistic"] = logistic_user
             except User.DoesNotExist:
                 pass
 
@@ -228,7 +226,7 @@ def update_delivery_order_field(request, pk):
         "driver_name",
         "driver_phone",
         "date",
-        "fulfillment",
+        "logistic",
     ]
 
     if field not in allowed_fields:
@@ -248,8 +246,8 @@ def update_delivery_order_field(request, pk):
                 value = datetime.strptime(value, "%Y-%m-%d").date()
             except ValueError:
                 return JsonResponse({"success": False, "error": "Неверный формат даты"})
-        elif field == "fulfillment":
-            # Проверяем, может ли пользователь изменять оператора фулфилмента
+        elif field == "logistic":
+            # Проверяем, может ли пользователь изменять логиста
             if not (
                 request.user.is_superuser
                 or hasattr(request.user, "profile")
@@ -258,7 +256,7 @@ def update_delivery_order_field(request, pk):
                 return JsonResponse(
                     {
                         "success": False,
-                        "error": "Только администратор может изменять оператора фулфилмента",
+                        "error": "Только администратор может изменять логиста",
                     }
                 )
 
@@ -317,8 +315,8 @@ def update_delivery_order_field(request, pk):
         elif field == "date":
             display_value = order.date.strftime("%d.%m.%Y")
             return JsonResponse({"success": True, "display_value": display_value})
-        elif field == "fulfillment":
-            display_value = order.get_fulfillment_display()
+        elif field == "logistic":
+            display_value = order.get_logistic_display()
             return JsonResponse({"success": True, "display_value": display_value})
         elif field == "sender":
             display_value = order.get_sender_display()
@@ -640,6 +638,7 @@ def generate_excel_report(date, report_type, user_filter):
                     "Водитель": order.driver_name or "",
                     "Телефон водителя": order.driver_phone or "",
                     "ТС": order.vehicle or "",
+                    "Логист": order.get_logistic_display() if order.logistic else "",
                     "Оператор": order.operator.username if order.operator else "",
                 }
             )
@@ -708,6 +707,7 @@ def generate_excel_report(date, report_type, user_filter):
                     "Вес (кг)": order.weight,
                     "Объем (м³)": order.volume,
                     "Статус": order.get_status_display(),
+                    "Логист": order.get_logistic_display() if order.logistic else "",
                     "Оператор": order.operator.username if order.operator else "",
                 }
             )
@@ -1000,9 +1000,13 @@ class DeliveryOrderCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.operator = self.request.user
 
-        # Если оператор фулфилмента не был выбран (для не-админов), устанавливаем текущего пользователя
-        if not form.instance.fulfillment:
-            form.instance.fulfillment = self.request.user
+        # Если логист не был выбран (для не-админов), устанавливаем текущего пользователя, если он логист
+        if (
+            not form.instance.logistic
+            and hasattr(self.request.user, "profile")
+            and self.request.user.profile.is_logistic
+        ):
+            form.instance.logistic = self.request.user
 
         response = super().form_valid(form)
         messages.success(self.request, "Заявка на доставку успешно создана!")
@@ -1021,33 +1025,28 @@ class DeliveryOrderCreateView(LoginRequiredMixin, CreateView):
 
 
 @login_required
-def get_operators(request):
-    """API для получения списка операторов фулфилмента"""
+def get_logistics(request):
+    """API для получения списка логистов"""
     from django.contrib.auth.models import User
 
-    operators = User.objects.filter(is_active=True, profile__role="operator").order_by(
+    logistics = User.objects.filter(is_active=True, profile__role="logistic").order_by(
         "first_name", "last_name", "username"
     )
 
-    operators_list = []
-    for operator in operators:
-        operators_list.append(
+    logistics_list = []
+    for logistic in logistics:
+        logistics_list.append(
             {
-                "id": operator.id,
-                "username": operator.username,
-                "first_name": operator.first_name,
-                "last_name": operator.last_name,
-                "full_name": f"{operator.first_name} {operator.last_name}".strip()
-                or operator.username,
-                "fulfillment": (
-                    operator.profile.fulfillment
-                    if hasattr(operator, "profile")
-                    else None
-                ),
+                "id": logistic.id,
+                "username": logistic.username,
+                "first_name": logistic.first_name,
+                "last_name": logistic.last_name,
+                "full_name": f"{logistic.first_name} {logistic.last_name}".strip()
+                or logistic.username,
             }
         )
 
-    return JsonResponse(operators_list, safe=False)
+    return JsonResponse(logistics_list, safe=False)
 
 
 @login_required
@@ -1306,7 +1305,7 @@ def bulk_update_delivery_orders(request):
             "driver_phone",
             "vehicle",
             "date",
-            "fulfillment",
+            "logistic",
             "quantity",
             "weight",
             "volume",
@@ -1343,8 +1342,8 @@ def bulk_update_delivery_orders(request):
                         new_value = datetime.strptime(value, "%Y-%m-%d").date()
                     except ValueError:
                         continue
-                elif field == "fulfillment":
-                    # Проверяем права на изменение оператора фулфилмента
+                elif field == "logistic":
+                    # Проверяем права на изменение логиста
                     if not (
                         request.user.is_superuser
                         or hasattr(request.user, "profile")
@@ -1422,5 +1421,3 @@ def delivery_orders_list_pdf(request):
         messages.error(request, f"Ошибка при создании PDF списка: {str(e)[:100]}")
         return redirect("delivery_order_list")
 
-
-### END: logistic/views.py

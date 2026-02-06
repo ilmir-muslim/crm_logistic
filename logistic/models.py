@@ -7,7 +7,7 @@ import qrcode
 import os
 from io import BytesIO
 from django.core.files import File
-from warehouses.models import Warehouse, City  # Добавить импорт
+from warehouses.models import Warehouse, City 
 
 
 class DeliveryOrder(models.Model):
@@ -81,14 +81,15 @@ class DeliveryOrder(models.Model):
         help_text="Город назначения доставки",
     )
 
-    fulfillment = models.ForeignKey(
+    logistic = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name="Фулфилмент оператор",
-        related_name="delivery_orders",
-        limit_choices_to={"profile__role": "operator"},
+        verbose_name="Логист",
+        related_name="logistic_delivery_orders",
+        help_text="Логист, ответственный за заявку",
+        limit_choices_to={"profile__role": "logistic"},
     )
     quantity = models.IntegerField(verbose_name="Количество мест")
     weight = models.FloatField(verbose_name="Вес (кг)")
@@ -142,7 +143,6 @@ class DeliveryOrder(models.Model):
     def get_absolute_url(self):
         return reverse("delivery_order_detail", kwargs={"pk": self.pk})
 
-
     def get_sender_display(self):
         """Возвращает отображаемое имя отправителя"""
         if self.sender:
@@ -156,7 +156,6 @@ class DeliveryOrder(models.Model):
                 else self.pickup_address
             )
         return "Не указан"
-
 
     def get_recipient_display(self):
         """Возвращает отображаемое имя получателя"""
@@ -187,6 +186,14 @@ class DeliveryOrder(models.Model):
         elif self.delivery_address:
             return f"Адрес доставки:\n{self.delivery_address}"
         return "Получатель не указан"
+
+    def get_logistic_display(self):
+        """Возвращает отображаемое имя логиста"""
+        if self.logistic:
+            if self.logistic.get_full_name():
+                return self.logistic.get_full_name()
+            return self.logistic.username
+        return "Не назначен"
 
     def save(self, *args, **kwargs):
         """Сохраняет заявку и генерирует QR-код при создании"""
@@ -287,3 +294,5 @@ class DeliveryOrder(models.Model):
         except Exception as e:
             print(f"❌ Ошибка при пересоздании QR-кода для доставки #{self.id}: {e}")
             return False
+
+

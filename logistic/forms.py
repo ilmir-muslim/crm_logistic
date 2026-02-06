@@ -204,7 +204,7 @@ class DeliveryOrderCreateForm(forms.ModelForm):
             "recipient",
             "delivery_address",
             "delivery_warehouse",
-            "fulfillment",
+            "logistic",
             "quantity",
             "weight",
             "volume",
@@ -244,7 +244,7 @@ class DeliveryOrderCreateForm(forms.ModelForm):
                     "placeholder": "Адрес доставки (если получатель не выбран)",
                 }
             ),
-            "fulfillment": forms.Select(attrs={"class": "form-select"}),
+            "logistic": forms.Select(attrs={"class": "form-select"}),
             "quantity": forms.NumberInput(
                 attrs={"class": "form-control", "min": "1", "required": "required"}
             ),
@@ -286,12 +286,14 @@ class DeliveryOrderCreateForm(forms.ModelForm):
             "pickup_address": "Адрес отправки (вручную)",
             "recipient": "Получатель (контрагент)",
             "delivery_address": "Адрес доставки (вручную)",
+            "logistic": "Логист",
         }
         help_texts = {
             "sender": "Выберите существующего контрагента или создайте нового ниже",
             "recipient": "Выберите существующего контрагента или создайте нового ниже",
             "pickup_address": "Заполняется, если отправитель не выбран из списка контрагентов",
             "delivery_address": "Заполняется, если получатель не выбран из списка контрагентов",
+            "logistic": "Логист, ответственный за заявку",
         }
 
     def __init__(self, *args, **kwargs):
@@ -300,23 +302,26 @@ class DeliveryOrderCreateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["status"].initial = "submitted"
 
-        # Автоматически выбираем текущего пользователя как оператора фулфилмента
+        # Автоматически выбираем текущего пользователя как логиста, если он логист
         if self.user and hasattr(self.user, "profile"):
-            self.fields["fulfillment"].initial = self.user
+            if self.user.profile.is_logistic:
+                self.fields["logistic"].initial = self.user
+            else:
+                self.fields["logistic"].initial = None
 
-            # Если пользователь не админ, блокируем поле выбора оператора
+            # Если пользователь не админ, блокируем поле выбора логиста
             if not self.user.profile.is_admin:
-                self.fields["fulfillment"].widget.attrs["disabled"] = "disabled"
-                self.fields["fulfillment"].widget.attrs["readonly"] = "readonly"
-                self.fields["fulfillment"].help_text = (
-                    "Оператор выбирается автоматически на основе вашей учетной записи. Изменить может только администратор."
+                self.fields["logistic"].widget.attrs["disabled"] = "disabled"
+                self.fields["logistic"].widget.attrs["readonly"] = "readonly"
+                self.fields["logistic"].help_text = (
+                    "Логист выбирается автоматически на основе вашей учетной записи. Изменить может только администратор."
                 )
             else:
-                # Для админов показываем всех операторов
-                self.fields["fulfillment"].queryset = User.objects.filter(
-                    profile__role="operator"
+                # Для админов показываем всех логистов
+                self.fields["logistic"].queryset = User.objects.filter(
+                    profile__role="logistic"
                 ).order_by("first_name", "last_name", "username")
-                self.fields["fulfillment"].help_text = "Выберите оператора фулфилмента"
+                self.fields["logistic"].help_text = "Выберите логиста"
 
         self.fields["sender"].queryset = Counterparty.objects.filter(
             is_active=True
@@ -378,10 +383,15 @@ class DeliveryOrderCreateForm(forms.ModelForm):
         """Сохраняет форму, создавая новых контрагентов при необходимости"""
         instance = super().save(commit=False)
 
-        # Если оператор фулфилмента не выбран (для не-админов поле disabled)
-        # устанавливаем текущего пользователя как оператора
-        if not instance.fulfillment and self.user:
-            instance.fulfillment = self.user
+        # Если логист не выбран (для не-админов поле disabled)
+        # устанавливаем текущего пользователя как логиста, если он логист
+        if (
+            not instance.logistic
+            and self.user
+            and hasattr(self.user, "profile")
+            and self.user.profile.is_logistic
+        ):
+            instance.logistic = self.user
 
         new_sender_name = self.cleaned_data.get("new_sender_name")
         if new_sender_name:
@@ -409,3 +419,5 @@ class DeliveryOrderCreateForm(forms.ModelForm):
             instance.save()
 
         return instance
+
+

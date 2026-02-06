@@ -27,8 +27,8 @@ class DeliveryOrderFilter(django_filters.FilterSet):
         field_name="warehouse__name", lookup_expr="icontains", label="Название склада"
     )
 
-    fulfillment = django_filters.CharFilter(
-        method="filter_fulfillment_ignore_case", label="Фулфилмент оператор"
+    logistic = django_filters.CharFilter(
+        method="filter_logistic_ignore_case", label="Логист"
     )
 
     status = django_filters.ChoiceFilter(
@@ -39,12 +39,14 @@ class DeliveryOrderFilter(django_filters.FilterSet):
         model = DeliveryOrder
         fields = []
 
-    def filter_fulfillment_ignore_case(self, queryset, name, value):
+    def filter_logistic_ignore_case(self, queryset, name, value):
         if value:
             normalized_value = normalize_search_text(value)
             return queryset.filter(
-                Q(fulfillment__username__icontains=normalized_value)
-                | Q(fulfillment__first_name__icontains=normalized_value)
-                | Q(fulfillment__last_name__icontains=normalized_value)
+                Q(logistic__username__icontains=normalized_value)
+                | Q(logistic__first_name__icontains=normalized_value)
+                | Q(logistic__last_name__icontains=normalized_value)
             )
         return queryset
+
+

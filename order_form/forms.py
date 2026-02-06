@@ -441,7 +441,7 @@ class ClientPickupForm(forms.ModelForm):
         return cleaned_data
 
     def save(self, commit=True):
-        """Переопределяем сохранение для обработки контрагента"""
+        """Переопределяем сохранение для обработки контрагентов"""
         instance = super().save(commit=False)
 
         client_counterparty_id = self.cleaned_data.get("client_counterparty_id")
@@ -667,18 +667,26 @@ class ClientDeliveryForm(forms.ModelForm):
         widget=forms.TextInput(attrs={"class": "form-control"}),
     )
 
-    city = forms.ModelChoiceField(
+    delivery_city = forms.ModelChoiceField(
         queryset=City.objects.all(),
         label="Город назначения *",
         widget=forms.Select(attrs={"class": "form-select"}),
         help_text="Город, куда нужно доставить груз",
     )
 
-    warehouse = forms.ModelChoiceField(
+    pickup_warehouse = forms.ModelChoiceField(
         queryset=Warehouse.objects.all(),
         label="Склад отправки *",
         widget=forms.Select(attrs={"class": "form-select"}),
         help_text="Склад, откуда будет отправлен груз",
+    )
+
+    logistic = forms.ModelChoiceField(
+        queryset=None,  # Будет установлено в __init__
+        required=False,
+        label="Логист",
+        widget=forms.Select(attrs={"class": "form-select"}),
+        help_text="Логист, ответственный за заявку",
     )
 
     sender = forms.ModelChoiceField(
@@ -707,9 +715,9 @@ class ClientDeliveryForm(forms.ModelForm):
         model = DeliveryOrder
         fields = [
             "date",
-            "city",
-            "warehouse",
-            "fulfillment",
+            "delivery_city",
+            "pickup_warehouse",
+            "logistic",
             "quantity",
             "weight",
             "volume",
@@ -730,12 +738,9 @@ class ClientDeliveryForm(forms.ModelForm):
                     "min": timezone.now().date().strftime("%Y-%m-%d"),
                 }
             ),
-            "fulfillment": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Например: Фулфилмент Царицыно",
-                }
-            ),
+            "delivery_city": forms.Select(attrs={"class": "form-select"}),
+            "pickup_warehouse": forms.Select(attrs={"class": "form-select"}),
+            "logistic": forms.Select(attrs={"class": "form-select"}),
             "quantity": forms.NumberInput(
                 attrs={
                     "class": "form-control",
@@ -797,9 +802,9 @@ class ClientDeliveryForm(forms.ModelForm):
 
         labels = {
             "date": "Дата доставки *",
-            "city": "Город назначения *",
-            "warehouse": "Склад отправки *",
-            "fulfillment": "Фулфилмент оператор *",
+            "delivery_city": "Город назначения *",
+            "pickup_warehouse": "Склад отправки *",
+            "logistic": "Логист",
             "quantity": "Количество мест *",
             "weight": "Вес (кг) *",
             "volume": "Объем (м³) *",
@@ -814,9 +819,9 @@ class ClientDeliveryForm(forms.ModelForm):
 
         help_texts = {
             "date": "Выберите дату доставки",
-            "city": "Город, куда нужно доставить груз",
-            "warehouse": "Склад, откуда будет отправлен груз",
-            "fulfillment": "Оператор фулфилмента",
+            "delivery_city": "Город, куда нужно доставить груз",
+            "pickup_warehouse": "Склад, откуда будет отправлен груз",
+            "logistic": "Логист, ответственный за заявку",
             "quantity": "Количество коробок/мест",
             "weight": "Общий вес груза в килограммах",
             "volume": "Общий объем груза в кубических метрах",
@@ -835,18 +840,24 @@ class ClientDeliveryForm(forms.ModelForm):
         today = timezone.now().date()
         self.fields["date"].initial = today
         self.fields["quantity"].initial = 1
-        self.fields["fulfillment"].initial = "Фулфилмент Царицыно"
 
-        self.fields["city"].queryset = City.objects.all().order_by("name")
-        self.fields["warehouse"].queryset = (
+        self.fields["delivery_city"].queryset = City.objects.all().order_by("name")
+        self.fields["pickup_warehouse"].queryset = (
             Warehouse.objects.filter(city__warehouses__isnull=False)
             .distinct()
             .order_by("city__name", "name")
         )
 
-        self.fields["warehouse"].label_from_instance = (
+        self.fields["pickup_warehouse"].label_from_instance = (
             lambda obj: f"{obj.name} ({obj.city.name})"
         )
+
+        # Установка queryset для логиста
+        from django.contrib.auth.models import User
+
+        self.fields["logistic"].queryset = User.objects.filter(
+            profile__role="logistic"
+        ).order_by("first_name", "last_name", "username")
 
         self.fields["sender"].queryset = Counterparty.objects.filter(
             is_active=True
@@ -858,7 +869,7 @@ class ClientDeliveryForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
 
-        warehouse = cleaned_data.get("warehouse")
+        warehouse = cleaned_data.get("pickup_warehouse")
         date = cleaned_data.get("date")
 
         if warehouse and date:
@@ -903,13 +914,13 @@ class ClientDeliveryForm(forms.ModelForm):
     def save(self, commit=True):
         instance = super().save(commit=False)
 
-        city_obj = self.cleaned_data.get("city")
+        city_obj = self.cleaned_data.get("delivery_city")
         if city_obj:
-            instance.city = city_obj.name
+            instance.delivery_city = city_obj
 
-        warehouse_obj = self.cleaned_data.get("warehouse")
+        warehouse_obj = self.cleaned_data.get("pickup_warehouse")
         if warehouse_obj:
-            instance.warehouse = warehouse_obj.name
+            instance.pickup_warehouse = warehouse_obj
 
         instance.status = "submitted"
 
