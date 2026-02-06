@@ -256,6 +256,11 @@
         font-weight: 600 !important;
     }
 
+    .status-on_the_way { 
+    color: #146c2aff !important; 
+    font-weight: 600 !important;
+}
+
     table code {
         color: inherit !important;
         background-color: transparent !important;
@@ -1367,6 +1372,7 @@ function startEditing(cell) {
             options = [
                 {value: 'submitted', text: 'Подана'},
                 {value: 'driver_assigned', text: 'Водитель назначен'},
+                {value: 'on_the_way', text: 'В пути'},
                 {value: 'shipped', text: 'Отправлено'}
             ];
         } else {
@@ -1876,10 +1882,12 @@ function initBulkEditing() {
                             <option value="">Выберите статус</option>
                             <option value="submitted">Подана</option>
                             <option value="driver_assigned">Водитель назначен</option>
+                            <option value="on_the_way">В пути</option>
                             <option value="shipped">Отправлено</option>
                         </select>
                     `;
                     break;
+
                     
                 case 'driver_name':
                     inputHtml = `

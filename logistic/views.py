@@ -351,7 +351,7 @@ def dashboard(request):
     if hasattr(user, "profile") and user.profile.is_operator:
         queryset_filter = Q(operator=user)
 
-    # Исправляем delivery_stats
+    # Исправляем delivery_stats с новым статусом "on_the_way"
     delivery_stats = {
         "total": DeliveryOrder.objects.filter(queryset_filter).count(),
         "today": DeliveryOrder.objects.filter(queryset_filter & Q(date=today)).count(),
@@ -360,6 +360,9 @@ def dashboard(request):
         ).count(),
         "driver_assigned": DeliveryOrder.objects.filter(
             queryset_filter & Q(status="driver_assigned")
+        ).count(),
+        "on_the_way": DeliveryOrder.objects.filter(
+            queryset_filter & Q(status="on_the_way")
         ).count(),
         "shipped": DeliveryOrder.objects.filter(
             queryset_filter & Q(status="shipped")

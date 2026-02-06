@@ -24,6 +24,7 @@ def create_daily_report_pdf(date, orders):
         "total": len(orders),
         "submitted": len([o for o in orders if o.status == "submitted"]),
         "driver_assigned": len([o for o in orders if o.status == "driver_assigned"]),
+        "on_the_way": len([o for o in orders if o.status == "on_the_way"]),
         "shipped": len([o for o in orders if o.status == "shipped"]),
         "total_weight": sum(o.weight for o in orders),
         "total_volume": sum(o.volume for o in orders),
@@ -55,7 +56,7 @@ def create_daily_report_pdf(date, orders):
     
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, 1fr);
         gap: 10px;
         margin-bottom: 20px;
     }
@@ -187,6 +188,7 @@ def create_delivery_orders_list_pdf(orders):
     
     .status-submitted { background-color: #fff3cd; color: #856404; }
     .status-driver_assigned { background-color: #cce5ff; color: #004085; }
+    .status-on_the_way { background-color: #ffeaa7; color: #5c4700; }
     .status-shipped { background-color: #d4edda; color: #155724; }
     
     .address-cell {
@@ -269,6 +271,7 @@ def generate_daily_report_pdf(date, orders, report_type="delivery"):
             "driver_assigned": len(
                 [o for o in orders if o.status == "driver_assigned"]
             ),
+            "on_the_way": len([o for o in orders if o.status == "on_the_way"]),
             "shipped": len([o for o in orders if o.status == "shipped"]),
             "total_weight": sum(o.weight for o in orders),
             "total_volume": sum(o.volume for o in orders),

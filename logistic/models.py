@@ -7,13 +7,14 @@ import qrcode
 import os
 from io import BytesIO
 from django.core.files import File
-from warehouses.models import Warehouse, City 
+from warehouses.models import Warehouse, City
 
 
 class DeliveryOrder(models.Model):
     STATUS_CHOICES = [
         ("submitted", "Заявка подана"),
         ("driver_assigned", "Назначен водитель"),
+        ("on_the_way", "В пути"),
         ("shipped", "Отправлено"),
     ]
 
@@ -294,5 +295,3 @@ class DeliveryOrder(models.Model):
         except Exception as e:
             print(f"❌ Ошибка при пересоздании QR-кода для доставки #{self.id}: {e}")
             return False
-
-
