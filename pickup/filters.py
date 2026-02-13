@@ -36,6 +36,7 @@ class PickupOrderFilter(django_filters.FilterSet):
         choices=[
             ("ready", "Готова к выдаче"),
             ("payment", "На оплате"),
+            ("in_transit", "В пути"),
             ("accepted", "Принята"),
         ],
         empty_label="Все статусы",

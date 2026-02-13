@@ -28,6 +28,7 @@ def create_daily_pickup_report_pdf(date, orders):
         "total": len(orders),
         "ready": len([o for o in orders if o.status == "ready"]),
         "payment": len([o for o in orders if o.status == "payment"]),
+        "in_transit": len([o for o in orders if o.status == "in_transit"]),
         "accepted": len([o for o in orders if o.status == "accepted"]),
         "total_weight": sum(o.weight for o in orders if o.weight),
         "total_volume": sum(o.volume for o in orders if o.volume),

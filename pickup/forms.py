@@ -174,6 +174,7 @@ class PickupOrderForm(forms.ModelForm):
         self.fields["status"].choices = [
             ("ready", "Готова к выдаче"),
             ("payment", "На оплате"),
+            ("in_transit", "В пути"),
             ("accepted", "Принята"),
         ]
 

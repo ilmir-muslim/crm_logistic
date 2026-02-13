@@ -233,6 +233,10 @@
         color: #6c757d !important; 
         font-weight: 600 !important;
     }
+    .status-in_transit { 
+        color: #0d6efd !important;   /* синий */
+        font-weight: 600 !important;
+    }
     .status-accepted {  
         color: #198754 !important; 
         font-weight: 600 !important;
@@ -630,6 +634,7 @@
                     <option value="">Все</option>
                     <option value="ready" {% if request.GET.status == 'ready' %}selected{% endif %}>Готова к выдаче</option>
                     <option value="payment" {% if request.GET.status == 'payment' %}selected{% endif %}>На оплате</option>
+                    <option value="in_transit" {% if request.GET.status == 'in_transit' %}selected{% endif %}>В пути</option>
                     <option value="accepted" {% if request.GET.status == 'accepted' %}selected{% endif %}>Принята</option>
                 </select>
             </div>
@@ -1279,6 +1284,7 @@ function initBulkEditing() {
                             <option value="">Выберите статус</option>
                             <option value="ready">Готова к выдаче</option>
                             <option value="payment">На оплате</option>
+                            <option value="in_transit">В пути</option> 
                             <option value="accepted">Принята</option> 
                         </select>
                     `;
@@ -1959,6 +1965,7 @@ function startEditing(cell) {
             options = [
                 {value: 'ready', text: 'Готова к выдаче'},
                 {value: 'payment', text: 'На оплате'},
+                {value: 'in_transit', text: 'В пути'},  
                 {value: 'accepted', text: 'Принята'},
             ];
         } else if (field === 'operator' || field === 'receiving_operator') {

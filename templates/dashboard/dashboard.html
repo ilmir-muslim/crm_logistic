@@ -53,7 +53,7 @@
 
   <!-- Основные метрики -->
   <div class="row mb-5">
-    <!-- Доставки -->
+    <!-- Доставки (все 4 статуса) -->
     <div class="col-xl-3 col-md-6 mb-4">
       <div class="card border-start border-primary border-4 shadow-sm h-100">
         <div class="card-body">
@@ -71,25 +71,37 @@
             </div>
           </div>
           <div class="mt-3">
+            <!-- Заявка подана (submitted) -->
             <div class="d-flex justify-content-between small text-muted mb-1">
-              <span>В обработке</span>
+              <span>Заявка подана</span>
               <span class="fw-medium">{{ delivery_stats.submitted }}</span>
             </div>
             <div class="progress mb-2" style="height: 4px">
-              <div
-                class="progress-bar bg-warning"
-                style="width: {% widthratio delivery_stats.submitted delivery_stats.total 100 %}%"
-              ></div>
+              <div class="progress-bar bg-secondary" style="width: {% widthratio delivery_stats.submitted delivery_stats.total 100 %}%"></div>
             </div>
+            <!-- Назначен водитель (driver_assigned) -->
+            <div class="d-flex justify-content-between small text-muted mb-1">
+              <span>Назначен водитель</span>
+              <span class="fw-medium">{{ delivery_stats.driver_assigned|default:0 }}</span>
+            </div>
+            <div class="progress mb-2" style="height: 4px">
+              <div class="progress-bar bg-primary" style="width: {% widthratio delivery_stats.driver_assigned|default:0 delivery_stats.total 100 %}%"></div>
+            </div>
+            <!-- В пути (on_the_way) -->
+            <div class="d-flex justify-content-between small text-muted mb-1">
+              <span>В пути</span>
+              <span class="fw-medium">{{ delivery_stats.on_the_way|default:0 }}</span>
+            </div>
+            <div class="progress mb-2" style="height: 4px">
+              <div class="progress-bar bg-warning" style="width: {% widthratio delivery_stats.on_the_way|default:0 delivery_stats.total 100 %}%"></div>
+            </div>
+            <!-- Отправлено (shipped) -->
             <div class="d-flex justify-content-between small text-muted mb-1">
               <span>Отправлено</span>
               <span class="fw-medium">{{ delivery_stats.shipped }}</span>
             </div>
             <div class="progress" style="height: 4px">
-              <div
-                class="progress-bar bg-success"
-                style="width: {% widthratio delivery_stats.shipped delivery_stats.total 100 %}%"
-              ></div>
+              <div class="progress-bar bg-success" style="width: {% widthratio delivery_stats.shipped delivery_stats.total 100 %}%"></div>
             </div>
           </div>
         </div>
@@ -104,7 +116,7 @@
       </div>
     </div>
 
-    <!-- Заборы -->
+    <!-- ЗАБОРЫ (исправлено: добавлен статус "В пути") -->
     <div class="col-xl-3 col-md-6 mb-4">
       <div class="card border-start border-success border-4 shadow-sm h-100">
         <div class="card-body">
@@ -122,19 +134,25 @@
             </div>
           </div>
           <div class="mt-3">
+            <!-- Готова к выдаче (ready) -->
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="badge bg-info rounded-pill">Готова к выдаче</span>
               <span class="fw-medium">{{ pickup_stats.ready }}</span>
             </div>
-            <div class="d-flex justify-content-between align-items-center">
+            <!-- На оплате (payment) -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="badge bg-warning rounded-pill">На оплате</span>
               <span class="fw-medium">{{ pickup_stats.payment }}</span>
             </div>
+            <!-- В пути (in_transit) - ДОБАВЛЕНО -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="badge bg-primary rounded-pill">В пути</span>
+              <span class="fw-medium">{{ pickup_stats.in_transit|default:0 }}</span>
+            </div>
+            <!-- Принята (accepted) -->
             <div class="d-flex justify-content-between align-items-center">
               <span class="badge bg-success rounded-pill">Принята</span>
-              <span class="fw-medium"
-                >{{ pickup_stats.accepted|default:0 }}</span
-              >
+              <span class="fw-medium">{{ pickup_stats.accepted|default:0 }}</span>
             </div>
           </div>
         </div>
@@ -208,7 +226,6 @@
             <a href="{% url 'pickup_order_create' %}" class="btn btn-success">
               <i class="bi bi-plus-circle me-2"></i>Новый забор
             </a>
-            <!-- ИСПРАВЛЕНО: заменили ссылку на админку на кастомную форму -->
             <a href="{% url 'delivery_order_create' %}" class="btn btn-primary">
               <i class="bi bi-plus-circle me-2"></i>Новая доставка
             </a>
@@ -304,26 +321,38 @@
                       href="{% url 'delivery_order_detail' order.pk %}"
                       class="text-decoration-none fw-medium text-dark"
                     >
-                      {% if order.tracking_number %} {{ order.tracking_number }}
-                      {% else %} #{{ order.id }} {% endif %}
+                      {% if order.tracking_number %} {{ order.tracking_number }} {% else %} #{{ order.id }} {% endif %}
                     </a>
                   </td>
-                  <td>{{ order.city }}</td>
+                  <td>
+                    {% if order.delivery_city %}
+                      {{ order.delivery_city.name }}
+                    {% elif order.delivery_address %}
+                      {{ order.delivery_address|truncatechars:30 }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
                   <td>{{ order.date|date:"d.m.Y" }}</td>
                   <td class="pe-4">
-                    <span
-                      class="badge bg-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% elif order.status == 'accepted' %}success{% else %}secondary{% endif %} bg-opacity-10 text-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% elif order.status == 'accepted' %}success{% else %}secondary{% endif %} border border-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% elif order.status == 'accepted' %}success{% else %}secondary{% endif %} border-opacity-25 px-3 py-1 rounded-pill"
-                    >
+                    {% if order.status == 'submitted' %}
+                      <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-1 rounded-pill">
+                    {% elif order.status == 'driver_assigned' %}
+                      <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-1 rounded-pill">
+                    {% elif order.status == 'on_the_way' %}
+                      <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-1 rounded-pill">
+                    {% elif order.status == 'shipped' %}
+                      <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 rounded-pill">
+                    {% else %}
+                      <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-1 rounded-pill">
+                    {% endif %}
                       {{ order.get_status_display }}
                     </span>
                   </td>
                 </tr>
                 {% empty %}
                 <tr>
-                  <td
-                    colspan="4"
-                    class="text-center py-5 text-muted border-top"
-                  >
+                  <td colspan="4" class="text-center py-5 text-muted border-top">
                     <i class="bi bi-inbox fs-1 mb-2 d-block"></i>
                     Нет заявок на доставку
                   </td>
@@ -336,7 +365,7 @@
       </div>
     </div>
 
-    <!-- Последние заборы -->
+    <!-- Последние заборы (исправлено: добавлен статус "В пути" и корректные цвета для всех статусов) -->
     <div class="col-lg-6 mb-4">
       <div class="card shadow-sm h-100">
         <div class="card-header bg-white border-bottom-0">
@@ -371,26 +400,30 @@
                       href="{% url 'pickup_order_detail' order.pk %}"
                       class="text-decoration-none fw-medium text-dark"
                     >
-                      {% if order.tracking_number %} {{ order.tracking_number }}
-                      {% else %} #{{ order.id }} {% endif %}
+                      {% if order.tracking_number %} {{ order.tracking_number }} {% else %} #{{ order.id }} {% endif %}
                     </a>
                   </td>
                   <td>{{ order.get_client_name|truncatechars:20 }}</td>
                   <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
                   <td class="pe-4">
-                    <span
-                      class="badge bg-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% else %}secondary{% endif %} bg-opacity-10 text-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% else %}secondary{% endif %} border border-{% if order.status == 'ready' %}info{% elif order.status == 'payment' %}warning{% else %}secondary{% endif %} border-opacity-25 px-3 py-1 rounded-pill"
-                    >
+                    {% if order.status == 'ready' %}
+                      <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-1 rounded-pill">
+                    {% elif order.status == 'payment' %}
+                      <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-1 rounded-pill">
+                    {% elif order.status == 'in_transit' %}
+                      <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-1 rounded-pill">
+                    {% elif order.status == 'accepted' %}
+                      <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 rounded-pill">
+                    {% else %}
+                      <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-1 rounded-pill">
+                    {% endif %}
                       {{ order.get_status_display }}
                     </span>
                   </td>
                 </tr>
                 {% empty %}
                 <tr>
-                  <td
-                    colspan="4"
-                    class="text-center py-5 text-muted border-top"
-                  >
+                  <td colspan="4" class="text-center py-5 text-muted border-top">
                     <i class="bi bi-inbox fs-1 mb-2 d-block"></i>
                     Нет заявок на забор
                   </td>
@@ -490,7 +523,7 @@
   </div>
 </div>
 
-<!-- Стили для современного вида -->
+<!-- Стили -->
 <style>
   :root {
     --border-radius: 12px;
@@ -565,8 +598,7 @@
   }
 </style>
 
-<!-- Модальные окна остаются без изменений -->
-<!-- Модальное окно для настройки email (ОБНОВЛЕННАЯ ВЕРСИЯ С АВТОЗАПОЛНЕНИЕМ) -->
+<!-- Модальные окна (без изменений, сохранены для полноты) -->
 <div
   class="modal fade"
   id="emailSettingsModal2"
@@ -576,23 +608,21 @@
 >
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      <!-- ... остальное содержимое модального окна без изменений ... -->
+      <!-- ... содержимое модального окна ... -->
     </div>
   </div>
 </div>
 
-<!-- Модальное окно помощи по паролю приложения -->
 <div class="modal fade" id="passwordHelpModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <!-- ... содержимое модального окна без изменений ... -->
+      <!-- ... содержимое модального окна ... -->
     </div>
   </div>
 </div>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    // Улучшенный toast для копирования ссылок
     function showCopyToast(url, title) {
       const toastContainer = document.getElementById("toast-container");
       if (!toastContainer) {
@@ -661,7 +691,6 @@
         });
     }
 
-    // Копирование ссылок
     document.querySelectorAll(".copy-link-btn").forEach((button) => {
       button.addEventListener("click", function () {
         const url = this.getAttribute("data-url");

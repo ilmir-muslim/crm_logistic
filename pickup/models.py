@@ -80,6 +80,7 @@ class PickupOrder(models.Model):
     STATUS_CHOICES = [
         ("ready", "Готова к выдаче"),
         ("payment", "На оплате"),
+        ("in_transit", "В пути"),
         ("accepted", "Принята"),
     ]
 
@@ -300,6 +301,7 @@ class PickupOrder(models.Model):
         colors = {
             "ready": "info",
             "payment": "warning",
+            "in_transit": "primary",
             "accepted": "success",
         }
         return colors.get(self.status, "secondary")
