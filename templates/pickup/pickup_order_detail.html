@@ -32,6 +32,11 @@
             <th style="width: 40%">Дата забора:</th>
             <td>{{ order.pickup_date|date:"d.m.Y"|default:"Не указана" }}</td>
           </tr>
+          <!-- ADDED: отображение даты отгрузки -->
+          <tr>
+            <th>Дата отгрузки:</th>
+            <td>{{ order.shipment_date|date:"d.m.Y"|default:"Не указана" }}</td>
+          </tr>
           <tr>
             <th>Время забора:</th>
             <td>{{ order.pickup_time_range|default:"Не указано" }}</td>

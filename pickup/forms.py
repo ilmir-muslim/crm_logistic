@@ -83,6 +83,7 @@ class PickupOrderForm(forms.ModelForm):
             "recipient",
             "marketplace",
             "desired_delivery_date",
+            "shipment_date",  # ADDED
             "invoice_number",
             "receiving_warehouse",
             "receiving_operator",
@@ -118,6 +119,10 @@ class PickupOrderForm(forms.ModelForm):
             ),
             "marketplace": forms.Select(attrs={"class": "form-select"}),
             "desired_delivery_date": forms.DateInput(
+                attrs={"type": "date", "class": "form-control"}
+            ),
+            # ADDED: виджет для shipment_date
+            "shipment_date": forms.DateInput(
                 attrs={"type": "date", "class": "form-control"}
             ),
             "invoice_number": forms.TextInput(
@@ -170,6 +175,8 @@ class PickupOrderForm(forms.ModelForm):
         self.fields["desired_delivery_date"].widget.attrs["min"] = today.strftime(
             "%Y-%m-%d"
         )
+        # ADDED: можно также установить min для shipment_date, но это опционально
+        # self.fields["shipment_date"].widget.attrs["min"] = today.strftime("%Y-%m-%d")
 
         self.fields["status"].choices = [
             ("ready", "Готова к выдаче"),

@@ -16,6 +16,17 @@ class PickupOrderFilter(django_filters.FilterSet):
         field_name="pickup_date", lookup_expr="lte", label="Дата забора до"
     )
 
+    # ADDED: фильтры по дате отгрузки
+    shipment_date = django_filters.DateFilter(
+        field_name="shipment_date", lookup_expr="exact", label="Дата отгрузки"
+    )
+    shipment_date__gte = django_filters.DateFilter(
+        field_name="shipment_date", lookup_expr="gte", label="Дата отгрузки от"
+    )
+    shipment_date__lte = django_filters.DateFilter(
+        field_name="shipment_date", lookup_expr="lte", label="Дата отгрузки до"
+    )
+
     client_name = django_filters.CharFilter(
         method="filter_client_name_ignore_case", label="Клиент"
     )

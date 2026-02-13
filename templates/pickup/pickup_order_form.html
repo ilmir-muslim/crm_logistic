@@ -244,6 +244,22 @@
                         </div>
                         {% endif %}
                     </div>
+
+                    <!-- ADDED: Дата отгрузки -->
+                    <div class="mb-3">
+                        <label for="id_shipment_date" class="form-label">Дата отгрузки</label>
+                        <input type="date" 
+                               name="shipment_date" 
+                               id="id_shipment_date" 
+                               class="form-control {% if form.shipment_date.errors %}is-invalid{% endif %}"
+                               value="{% if form.shipment_date.value %}{{ form.shipment_date.value|date:'Y-m-d' }}{% elif object.shipment_date %}{{ object.shipment_date|date:'Y-m-d' }}{% endif %}">
+                        <small class="form-text text-muted">Дата, когда груз был отгружен со склада</small>
+                        {% if form.shipment_date.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.shipment_date.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
                     
                     <!-- Номер накладной -->
                     <div class="mb-3">

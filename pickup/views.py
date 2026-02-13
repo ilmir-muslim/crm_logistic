@@ -54,6 +54,9 @@ class PickupOrderListView(LoginRequiredMixin, ListView):
 
         pickup_date_gte = self.request.GET.get("pickup_date__gte")
         pickup_date_lte = self.request.GET.get("pickup_date__lte")
+        # ADDED: фильтры по дате отгрузки
+        shipment_date_gte = self.request.GET.get("shipment_date__gte")
+        shipment_date_lte = self.request.GET.get("shipment_date__lte")
         client_name = self.request.GET.get("client_name")
         pickup_address = self.request.GET.get("pickup_address")
         invoice_number = self.request.GET.get("invoice_number")
@@ -63,6 +66,11 @@ class PickupOrderListView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(pickup_date__gte=pickup_date_gte)
         if pickup_date_lte:
             queryset = queryset.filter(pickup_date__lte=pickup_date_lte)
+        # ADDED
+        if shipment_date_gte:
+            queryset = queryset.filter(shipment_date__gte=shipment_date_gte)
+        if shipment_date_lte:
+            queryset = queryset.filter(shipment_date__lte=shipment_date_lte)
         if client_name:
             queryset = queryset.filter(client_name__icontains=client_name)
         if pickup_address:
@@ -78,6 +86,7 @@ class PickupOrderListView(LoginRequiredMixin, ListView):
         allowed_sort_fields = [
             "invoice_number",
             "pickup_date",
+            "shipment_date",  # ADDED
             "pickup_address",
             "desired_delivery_date",
             "status",
@@ -299,6 +308,7 @@ def update_pickup_order_field(request, pk):
         "contact_person",
         "client_name",
         "desired_delivery_date",
+        "shipment_date",  # ADDED
         "quantity",
         "status",
         "operator",
@@ -317,6 +327,8 @@ def update_pickup_order_field(request, pk):
         if field == "quantity":
             value = int(value) if value else 1
         elif field == "pickup_date" and value:
+            value = datetime.strptime(value, "%Y-%m-%d").date()
+        elif field == "shipment_date" and value:  # ADDED
             value = datetime.strptime(value, "%Y-%m-%d").date()
         elif field in ["pickup_time_from", "pickup_time_to"]:
             if value and value.strip():
@@ -423,6 +435,12 @@ def update_pickup_order_field(request, pk):
                 order.desired_delivery_date.strftime("%d.%m.%Y")
                 if order.desired_delivery_date
                 else ""
+            )
+            return JsonResponse({"success": True, "display_value": display_value})
+        # ADDED: обработка shipment_date
+        elif field == "shipment_date":
+            display_value = (
+                order.shipment_date.strftime("%d.%m.%Y") if order.shipment_date else ""
             )
             return JsonResponse({"success": True, "display_value": display_value})
         elif field == "invoice_number":
@@ -839,6 +857,7 @@ def bulk_update_pickup_orders(request):
             "receiving_operator",
             "logistic",
             "pickup_date",
+            "shipment_date",  # ADDED
             "desired_delivery_date",
             "carrier",
         ]
@@ -908,6 +927,17 @@ def bulk_update_pickup_orders(request):
                             continue
                     else:
                         order.pickup_date = None
+
+                # ADDED: массовое обновление shipment_date
+                elif field == "shipment_date":
+                    if value:
+                        try:
+                            date_value = datetime.strptime(value, "%Y-%m-%d").date()
+                            order.shipment_date = date_value
+                        except ValueError:
+                            continue
+                    else:
+                        order.shipment_date = None
 
                 elif field == "desired_delivery_date":
                     if value:
