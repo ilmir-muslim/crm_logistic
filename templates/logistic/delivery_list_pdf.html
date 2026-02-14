@@ -61,7 +61,7 @@
                         {{ order.get_sender_display|truncatechars:20 }}
                     {% endif %}
                 </td>
-                <td class="address-cell">{{ order.sender_address|default:"-"|truncatechars:30 }}</td>
+                <td class="address-cell">{{ order.pickup_address|default:"-"|truncatechars:30 }}</td>
                 <td>
                     {% if order.recipient %}
                         {{ order.recipient.name|truncatechars:20 }}
@@ -69,7 +69,7 @@
                         {{ order.get_recipient_display|truncatechars:20 }}
                     {% endif %}
                 </td>
-                <td class="address-cell">{{ order.recipient_address|default:"-"|truncatechars:30 }}</td>
+                <td class="address-cell">{{ order.delivery_address|default:"-"|truncatechars:30 }}</td>
                 <td>{{ order.quantity }}</td>
                 <td>{{ order.weight|floatformat:2 }}</td>
                 <td>{{ order.volume|floatformat:3 }}</td>

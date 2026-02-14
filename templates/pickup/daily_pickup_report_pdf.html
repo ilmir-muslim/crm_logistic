@@ -49,6 +49,7 @@
           <th>Клиент</th>
           <th>Адрес</th>
           <th>Дата забора</th>
+          <th>Дата отгрузки</th>
           <th>Места</th>
           <th>Вес, кг</th>
           <th>Объем, м³</th>
@@ -63,6 +64,7 @@
           <td>{{ order.client_name|truncatechars:20 }}</td>
           <td>{{ order.pickup_address|truncatechars:30 }}</td>
           <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
+          <td>{% if order.shipment_date %}{{ order.shipment_date|date:"d.m.Y" }}{% else %}-{% endif %}</td>
           <td>{{ order.quantity }}</td>
           <td>{{ order.weight|default:"—" }}</td>
           <td>{{ order.volume|default:"—" }}</td>
@@ -70,7 +72,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="9" class="text-center">Нет заявок за выбранную дату</td>
+          <td colspan="10" class="text-center">Нет заявок за выбранную дату</td>
         </tr>
         {% endfor %}
       </tbody>

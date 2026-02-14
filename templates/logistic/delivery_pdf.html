@@ -124,8 +124,8 @@
             <td class="address-block">{{ order.delivery_address|default:"Не указан" }}</td>
         </tr>
         <tr>
-            <th>Фулфилмент оператор:</th>
-            <td>{{ order.fulfillment|default:"Не указан" }}</td>
+            <th>Логист:</th>
+            <td>{{ order.logistic.get_full_name|default:order.logistic.username|default:"Не указан" }}</td>
         </tr>
         <tr>
             <th>Статус:</th>

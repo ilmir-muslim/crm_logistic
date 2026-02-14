@@ -25,6 +25,12 @@
             <th>Дата забора:</th>
             <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
         </tr>
+        {% if order.shipment_date %}
+        <tr>
+            <th>Дата отгрузки:</th>
+            <td>{{ order.shipment_date|date:"d.m.Y" }}</td>
+        </tr>
+        {% endif %}
         <tr>
             <th>Статус:</th>
             <td class="text-bold">{{ order.get_status_display }}</td>
