@@ -248,7 +248,6 @@ class PickupOrder(models.Model):
         verbose_name="Логист",
         related_name="logistic_pickup_orders",
         help_text="Логист, ответственный за заявку",
-        limit_choices_to={"profile__role": "logistic"},
     )
 
     delivery_order = models.OneToOneField(

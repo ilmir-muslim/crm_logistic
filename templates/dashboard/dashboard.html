@@ -21,29 +21,12 @@
             <span class="fw-medium">{{ today|date:"d.m.Y" }}</span>
           </div>
           <div class="dropdown">
-            <button
-              class="btn btn-outline-secondary btn-sm dropdown-toggle"
-              type="button"
-              data-bs-toggle="dropdown"
-            >
-              <i class="bi bi-gear"></i> Настройки
+            <button>
+              <a class="dropdown-item" href="{% url 'reports_dashboard' %}">
+                <i class="bi bi-bar-chart me-2"></i>Аналитика</a
+              >
             </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li>
-                <a
-                  class="dropdown-item"
-                  href="#"
-                  data-bs-toggle="modal"
-                  data-bs-target="#emailSettingsModal2"
-                >
-                  <i class="bi bi-envelope me-2"></i>Настройка Email</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="{% url 'reports_dashboard' %}">
-                  <i class="bi bi-bar-chart me-2"></i>Аналитика</a
-                >
-              </li>
+
             </ul>
           </div>
         </div>

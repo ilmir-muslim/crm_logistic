@@ -90,7 +90,6 @@ class DeliveryOrder(models.Model):
         verbose_name="Логист",
         related_name="logistic_delivery_orders",
         help_text="Логист, ответственный за заявку",
-        limit_choices_to={"profile__role": "logistic"},
     )
     quantity = models.IntegerField(verbose_name="Количество мест")
     weight = models.FloatField(verbose_name="Вес (кг)")
