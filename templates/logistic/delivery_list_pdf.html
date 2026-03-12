@@ -52,7 +52,7 @@
             {% for order in orders %}
             <tr>
                 <td>{{ forloop.counter }}</td>
-                <td>{{ order.date|date:"d.m.Y" }}</td>
+                <td>{{ order.delivery_date|date:"d.m.Y" }}</td>
                 <td>{{ order.tracking_number|default:"#"|add:order.id|stringformat:"s" }}</td>
                 <td>
                     {% if order.sender %}

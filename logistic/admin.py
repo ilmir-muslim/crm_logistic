@@ -6,7 +6,9 @@ from .models import DeliveryOrder
 class DeliveryOrderAdmin(admin.ModelAdmin):
     list_display = [
         "tracking_number",
-        "date",
+        "shipped_at",
+        "fulfilled_at",
+        "delivery_date",
         "sender_display",
         "recipient_display",
         "status",
@@ -14,7 +16,7 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
         "driver_name",
         "logistic_display",
     ]
-    list_filter = ["status", "date", "logistic"]
+    list_filter = ["status", "delivery_date", "logistic"]
     search_fields = [
         "tracking_number",
         "sender__name",
@@ -41,7 +43,9 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "tracking_number",
-                    "date",
+                    "shipped_at",
+                    "fulfilled_at",
+                    "delivery_date",
                     "sender",
                     "pickup_address",
                     "pickup_warehouse",
@@ -134,5 +138,3 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
         )
 
     regenerate_qr_codes.short_description = "Перегенерировать QR-коды (ссылка на PDF)"
-
-

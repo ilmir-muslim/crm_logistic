@@ -141,7 +141,7 @@
             <tr>
                 <td>{{ forloop.counter }}</td>
                 <td>{{ order.tracking_number|default:"#"|add:order.id }}</td>
-                <td>{{ order.date|date:"d.m.Y" }}</td>
+                <td>{{ order.delivery_date|date:"d.m.Y" }}</td>
                 <td class="address-cell">{{ order.pickup_address|default:"—"|truncatechars:40 }}</td>
                 <td class="address-cell">{{ order.delivery_address|default:"—"|truncatechars:40 }}</td>
                 <td>{{ order.quantity }}</td>

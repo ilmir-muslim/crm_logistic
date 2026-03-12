@@ -5,12 +5,14 @@ from utils.text_utils import normalize_search_text
 
 
 class DeliveryOrderFilter(django_filters.FilterSet):
-    date = django_filters.DateFilter(field_name="date", lookup_expr="exact")
-    date__gte = django_filters.DateFilter(
-        field_name="date", lookup_expr="gte", label="Дата от"
+    delivery_date = django_filters.DateFilter(
+        field_name="delivery_date", lookup_expr="exact"
     )
-    date__lte = django_filters.DateFilter(
-        field_name="date", lookup_expr="lte", label="Дата до"
+    delivery_date__gte = django_filters.DateFilter(
+        field_name="delivery_date", lookup_expr="gte", label="Дата от"
+    )
+    delivery_date__lte = django_filters.DateFilter(
+        field_name="delivery_date", lookup_expr="lte", label="Дата до"
     )
 
     city = django_filters.NumberFilter(field_name="city__id", label="Город (ID)")
@@ -48,5 +50,3 @@ class DeliveryOrderFilter(django_filters.FilterSet):
                 | Q(logistic__last_name__icontains=normalized_value)
             )
         return queryset
-
-

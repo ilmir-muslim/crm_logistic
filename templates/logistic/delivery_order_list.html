@@ -660,7 +660,7 @@
                     <input type="checkbox" id="selectAllCheckbox" class="form-check-input">
                 </th>
                 <th class="sortable-header {% if sort == 'date' %}sorted-{{ order }}{% endif %}" 
-                    data-sort="date">
+                    data-sort="delivery_date">
                     Дата
                     <span class="sort-icon"></span>
                 </th>
@@ -704,8 +704,8 @@
                     <input type="checkbox" name="order_ids" value="{{ order.id }}" 
                            class="form-check-input order-checkbox">
                 </td>
-                <td class="editable-cell" data-field="date" data-original="{{ order.date|date:'Y-m-d' }}" data-type="date">
-                    {{ order.date|date:"d.m.Y" }}
+                <td class="editable-cell" data-field="delivery_date" data-original="{{ order.delivery_date|date:'Y-m-d' }}" data-type="date">
+                    {{ order.delivery_date|date:"d.m.Y" }}
                     <button class="save-btn" onclick="saveCell(this)">✓</button>
                     <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
                 </td>
@@ -924,7 +924,7 @@
               <option value="driver_name">Имя водителя</option>
               <option value="driver_phone">Телефон водителя</option>
               <option value="vehicle">Транспортное средство</option>
-              <option value="date">Дата доставки</option>
+              <option value="delivery_date">Дата доставки</option>
               <option value="logistic">Логист</option>
               <option value="quantity">Количество мест</option>
               <option value="weight">Вес (кг)</option>
@@ -1542,7 +1542,7 @@ function updateCellDisplay(cell, field, value, displayValue, type) {
             <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
         `;
         cell.setAttribute('data-original', value);
-    } else if (field === 'date') {
+    } else if (field === 'delivery_date') {
         // Форматируем дату для отображения
         let displayText = '-';
         if (value) {
@@ -1910,7 +1910,7 @@ function initBulkEditing() {
                     `;
                     break;
                     
-                case 'date':
+                case 'delivery_date':
                     inputHtml = `
                         <label for="bulkEditValue" class="form-label">Дата доставки</label>
                         <input type="date" class="form-control" id="bulkEditValue">

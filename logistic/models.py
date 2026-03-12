@@ -17,8 +17,15 @@ class DeliveryOrder(models.Model):
         ("on_the_way", "В пути"),
         ("shipped", "Отправлено"),
     ]
+    shipped_at = models.DateField(null=True, blank=True, verbose_name='Дата отгрузки со склада')
 
-    date = models.DateField(verbose_name="Дата доставки")
+    fulfilled_at = models.DateField(
+        null=True, blank=True, verbose_name="Дата поставки на МП"
+    )
+
+    delivery_date = models.DateField(
+        null=True, blank=True, verbose_name="Дата доставки"
+    )
 
     sender = models.ForeignKey(
         "counterparties.Counterparty",

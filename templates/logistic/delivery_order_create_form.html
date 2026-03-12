@@ -21,13 +21,33 @@
                 <!-- Левая колонка: Основная информация -->
                 <div class="col-md-6">
                     <h5 class="border-bottom pb-2 mb-3">Основная информация</h5>
+
+                    <div class="mb-3">
+                        <label class="form-label">Дата отгрузки со склада</label>
+                        {{ form.shipped_at }}
+                        {% if form.shipped_at.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.shipped_at.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Дата поставки на МП</label>
+                        {{ form.fulfilled_at }}
+                        {% if form.fulfilled_at.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.fulfilled_at.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Дата доставки *</label>
-                        {{ form.date }}
-                        {% if form.date.errors %}
+                        <label class="form-label">Дата доставки</label>
+                        {{ form.delivery_date }}
+                        {% if form.delivery_date.errors %}
                         <div class="invalid-feedback d-block">
-                            {{ form.date.errors.0 }}
+                            {{ form.delivery_date.errors.0 }}
                         </div>
                         {% endif %}
                     </div>

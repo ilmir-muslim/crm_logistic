@@ -208,7 +208,9 @@ class DeliveryOrderCreateForm(forms.ModelForm):
     class Meta:
         model = DeliveryOrder
         fields = [
-            "date",
+            "shipped_at",
+            "fulfilled_at",
+            "delivery_date",
             "sender",
             "pickup_address",
             "pickup_warehouse",
@@ -226,7 +228,13 @@ class DeliveryOrderCreateForm(forms.ModelForm):
             "driver_pass_info",
         ]
         widgets = {
-            "date": forms.DateInput(
+            "shipped_at": forms.DateInput(
+                attrs={"type": "date", "class": "form-control", "required": "required"}
+            ),
+            "fulfilled_at": forms.DateInput(
+                attrs={"type": "date", "class": "form-control"}
+            ),
+            "delivery_date": forms.DateInput(
                 attrs={"type": "date", "class": "form-control", "required": "required"}
             ),
             "sender": forms.Select(

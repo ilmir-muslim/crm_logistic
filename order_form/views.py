@@ -334,7 +334,7 @@ class DeliveryOrderFormView(FormView):
             Детали заявки:
             Компания: {company_name}
             Контактное лицо: {contact_name}
-            Дата доставки: {order.date}
+            Дата доставки: {order.delivery_date}
             Город: {city_name}
             Склад отправки: {warehouse_name}
             

@@ -714,7 +714,7 @@ class ClientDeliveryForm(forms.ModelForm):
     class Meta:
         model = DeliveryOrder
         fields = [
-            "date",
+            "delivery_date",
             "delivery_city",
             "pickup_warehouse",
             "logistic",
@@ -731,7 +731,7 @@ class ClientDeliveryForm(forms.ModelForm):
         ]
 
         widgets = {
-            "date": forms.DateInput(
+            "delivery_date": forms.DateInput(
                 attrs={
                     "type": "date",
                     "class": "form-control",
@@ -838,7 +838,7 @@ class ClientDeliveryForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         today = timezone.now().date()
-        self.fields["date"].initial = today
+        self.fields["delivery_date"].initial = today
         self.fields["quantity"].initial = 1
 
         self.fields["delivery_city"].queryset = City.objects.all().order_by("name")
@@ -870,7 +870,7 @@ class ClientDeliveryForm(forms.ModelForm):
         cleaned_data = super().clean()
 
         warehouse = cleaned_data.get("pickup_warehouse")
-        date = cleaned_data.get("date")
+        date = cleaned_data.get("delivery_date")
 
         if warehouse and date:
             day_of_week = date.isoweekday()

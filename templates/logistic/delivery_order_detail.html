@@ -27,9 +27,11 @@
             <div class="col-md-7">
                 <h5 class="border-bottom pb-2 mb-3">Основная информация</h5>
                 <table class="table table-bordered">
+                    <tr><th>Дата отгрузки со склада:</th><td>{{ order.shipped_at|date:"d.m.Y"|default:"-" }}</td></tr>
+                    <tr><th>Дата поставки на МП:</th><td>{{ order.fulfilled_at|date:"d.m.Y"|default:"-" }}</td></tr>
                     <tr>
                         <th style="width: 40%">Дата доставки:</th>
-                        <td>{{ order.date|date:"d.m.Y" }}</td>
+                        <td>{{ order.delivery_date|date:"d.m.Y" }}</td>
                     </tr>
                     <tr>
                         <th>Отправитель (контрагент):</th>

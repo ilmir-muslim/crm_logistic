@@ -58,9 +58,9 @@ class DeliveryOrderListView(LoginRequiredMixin, ListView):
         logistic = self.request.GET.get("logistic")
 
         if date_gte:
-            queryset = queryset.filter(date__gte=date_gte)
+            queryset = queryset.filter(delivery_date__gte=date_gte)
         if date_lte:
-            queryset = queryset.filter(date__lte=date_lte)
+            queryset = queryset.filter(delivery_date__gte=date_lte)
         if city and city != "":
             queryset = queryset.filter(city_id=city)
         if warehouse and warehouse != "":
@@ -74,7 +74,9 @@ class DeliveryOrderListView(LoginRequiredMixin, ListView):
         order = self.request.GET.get("order", "desc")
 
         allowed_sort_fields = [
-            "date",
+            "shipped_at",
+            "fulfilled_at",
+            "delivery_date",
             "city",
             "warehouse",
             "logistic",
@@ -91,7 +93,7 @@ class DeliveryOrderListView(LoginRequiredMixin, ListView):
                 sort_field = sort
             queryset = queryset.order_by(sort_field)
         else:
-            queryset = queryset.order_by("-date")
+            queryset = queryset.order_by("-delivery_date")
 
         return queryset
 
@@ -225,7 +227,9 @@ def update_delivery_order_field(request, pk):
         "status",
         "driver_name",
         "driver_phone",
-        "date",
+        "shipped_at",
+        "fulfilled_at",
+        "delivery_date",
         "logistic",
     ]
 
@@ -239,15 +243,12 @@ def update_delivery_order_field(request, pk):
             value = int(value)
         elif field in ["weight", "volume"]:
             value = float(value) if value else None
-        elif field == "date":
-            from datetime import datetime
-
+        elif field == "delivery_date":
             try:
                 value = datetime.strptime(value, "%Y-%m-%d").date()
             except ValueError:
                 return JsonResponse({"success": False, "error": "Неверный формат даты"})
         elif field == "logistic":
-            # Проверяем, может ли пользователь изменять логиста
             if not (
                 request.user.is_superuser
                 or hasattr(request.user, "profile")
@@ -312,7 +313,13 @@ def update_delivery_order_field(request, pk):
         if field == "status":
             display_value = order.get_status_display()
             return JsonResponse({"success": True, "display_value": display_value})
-        elif field == "date":
+        elif field == "shipped_at":
+            display_value = order.date.strftime("%d.%m.%Y")
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "fulfilled_at":
+            display_value = order.date.strftime("%d.%m.%Y")
+            return JsonResponse({"success": True, "display_value": display_value})
+        elif field == "delivery_date":
             display_value = order.date.strftime("%d.%m.%Y")
             return JsonResponse({"success": True, "display_value": display_value})
         elif field == "logistic":
@@ -354,7 +361,9 @@ def dashboard(request):
     # Исправляем delivery_stats с новым статусом "on_the_way"
     delivery_stats = {
         "total": DeliveryOrder.objects.filter(queryset_filter).count(),
-        "today": DeliveryOrder.objects.filter(queryset_filter & Q(date=today)).count(),
+        "today": DeliveryOrder.objects.filter(
+            queryset_filter & Q(delivery_date=today)
+        ).count(),
         "submitted": DeliveryOrder.objects.filter(
             queryset_filter & Q(status="submitted")
         ).count(),
@@ -390,7 +399,6 @@ def dashboard(request):
             or 0
         )
 
-    # ИСПРАВЛЕННЫЙ КОД ДЛЯ pickup_stats - используем актуальные статусы
     pickup_filter = Q()
     if hasattr(user, "profile") and user.profile.is_operator:
         pickup_filter = Q(operator=user)
@@ -426,18 +434,18 @@ def dashboard(request):
         :5
     ]
 
-    email_settings = load_email_settings()
-    if email_settings is None:
-        email_settings = {}
+    # email_settings = load_email_settings()
+    # if email_settings is None:
+    #     email_settings = {}
 
     context = {
         "delivery_stats": delivery_stats,
-        "pickup_stats": pickup_stats,  # Теперь содержит правильные статусы
+        "pickup_stats": pickup_stats,  
         "delivery_chart_data": delivery_chart_data,
         "recent_deliveries": recent_deliveries,
         "recent_pickups": recent_pickups,
         "today": today,
-        "email_settings": email_settings,
+        # "email_settings": email_settings,
     }
 
     if hasattr(request.user, "profile"):
@@ -479,7 +487,7 @@ def daily_report_pdf(request):
     else:
         report_date = timezone.now().date()
 
-    orders = DeliveryOrder.objects.filter(date=report_date)
+    orders = DeliveryOrder.objects.filter(delivery_date=report_date)
 
     if hasattr(request.user, "profile") and request.user.profile.is_operator:
         orders = orders.filter(operator=request.user)
@@ -631,7 +639,9 @@ def generate_excel_report(date, report_type, user_filter):
             data.append(
                 {
                     "Номер": order.tracking_number or f"#{order.id}",
-                    "Дата": order.date.strftime("%d.%m.%Y"),
+                    "Дата отгрузки со склада": order.shipped_at.strftime("%d.%m.%Y"),
+                    "Дата поставки на МП": order.fulfilled_at.strftime("%d.%m.%Y"),
+                    "Дата доставки": order.delivery_date.strftime("%d.%m.%Y"),
                     "Адрес отправки": order.pickup_address or "",
                     "Адрес доставки": order.delivery_address or "",
                     "Места": order.quantity,
@@ -768,7 +778,7 @@ def statistics_report(request):
 
             if report_type == "delivery":
                 orders = DeliveryOrder.objects.filter(
-                    date__range=[start_date, end_date], **user_filter
+                    delivery_date__range=[start_date, end_date], **user_filter
                 )
 
                 stats = {
@@ -815,176 +825,176 @@ def statistics_report(request):
     )
 
 
-@login_required
-def email_settings_view(request):
-    """Представление для настройки параметров email"""
+# @login_required
+# def email_settings_view(request):
+#     """Представление для настройки параметров email"""
 
-    current_settings = load_email_settings() or {}
+#     current_settings = load_email_settings() or {}
 
-    initial_data = {
-        "email_host": current_settings.get("email_host", ""),
-        "email_port": current_settings.get("email_port", 587),
-        "email_host_user": current_settings.get("email_host_user", ""),
-        "email_host_password": "",
-        "default_from_email": current_settings.get("default_from_email", ""),
-        "operator_email": current_settings.get("operator_email", ""),
-    }
+#     initial_data = {
+#         "email_host": current_settings.get("email_host", ""),
+#         "email_port": current_settings.get("email_port", 587),
+#         "email_host_user": current_settings.get("email_host_user", ""),
+#         "email_host_password": "",
+#         "default_from_email": current_settings.get("default_from_email", ""),
+#         "operator_email": current_settings.get("operator_email", ""),
+#     }
 
-    if request.method == "POST":
-        host = request.POST.get("email_host")
-        if host == "custom":
-            host = request.POST.get("custom_email_host", "")
+#     if request.method == "POST":
+#         host = request.POST.get("email_host")
+#         if host == "custom":
+#             host = request.POST.get("custom_email_host", "")
 
-        new_password = request.POST.get("email_host_password", "")
-        if not new_password and current_settings.get("email_host_password"):
-            password = current_settings["email_host_password"]
-        else:
-            password = new_password
+#         new_password = request.POST.get("email_host_password", "")
+#         if not new_password and current_settings.get("email_host_password"):
+#             password = current_settings["email_host_password"]
+#         else:
+#             password = new_password
 
-        try:
-            settings_data = {
-                "email_backend": "django.core.mail.backends.smtp.EmailBackend",
-                "email_host": host,
-                "email_port": int(request.POST.get("email_port", 587)),
-                "email_use_tls": request.POST.get("email_use_tls") == "1",
-                "email_use_ssl": False,
-                "email_host_user": request.POST.get("email_host_user", ""),
-                "email_host_password": password,
-                "default_from_email": request.POST.get("default_from_email", ""),
-                "operator_email": request.POST.get("operator_email", ""),
-                "enable_operator_notifications": request.POST.get(
-                    "enable_operator_notifications"
-                )
-                == "on",
-            }
+#         try:
+#             settings_data = {
+#                 "email_backend": "django.core.mail.backends.smtp.EmailBackend",
+#                 "email_host": host,
+#                 "email_port": int(request.POST.get("email_port", 587)),
+#                 "email_use_tls": request.POST.get("email_use_tls") == "1",
+#                 "email_use_ssl": False,
+#                 "email_host_user": request.POST.get("email_host_user", ""),
+#                 "email_host_password": password,
+#                 "default_from_email": request.POST.get("default_from_email", ""),
+#                 "operator_email": request.POST.get("operator_email", ""),
+#                 "enable_operator_notifications": request.POST.get(
+#                     "enable_operator_notifications"
+#                 )
+#                 == "on",
+#             }
 
-            settings_file = Path(django_settings.BASE_DIR) / "email_settings.json"
-            with open(settings_file, "w", encoding="utf-8") as f:
-                json.dump(settings_data, f, ensure_ascii=False, indent=4)
+#             settings_file = Path(django_settings.BASE_DIR) / "email_settings.json"
+#             with open(settings_file, "w", encoding="utf-8") as f:
+#                 json.dump(settings_data, f, ensure_ascii=False, indent=4)
 
-            if request.POST.get("send_test"):
-                test_email = request.POST.get("email_host_user")
-                try:
-                    send_test_email(settings_data, test_email)
-                    messages.success(
-                        request, "Настройки сохранены. Тестовое письмо отправлено!"
-                    )
-                except Exception as e:
-                    messages.warning(
-                        request,
-                        f"Настройки сохранены, но тестовое письмо не отправлено: {str(e)[:100]}...",
-                    )
-            else:
-                messages.success(request, "Настройки email успешно сохранены!")
+#             if request.POST.get("send_test"):
+#                 test_email = request.POST.get("email_host_user")
+#                 try:
+#                     send_test_email(settings_data, test_email)
+#                     messages.success(
+#                         request, "Настройки сохранены. Тестовое письмо отправлено!"
+#                     )
+#                 except Exception as e:
+#                     messages.warning(
+#                         request,
+#                         f"Настройки сохранены, но тестовое письмо не отправлено: {str(e)[:100]}...",
+#                     )
+#             else:
+#                 messages.success(request, "Настройки email успешно сохранены!")
 
-            return redirect("dashboard")
+#             return redirect("dashboard")
 
-        except Exception as e:
-            messages.error(request, f"Ошибка: {str(e)[:100]}...")
-    else:
-        form = EmailSettingsForm(initial=initial_data)
+#         except Exception as e:
+#             messages.error(request, f"Ошибка: {str(e)[:100]}...")
+#     else:
+#         form = EmailSettingsForm(initial=initial_data)
 
-    context = {
-        "form": form,
-        "title": "Настройки Email",
-    }
+#     context = {
+#         "form": form,
+#         "title": "Настройки Email",
+#     }
 
-    if hasattr(request.user, "profile"):
-        context["user_role"] = request.user.profile.get_role_display()
-        context["is_operator"] = request.user.profile.is_operator
-        context["is_logistic"] = request.user.profile.is_logistic
-        context["is_admin"] = request.user.profile.is_admin
+#     if hasattr(request.user, "profile"):
+#         context["user_role"] = request.user.profile.get_role_display()
+#         context["is_operator"] = request.user.profile.is_operator
+#         context["is_logistic"] = request.user.profile.is_logistic
+#         context["is_admin"] = request.user.profile.is_admin
 
-    return render(request, "logistic/email_settings.html", context)
-
-
-@login_required
-def test_email_connection(request):
-    """AJAX-тестирование подключения к SMTP без сохранения настроек"""
-    if (
-        request.method == "POST"
-        and request.headers.get("X-Requested-With") == "XMLHttpRequest"
-    ):
-        try:
-            host = request.POST.get("email_host")
-            if host == "custom":
-                host = request.POST.get("custom_email_host", "")
-
-            port = int(request.POST.get("email_port", 587))
-            username = request.POST.get("email_host_user", "")
-            password = request.POST.get("email_host_password", "")
-            use_tls = request.POST.get("email_use_tls") == "1"
-
-            if not host or not username:
-                return JsonResponse(
-                    {"success": False, "error": "Заполните обязательные поля"}
-                )
-
-            connection = get_connection(
-                backend="django.core.mail.backends.smtp.EmailBackend",
-                host=host,
-                port=port,
-                username=username,
-                password=password,
-                use_tls=use_tls,
-                use_ssl=False,
-                timeout=10,
-            )
-
-            connection.open()
-            connection.close()
-
-            return JsonResponse({"success": True, "message": "Подключение успешно"})
-
-        except Exception as e:
-            error_msg = str(e)
-            if "Connection refused" in error_msg:
-                error_msg = "Сервер недоступен. Проверьте хост и порт."
-            elif "authentication failed" in error_msg.lower():
-                error_msg = "Ошибка авторизации. Проверьте логин и пароль."
-            elif "STARTTLS" in error_msg:
-                error_msg = (
-                    "Сервер не поддерживает шифрование. Попробуйте отключить TLS."
-                )
-
-            return JsonResponse({"success": False, "error": error_msg})
-
-    return JsonResponse({"success": False, "error": "Некорректный запрос"})
+#     return render(request, "logistic/email_settings.html", context)
 
 
-def send_test_email(settings_data, to_email):
-    """Отправка тестового письма"""
-    connection = get_connection(
-        backend=settings_data["email_backend"],
-        host=settings_data["email_host"],
-        port=settings_data["email_port"],
-        username=settings_data["email_host_user"],
-        password=settings_data["email_host_password"],
-        use_tls=settings_data["email_use_tls"],
-        use_ssl=settings_data["email_use_ssl"],
-    )
+# @login_required
+# def test_email_connection(request):
+#     """AJAX-тестирование подключения к SMTP без сохранения настроек"""
+#     if (
+#         request.method == "POST"
+#         and request.headers.get("X-Requested-With") == "XMLHttpRequest"
+#     ):
+#         try:
+#             host = request.POST.get("email_host")
+#             if host == "custom":
+#                 host = request.POST.get("custom_email_host", "")
 
-    send_mail(
-        subject="✅ Тест: Настройки email работают!",
-        message="Поздравляем! Настройки email в CRM Логистика успешно сохранены и работают.\n\n"
-        "Теперь вы будете получать уведомления о новых заявках.",
-        from_email=settings_data["default_from_email"],
-        recipient_list=[to_email],
-        connection=connection,
-        fail_silently=False,
-    )
+#             port = int(request.POST.get("email_port", 587))
+#             username = request.POST.get("email_host_user", "")
+#             password = request.POST.get("email_host_password", "")
+#             use_tls = request.POST.get("email_use_tls") == "1"
+
+#             if not host or not username:
+#                 return JsonResponse(
+#                     {"success": False, "error": "Заполните обязательные поля"}
+#                 )
+
+#             connection = get_connection(
+#                 backend="django.core.mail.backends.smtp.EmailBackend",
+#                 host=host,
+#                 port=port,
+#                 username=username,
+#                 password=password,
+#                 use_tls=use_tls,
+#                 use_ssl=False,
+#                 timeout=10,
+#             )
+
+#             connection.open()
+#             connection.close()
+
+#             return JsonResponse({"success": True, "message": "Подключение успешно"})
+
+#         except Exception as e:
+#             error_msg = str(e)
+#             if "Connection refused" in error_msg:
+#                 error_msg = "Сервер недоступен. Проверьте хост и порт."
+#             elif "authentication failed" in error_msg.lower():
+#                 error_msg = "Ошибка авторизации. Проверьте логин и пароль."
+#             elif "STARTTLS" in error_msg:
+#                 error_msg = (
+#                     "Сервер не поддерживает шифрование. Попробуйте отключить TLS."
+#                 )
+
+#             return JsonResponse({"success": False, "error": error_msg})
+
+#     return JsonResponse({"success": False, "error": "Некорректный запрос"})
 
 
-def load_email_settings():
-    """Функция для загрузки настроек email из файла"""
-    try:
-        settings_file = Path(django_settings.BASE_DIR) / "email_settings.json"
-        if settings_file.exists():
-            with open(settings_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-    except:
-        pass
-    return None
+# def send_test_email(settings_data, to_email):
+#     """Отправка тестового письма"""
+#     connection = get_connection(
+#         backend=settings_data["email_backend"],
+#         host=settings_data["email_host"],
+#         port=settings_data["email_port"],
+#         username=settings_data["email_host_user"],
+#         password=settings_data["email_host_password"],
+#         use_tls=settings_data["email_use_tls"],
+#         use_ssl=settings_data["email_use_ssl"],
+#     )
+
+#     send_mail(
+#         subject="✅ Тест: Настройки email работают!",
+#         message="Поздравляем! Настройки email в CRM Логистика успешно сохранены и работают.\n\n"
+#         "Теперь вы будете получать уведомления о новых заявках.",
+#         from_email=settings_data["default_from_email"],
+#         recipient_list=[to_email],
+#         connection=connection,
+#         fail_silently=False,
+#     )
+
+
+# def load_email_settings():
+#     """Функция для загрузки настроек email из файла"""
+#     try:
+#         settings_file = Path(django_settings.BASE_DIR) / "email_settings.json"
+#         if settings_file.exists():
+#             with open(settings_file, "r", encoding="utf-8") as f:
+#                 return json.load(f)
+#     except:
+#         pass
+#     return None
 
 
 class DeliveryOrderCreateView(LoginRequiredMixin, CreateView):
@@ -1003,7 +1013,6 @@ class DeliveryOrderCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.operator = self.request.user
 
-        # Если логист не был выбран (для не-админов), устанавливаем текущего пользователя, если он логист
         if (
             not form.instance.logistic
             and hasattr(self.request.user, "profile")
@@ -1100,7 +1109,9 @@ def delivery_order_qr_pdf(request, pk):
                         <div class="company-name">Фулфилмент Царицыно</div>
                         <div class="order-header">
                             <div class="order-number">Заявка: {order.tracking_number or f"#{order.id}"}</div>
-                            <div class="order-date">Дата: {order.date.strftime('%d.%m.%Y')}</div>
+                            <div class="order-date">Дата отгрузки со склада: {order.shipped_at.strftime('%d.%m.%Y')}</div>
+                            <div class="order-date">Дата поставки на МП: {order.fulfilled_at.strftime('%d.%m.%Y')}</div>
+                            <div class="order-date">Дата доставки: {order.delivery_date.strftime('%d.%m.%Y')}</div>
                         </div>
                     </div>
                     
@@ -1340,7 +1351,7 @@ def bulk_update_delivery_orders(request):
                     new_value = int(value) if value else 0
                 elif field in ["weight", "volume"]:
                     new_value = float(value) if value else 0.0
-                elif field == "date":
+                elif field == "delivery_date":
                     try:
                         new_value = datetime.strptime(value, "%Y-%m-%d").date()
                     except ValueError:
