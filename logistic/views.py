@@ -424,7 +424,9 @@ def dashboard(request):
 
     for i in range(7):
         day = seven_days_ago + timedelta(days=i)
-        count = DeliveryOrder.objects.filter(queryset_filter & Q(date=day)).count()
+        count = DeliveryOrder.objects.filter(
+            queryset_filter & Q(delivery_date=day)
+        ).count()
         delivery_chart_data.append({"date": day.strftime("%d.%m"), "count": count})
 
     recent_deliveries = DeliveryOrder.objects.filter(queryset_filter).order_by(
