@@ -156,13 +156,7 @@ class PickupOrder(models.Model):
         help_text="Дата, когда клиент хочет получить заказ",
         default=timezone.now,
     )
-    # ADDED: поле "Дата отгрузки"
-    shipment_date = models.DateField(
-        verbose_name="Дата отгрузки",
-        blank=True,
-        null=True,
-        help_text="Дата, когда груз был отгружен со склада",
-    )
+
     delivery_address = models.TextField(
         verbose_name="Адрес доставки",
         help_text="Полный адрес доставки",

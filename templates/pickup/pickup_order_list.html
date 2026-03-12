@@ -613,15 +613,6 @@
                 <label class="form-label">Дата забора до</label>
                 <input type="date" name="pickup_date__lte" class="form-control" value="{{ request.GET.pickup_date__lte }}">
             </div>
-            <!-- ADDED: фильтры по дате отгрузки -->
-            <div class="col-md-2">
-                <label class="form-label">Дата отгрузки от</label>
-                <input type="date" name="shipment_date__gte" class="form-control" value="{{ request.GET.shipment_date__gte }}">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Дата отгрузки до</label>
-                <input type="date" name="shipment_date__lte" class="form-control" value="{{ request.GET.shipment_date__lte }}">
-            </div>
             <div class="col-md-2">
                 <label class="form-label">Клиент</label>
                 <input type="text" name="client_name" class="form-control" 
@@ -715,11 +706,6 @@
                     Дата забора
                     <span class="sort-icon"></span>
                 </th>
-                <th class="sortable-header {% if sort == 'shipment_date' %}sorted-{{ order }}{% endif %}" 
-                    data-sort="shipment_date">
-                    Дата отгрузки
-                    <span class="sort-icon"></span>
-                </th>
                 <th class="sortable-header {% if sort == 'quantity' %}sorted-{{ order }}{% endif %}" 
                     data-sort="quantity">
                     Места
@@ -782,16 +768,6 @@
                 <td class="editable-cell" data-field="pickup_date" data-original="{{ order.pickup_date|date:'Y-m-d' }}" data-type="date">
                     {% if order.pickup_date %}
                         {{ order.pickup_date|date:"d.m.Y" }}
-                    {% else %}
-                        <span class="text-muted">-</span>
-                    {% endif %}
-                    <button class="save-btn" onclick="saveCell(this)">✓</button>
-                    <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
-                </td>
-                <!-- ADDED: ячейка для даты отгрузки -->
-                <td class="editable-cell" data-field="shipment_date" data-original="{{ order.shipment_date|date:'Y-m-d'|default:'' }}" data-type="date">
-                    {% if order.shipment_date %}
-                        {{ order.shipment_date|date:"d.m.Y" }}
                     {% else %}
                         <span class="text-muted">-</span>
                     {% endif %}
@@ -1019,7 +995,6 @@
               <option value="receiving_warehouse">Склад приемки</option>
               <option value="receiving_operator">Оператор приемки</option>
               <option value="pickup_date">Дата забора</option>
-              <option value="shipment_date">Дата отгрузки</option>   <!-- ADDED -->
               <option value="desired_delivery_date">Желаемая дата доставки</option>
               <option value="quantity">Количество мест</option>
             </select>
@@ -1366,15 +1341,6 @@ function initBulkEditing() {
                 case 'pickup_date':
                     inputHtml = `
                         <label for="bulkEditValue" class="form-label">Новая дата забора</label>
-                        <input type="date" class="form-control" id="bulkEditValue">
-                        <small class="form-text text-muted">Оставьте пустым, чтобы сбросить дату</small>
-                    `;
-                    break;
-                    
-                // ADDED: обработка для shipment_date
-                case 'shipment_date':
-                    inputHtml = `
-                        <label for="bulkEditValue" class="form-label">Новая дата отгрузки</label>
                         <input type="date" class="form-control" id="bulkEditValue">
                         <small class="form-text text-muted">Оставьте пустым, чтобы сбросить дату</small>
                     `;
@@ -2236,7 +2202,7 @@ function updateCellDisplay(cell, field, value, displayValue, type) {
             <button class="cancel-btn" onclick="cancelEditing(this.parentElement)">✗</button>
         `;
         cell.setAttribute('data-original', value || '');
-    } else if (field === 'pickup_date' || field === 'desired_delivery_date' || field === 'shipment_date') {  // ADDED
+    } else if (field === 'pickup_date' || field === 'desired_delivery_date') { 
         // Форматируем дату для отображения
         let displayText = '-';
         if (value) {

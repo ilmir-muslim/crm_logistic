@@ -66,7 +66,6 @@
                 <td>{{ order.pickup_address|truncatechars:40 }}</td>
                 <td>{{ order.contact_person|default:order.get_client_name|truncatechars:20 }}</td>
                 <td>{% if order.desired_delivery_date %}{{ order.desired_delivery_date|date:"d.m.Y" }}{% else %}-{% endif %}</td>
-                <td>{% if order.shipment_date %}{{ order.shipment_date|date:"d.m.Y" }}{% else %}-{% endif %}</td>
                 <td class="status-{{ order.status }}">{{ order.get_status_display }}</td>
                 <td>{{ order.get_client_name|truncatechars:30 }}</td>
                 <td>{% if order.operator %}{{ order.operator.get_full_name|default:order.operator.username }}{% else %}-{% endif %}</td>

@@ -64,7 +64,6 @@
           <td>{{ order.client_name|truncatechars:20 }}</td>
           <td>{{ order.pickup_address|truncatechars:30 }}</td>
           <td>{{ order.pickup_date|date:"d.m.Y" }}</td>
-          <td>{% if order.shipment_date %}{{ order.shipment_date|date:"d.m.Y" }}{% else %}-{% endif %}</td>
           <td>{{ order.quantity }}</td>
           <td>{{ order.weight|default:"—" }}</td>
           <td>{{ order.volume|default:"—" }}</td>
