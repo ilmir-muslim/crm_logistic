@@ -1244,8 +1244,9 @@ def delivery_order_qr_pdf(request, pk):
                     margin-bottom: 0.5mm;
                 }}
                 .cargo-info {{
-                    width: 100%;
-                    margin: 0;
+                    width: calc(100% + 2mm); 
+                    margin-left: -6mm;
+                    margin-right: -6mm;
                     font-weight: bold;
                     display: flex;
                     font-size: 10.5px;
@@ -1253,27 +1254,19 @@ def delivery_order_qr_pdf(request, pk):
                     border-top: 0.3mm solid #eee;
                     padding-top: 0.3mm;
                     box-sizing: border-box;
-                    gap: 1mm;
                 }}
-
                 .cargo-item {{
                     text-align: center;
                     box-sizing: border-box;
-                    overflow-wrap: break-word;
-                    word-break: break-word;
-                    white-space: normal;
                 }}
-
                 .cargo-item:nth-child(1) {{
-                    width: 15mm;
-                    flex-shrink: 0;
-                    flex-grow: 0;
+                width: 22mm;
+                flex-shrink: 0;
+                flex-grow: 0;
                 }}
-
                 .cargo-item:nth-child(2),
                 .cargo-item:nth-child(3) {{
-                    flex: 1;
-                    min-width: 0;
+                flex: 1;
                 }}
             </style>
         </head>
