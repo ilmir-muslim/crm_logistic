@@ -442,7 +442,7 @@ def dashboard(request):
 
     context = {
         "delivery_stats": delivery_stats,
-        "pickup_stats": pickup_stats,  
+        "pickup_stats": pickup_stats,
         "delivery_chart_data": delivery_chart_data,
         "recent_deliveries": recent_deliveries,
         "recent_pickups": recent_pickups,
@@ -1256,11 +1256,17 @@ def delivery_order_qr_pdf(request, pk):
                     box-sizing: border-box;
                     }}
                 .cargo-item {{
-                    flex: 1 1 0; 
                     text-align: center;
-                    min-width: 20mm; 
-                    max-width: 40mm; 
-                    padding: 0 1mm; 
+                    box-sizing: border-box;
+                }}
+                .cargo-item:nth-child(1) {{
+                    width: 22mm;
+                    flex-shrink: 0;
+                    flex-grow: 0;
+                }}
+                .cargo-item:nth-child(2),
+                .cargo-item:nth-child(3) {{
+                    flex: 1;
                 }}
             </style>
         </head>

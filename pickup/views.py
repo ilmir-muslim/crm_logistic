@@ -758,16 +758,26 @@ def pickup_order_qr_pdf(request, pk):
                     margin-right: -6mm;
                     font-weight: bold;
                     display: flex;
-                    font-size: 11px;
+                    font-size: 10.5px;
                     color: #000;
                     border-top: 0.3mm solid #eee;
                     padding-top: 0.3mm;
                     box-sizing: border-box;
                 }}
                 .cargo-item {{
-                    flex: 1;
                     text-align: center;
+                    box-sizing: border-box;
                 }}
+                .cargo-item:nth-child(1) {{
+                width: 22mm;
+                flex-shrink: 0;
+                flex-grow: 0;
+                }}
+                .cargo-item:nth-child(2),
+                .cargo-item:nth-child(3) {{
+                flex: 1;
+                }}
+
             </style>
         </head>
         <body>
