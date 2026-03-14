@@ -6,7 +6,6 @@
 Контактное лицо: {{ order.client_name }}
 Телефон: {{ order.client_phone }}
 Email: {{ order.client_email }}
-Маркетплейс: {{ order.marketplace }}
 Дата поставки: {{ order.desired_delivery_date|date:"d.m.Y" }}
 Адрес забора: {{ order.pickup_address }}
 Адрес доставки: {{ order.delivery_address }}

@@ -75,7 +75,6 @@ class DeliveryOrderListView(LoginRequiredMixin, ListView):
 
         allowed_sort_fields = [
             "shipped_at",
-            "fulfilled_at",
             "delivery_date",
             "city",
             "warehouse",
@@ -228,7 +227,6 @@ def update_delivery_order_field(request, pk):
         "driver_name",
         "driver_phone",
         "shipped_at",
-        "fulfilled_at",
         "delivery_date",
         "logistic",
     ]
@@ -314,9 +312,6 @@ def update_delivery_order_field(request, pk):
             display_value = order.get_status_display()
             return JsonResponse({"success": True, "display_value": display_value})
         elif field == "shipped_at":
-            display_value = order.date.strftime("%d.%m.%Y")
-            return JsonResponse({"success": True, "display_value": display_value})
-        elif field == "fulfilled_at":
             display_value = order.date.strftime("%d.%m.%Y")
             return JsonResponse({"success": True, "display_value": display_value})
         elif field == "delivery_date":
@@ -642,7 +637,6 @@ def generate_excel_report(date, report_type, user_filter):
                 {
                     "Номер": order.tracking_number or f"#{order.id}",
                     "Дата отгрузки со склада": order.shipped_at.strftime("%d.%m.%Y"),
-                    "Дата поставки на МП": order.fulfilled_at.strftime("%d.%m.%Y"),
                     "Дата доставки": order.delivery_date.strftime("%d.%m.%Y"),
                     "Адрес отправки": order.pickup_address or "",
                     "Адрес доставки": order.delivery_address or "",
@@ -704,7 +698,6 @@ def generate_excel_report(date, report_type, user_filter):
                     "Компания": order.client_company or "",
                     "Телефон": order.client_phone or "",
                     "Email": order.client_email or "",
-                    "Маркетплейс": order.marketplace or "",
                     "Дата поставки": order.desired_delivery_date.strftime("%d.%m.%Y"),
                     "Адрес доставки": order.delivery_address or "",
                     "Номер накладной": order.invoice_number or "",
@@ -1112,7 +1105,6 @@ def delivery_order_qr_pdf(request, pk):
                         <div class="order-header">
                             <div class="order-number">Заявка: {order.tracking_number or f"#{order.id}"}</div>
                             <div class="order-date">Дата отгрузки со склада: {order.shipped_at.strftime('%d.%m.%Y')}</div>
-                            <div class="order-date">Дата поставки на МП: {order.fulfilled_at.strftime('%d.%m.%Y')}</div>
                             <div class="order-date">Дата доставки: {order.delivery_date.strftime('%d.%m.%Y')}</div>
                         </div>
                     </div>

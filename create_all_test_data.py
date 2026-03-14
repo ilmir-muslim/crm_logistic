@@ -374,7 +374,6 @@ pickup_addresses_pickup = [
     "Владивосток, ул. Светланская, 50",
 ]
 
-marketplaces = ["Wildberries", "Ozon", "Яндекс.Маркет", "Собственный сайт", "Другое"]
 
 # Получаем список складов для привязки
 warehouse_list = list(Warehouse.objects.all())
@@ -402,7 +401,6 @@ for i in range(25):
         client_company=clients[i % len(clients)],
         client_phone=f"+7916{3000000 + i*1000}",
         client_email=f"client{i}@example.com",
-        marketplace=marketplaces[i % len(marketplaces)],
         desired_delivery_date=date.today() + timedelta(days=(i % 7) + 2),
         delivery_address=f"ул. Доставки, д.{i+1}, кв.{i%10+1}",
         invoice_number=f"INV-{1000+i}" if i % 3 == 0 else None,

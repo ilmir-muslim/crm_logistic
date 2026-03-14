@@ -205,18 +205,6 @@
                             {% endif %}
                         </div>
                     </div>
-                    
-                    <!-- Маркетплейс -->
-                    <div class="mb-3">
-                        <label for="{{ form.marketplace.id_for_label }}" class="form-label">Маркетплейс</label>
-                        {{ form.marketplace }}
-                        {% if form.marketplace.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.marketplace.errors.0 }}
-                        </div>
-                        {% endif %}
-                    </div>
-                    
                     <!-- Номер заказа в 1С -->
                     <div class="mb-3">
                         <label for="{{ form.order_1c_number.id_for_label }}" class="form-label">№ заказа в 1С</label>

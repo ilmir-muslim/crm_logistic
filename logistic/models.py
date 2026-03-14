@@ -19,10 +19,6 @@ class DeliveryOrder(models.Model):
     ]
     shipped_at = models.DateField(null=True, blank=True, verbose_name='Дата отгрузки со склада')
 
-    fulfilled_at = models.DateField(
-        null=True, blank=True, verbose_name="Дата поставки на МП"
-    )
-
     delivery_date = models.DateField(
         null=True, blank=True, verbose_name="Дата доставки"
     )

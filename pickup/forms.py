@@ -81,7 +81,6 @@ class PickupOrderForm(forms.ModelForm):
             "contact_person",
             "sender",
             "recipient",
-            "marketplace",
             "desired_delivery_date",
             "invoice_number",
             "receiving_warehouse",
@@ -116,7 +115,6 @@ class PickupOrderForm(forms.ModelForm):
                     "placeholder": "ФИО лица для выдачи груза",
                 }
             ),
-            "marketplace": forms.Select(attrs={"class": "form-select"}),
             "desired_delivery_date": forms.DateInput(
                 attrs={"type": "date", "class": "form-control"}
             ),

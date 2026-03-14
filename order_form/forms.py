@@ -183,7 +183,6 @@ class ClientPickupForm(forms.ModelForm):
         model = PickupOrder
         fields = [
             "delivery_address",
-            "marketplace",
             "desired_delivery_date",
             "pickup_address",
             "quantity",
@@ -221,7 +220,6 @@ class ClientPickupForm(forms.ModelForm):
                     "placeholder": "Улица, дом, квартира/офис, этаж, наличие лифта",
                 }
             ),
-            "marketplace": forms.Select(attrs={"class": "form-select"}),
             "quantity": forms.NumberInput(
                 attrs={
                     "class": "form-control",
@@ -302,7 +300,6 @@ class ClientPickupForm(forms.ModelForm):
         labels = {
             "delivery_city": "Город доставки *",
             "delivery_address": "Адрес доставки (улица, дом) *",
-            "marketplace": "Маркетплейс *",
             "desired_delivery_date": "Желаемая дата поставки *",
             "pickup_address": "Адрес забора груза *",
             "quantity": "Количество мест *",
@@ -460,7 +457,6 @@ class ClientPickupForm(forms.ModelForm):
             instance.notes = f"""
             Клиент: {client.name} (ID: {client.id})
             ИНН: {client.inn or 'Не указан'}
-            Маркетплейс: {self.cleaned_data.get('marketplace', 'Не указан')}
             
             {instance.notes or ''}
             """

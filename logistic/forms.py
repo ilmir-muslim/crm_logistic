@@ -209,7 +209,6 @@ class DeliveryOrderCreateForm(forms.ModelForm):
         model = DeliveryOrder
         fields = [
             "shipped_at",
-            "fulfilled_at",
             "delivery_date",
             "sender",
             "pickup_address",
@@ -230,9 +229,6 @@ class DeliveryOrderCreateForm(forms.ModelForm):
         widgets = {
             "shipped_at": forms.DateInput(
                 attrs={"type": "date", "class": "form-control", "required": "required"}
-            ),
-            "fulfilled_at": forms.DateInput(
-                attrs={"type": "date", "class": "form-control"}
             ),
             "delivery_date": forms.DateInput(
                 attrs={"type": "date", "class": "form-control", "required": "required"}

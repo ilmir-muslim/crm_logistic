@@ -68,14 +68,6 @@ class PickupOrder(models.Model):
     Заявка на забор груза от клиента
     """
 
-    MARKETPLACE_CHOICES = [
-        ("Wildberries", "Wildberries"),
-        ("Ozon", "Ozon"),
-        ("Яндекс.Маркет", "Яндекс.Маркет"),
-        ("SberMarket", "SberMarket"),
-        ("Собственный сайт", "Собственный сайт"),
-        ("Другое", "Другое"),
-    ]
 
     STATUS_CHOICES = [
         ("ready", "Готова к выдаче"),
@@ -137,13 +129,6 @@ class PickupOrder(models.Model):
         help_text="Контрагент, который получает груз",
     )
 
-    marketplace = models.CharField(
-        max_length=50,
-        choices=MARKETPLACE_CHOICES,
-        verbose_name="Маркетплейс",
-        help_text="Площадка, с которой заказ",
-        default="Собственный сайт",
-    )
     order_1c_number = models.CharField(
         max_length=50,
         verbose_name="№ заказа в 1С",

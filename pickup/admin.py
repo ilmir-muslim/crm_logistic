@@ -116,7 +116,6 @@ class PickupOrderAdmin(admin.ModelAdmin):
                 "fields": (
                     "sender",
                     "recipient",
-                    "marketplace",
                 )
             },
         ),

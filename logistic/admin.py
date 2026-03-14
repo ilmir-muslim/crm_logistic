@@ -7,7 +7,6 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
     list_display = [
         "tracking_number",
         "shipped_at",
-        "fulfilled_at",
         "delivery_date",
         "sender_display",
         "recipient_display",
@@ -44,7 +43,6 @@ class DeliveryOrderAdmin(admin.ModelAdmin):
                 "fields": (
                     "tracking_number",
                     "shipped_at",
-                    "fulfilled_at",
                     "delivery_date",
                     "sender",
                     "pickup_address",
