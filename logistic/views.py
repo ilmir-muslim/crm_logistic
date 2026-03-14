@@ -1249,7 +1249,7 @@ def delivery_order_qr_pdf(request, pk):
                     margin-right: -6mm;
                     font-weight: bold;
                     display: flex;
-                    font-size: 10px;
+                    font-size: 9px;
                     color: #000;
                     border-top: 0.3mm solid #eee;
                     padding-top: 0.3mm;
