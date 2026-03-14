@@ -1249,15 +1249,18 @@ def delivery_order_qr_pdf(request, pk):
                     margin-right: -6mm;
                     font-weight: bold;
                     display: flex;
-                    font-size: 11px;
+                    font-size: 10.5px;
                     color: #000;
                     border-top: 0.3mm solid #eee;
                     padding-top: 0.3mm;
                     box-sizing: border-box;
                     }}
                 .cargo-item {{
-                    flex: 1;
+                    flex: 1 1 0; 
                     text-align: center;
+                    min-width: 20mm; 
+                    max-width: 40mm; 
+                    padding: 0 1mm; 
                 }}
             </style>
         </head>
