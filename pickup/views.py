@@ -758,7 +758,7 @@ def pickup_order_qr_pdf(request, pk):
                     margin-right: -6mm;
                     font-weight: bold;
                     display: flex;
-                    font-size: 10.5px;
+                    font-size: 10px;
                     color: #000;
                     border-top: 0.3mm solid #eee;
                     padding-top: 0.3mm;
