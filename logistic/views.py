@@ -1095,6 +1095,8 @@ def delivery_order_qr_pdf(request, pk):
 
         qr_items_html = ""
         total_items = order.quantity
+        shipped_at_str = order.shipped_at.strftime("%d.%m.%Y") if order.shipped_at else 'не указана'
+        delivery_date_str = order.delivery_date.strftime("%d.%m.%Y") if order.delivery_date else 'не указана' 
 
         for i in range(1, total_items + 1):
             qr_items_html += f"""
@@ -1104,8 +1106,8 @@ def delivery_order_qr_pdf(request, pk):
                         <div class="company-name">Фулфилмент Царицыно</div>
                         <div class="order-header">
                             <div class="order-number">Заявка: {order.tracking_number or f"#{order.id}"}</div>
-                            <div class="order-date">Дата отгрузки со склада: {order.shipped_at.strftime('%d.%m.%Y')}</div>
-                            <div class="order-date">Дата доставки: {order.delivery_date.strftime('%d.%m.%Y')}</div>
+                            <div class="order-date">Дата отгрузки со склада: {shipped_at_str}</div>
+                            <div class="order-date">Дата доставки: {delivery_date_str}</div>
                         </div>
                     </div>
                     
