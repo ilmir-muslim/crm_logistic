@@ -1095,6 +1095,8 @@ def delivery_order_qr_pdf(request, pk):
 
         qr_items_html = ""
         total_items = order.quantity
+        shipped_at_str = order.shipped_at.strftime("%d.%m.%Y") if order.shipped_at else 'не указана'
+        delivery_date_str = order.delivery_date.strftime("%d.%m.%Y") if order.delivery_date else 'не указана' 
 
         for i in range(1, total_items + 1):
             qr_items_html += f"""
@@ -1104,8 +1106,8 @@ def delivery_order_qr_pdf(request, pk):
                         <div class="company-name">Фулфилмент Царицыно</div>
                         <div class="order-header">
                             <div class="order-number">Заявка: {order.tracking_number or f"#{order.id}"}</div>
-                            <div class="order-date">Дата отгрузки со склада: {order.shipped_at.strftime('%d.%m.%Y')}</div>
-                            <div class="order-date">Дата доставки: {order.delivery_date.strftime('%d.%m.%Y')}</div>
+                            <div class="order-date">Дата отгрузки со склада: {shipped_at_str}</div>
+                            <div class="order-date">Дата доставки: {delivery_date_str}</div>
                         </div>
                     </div>
                     
@@ -1169,36 +1171,36 @@ def delivery_order_qr_pdf(request, pk):
                     height: 100%;
                     display: flex;
                     flex-direction: column;
-                    justify-content: space-between;
+                    justify-content: flex-start;
                     align-items: center;
-                    padding: 1mm;
+                    padding: 0.5mm;
                     box-sizing: border-box;
-                    border: 0.5mm solid #ccc;
+                    border: 0.3mm solid #ccc;
                     border-radius: 1mm;
                 }}
                 .header-section {{
                     width: 100%;
                     text-align: center;
-                    margin-bottom: 1mm;
+                    margin-bottom: 0.2mm;
                 }}
                 .company-name {{
                     font-weight: bold;
                     font-size: 13px;
                     color: #000;
-                    margin-bottom: 0.5mm;
+                    margin-bottom: 0.2mm;
                 }}
                 .order-header {{
                     display: flex;
-                    justify-content: space-between;
+                    justify-content: flex-start;
                     font-size: 10px;
                     color: #444;
                 }}
                 .address-section {{
                     width: 100%;
-                    margin: 1mm 0;
+                    margin: 0.5mm 0;
                 }}
                 .address-block {{
-                    margin-bottom: 1mm;
+                    margin-bottom: 0.2mm;
                 }}
                 .address-label {{
                     font-weight: bold;
@@ -1213,12 +1215,11 @@ def delivery_order_qr_pdf(request, pk):
                     line-height: 1.2;
                 }}
                 .qr-code-section {{
-                    flex-grow: 1;
                     display: flex;
                     justify-content: center;
                     align-items: center;
                     width: 100%;
-                    margin: 1mm 0;
+                    margin: 0.2mm 0;
                 }}
                 .qr-image {{
                     width: 55mm;
@@ -1233,7 +1234,7 @@ def delivery_order_qr_pdf(request, pk):
                 .counter {{
                     font-size: 10px;
                     color: #000;
-                    margin-bottom: 0.5mm;
+                    margin-bottom: 0.2mm;
                 }}
                 .cargo-info {{
                     width: calc(100% + 2mm); 

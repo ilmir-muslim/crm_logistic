@@ -598,6 +598,7 @@ def pickup_order_qr_pdf(request, pk):
                             <div class="order-number">Заявка: {order.tracking_number or f"#{order.id}"}</div>
                             <div class="order-date">Дата: {order.pickup_date.strftime('%d.%m.%Y') if order.pickup_date else datetime.now().strftime('%d.%m.%Y')}</div>
                         </div>
+                        <div class="order-invoice">Накладная: {order.invoice_number or "-"}</div>
                     </div>
                     
                     <div class="info-section">
@@ -668,23 +669,23 @@ def pickup_order_qr_pdf(request, pk):
                     height: 100%;
                     display: flex;
                     flex-direction: column;
-                    justify-content: space-between;
+                    justify-content: flex-start;
                     align-items: center;
-                    padding: 1mm;
+                    padding: 0.5mm;
                     box-sizing: border-box;
-                    border: 0.5mm solid #ccc;
+                    border: 0.3mm solid #ccc;
                     border-radius: 1mm;
                 }}
                 .header-section {{
                     width: 100%;
                     text-align: center;
-                    margin-bottom: 0.5mm;
+                    margin-bottom: 0.2mm;
                 }}
                 .company-name {{
                     font-weight: bold;
                     font-size: 13px;
                     color: #000;
-                    margin-bottom: 0.3mm;
+                    margin-bottom: 0.2mm;
                 }}
                 .order-header {{
                     display: flex;
@@ -692,12 +693,18 @@ def pickup_order_qr_pdf(request, pk):
                     font-size: 10px;
                     color: #444;
                 }}
+                .order-invoice {{
+                    font-size: 10px;
+                    color: #444;
+                    text-align: left;
+                    margin-top: 0.5mm;
+                }}
                 .info-section {{
                     width: 100%;
-                    margin-bottom: 0.5mm;
+                    margin-bottom: 0.2mm;
                 }}
                 .client-block, .contact-block {{
-                    margin-bottom: 0.3mm;
+                    margin-bottom: 0.2mm;
                 }}
                 .info-label {{
                     font-weight: bold;
@@ -712,30 +719,29 @@ def pickup_order_qr_pdf(request, pk):
                 }}
                 .address-section {{
                     width: 100%;
-                    margin-bottom: 1mm;
+                    margin-bottom: 0.5mm;
                 }}
                 .address-block {{
-                    margin-bottom: 0.5mm;
+                    margin-bottom: 0.3mm;
                 }}
                 .address-label {{
                     font-weight: bold;
                     font-size: 13px;
                     color: #000;
-                    margin-bottom: 0.2mm;
+                    margin-bottom: 0.1mm;
                 }}
                 .address-text {{
                     font-size: 13px;
                     color: #333;
                     word-break: break-word;
-                    line-height: 1.2;
+                    line-height: 1.1;
                 }}
                 .qr-code-section {{
-                    flex-grow: 1;
                     display: flex;
                     justify-content: center;
                     align-items: center;
                     width: 100%;
-                    margin: 0.5mm 0;
+                    margin: 0.2mm 0;
                 }}
                 .qr-image {{
                     width: 55mm;
@@ -750,10 +756,10 @@ def pickup_order_qr_pdf(request, pk):
                 .counter {{
                     font-size: 10px;
                     color: #000;
-                    margin-bottom: 0.3mm;
+                    margin-bottom: 0.2mm;
                 }}
                 .cargo-info {{
-                    width: calc(100% + 2mm); 
+                    width: calc(100% + 2mm);
                     margin-left: -6mm;
                     margin-right: -6mm;
                     font-weight: bold;
