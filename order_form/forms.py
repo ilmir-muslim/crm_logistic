@@ -340,7 +340,9 @@ class ClientPickupForm(forms.ModelForm):
         self.fields["delivery_city"].queryset = City.objects.all().order_by("name")
 
         self.fields["receiving_warehouse"].queryset = (
-            Warehouse.objects.filter(city__warehouses__isnull=False)
+            Warehouse.objects.filter(
+                city__warehouses__isnull=False, visible_to_clients=True
+            )
             .distinct()
             .order_by("city__name", "name")
         )
@@ -839,7 +841,9 @@ class ClientDeliveryForm(forms.ModelForm):
 
         self.fields["delivery_city"].queryset = City.objects.all().order_by("name")
         self.fields["pickup_warehouse"].queryset = (
-            Warehouse.objects.filter(city__warehouses__isnull=False)
+            Warehouse.objects.filter(
+                city__warehouses__isnull=False, visible_to_clients=True
+            )
             .distinct()
             .order_by("city__name", "name")
         )

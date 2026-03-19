@@ -61,6 +61,12 @@ class Warehouse(models.Model):
         null=True,
     )
 
+    visible_to_clients = models.BooleanField(
+        default=False,
+        verbose_name="Отображать для клиентов",
+        help_text="Если отмечено, склад будет виден клиентам при создании заявки",
+    )
+
     class Meta:
         verbose_name = "Склад"
         verbose_name_plural = "Склады"

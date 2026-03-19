@@ -1,7 +1,5 @@
-### BEGIN: warehouses/admin.py
 from django.contrib import admin
 from django.utils import timezone
-from django import forms
 
 from warehouses.forms import WarehouseScheduleForm
 from .models import (
@@ -117,8 +115,9 @@ class WarehouseAdmin(admin.ModelAdmin):
         "manager",
         "working_status",
         "available_area",
+        "visible_to_clients",
     )
-    list_filter = ("city",)
+    list_filter = ("city", "visible_to_clients")
     search_fields = ("name", "code", "address", "city__name")
     filter_horizontal = ("operators",)
 
@@ -131,6 +130,10 @@ class WarehouseAdmin(admin.ModelAdmin):
             {"fields": ("phone", "email", "manager", "operators")},
         ),
         ("Параметры склада", {"fields": ("total_area", "available_area")}),
+        (
+            "Настройки отображения (для клиентских форм)",
+            {"fields": ("visible_to_clients",)},
+        ),
     )
 
     def working_status(self, obj):
@@ -290,6 +293,3 @@ class WarehouseScheduleAdmin(admin.ModelAdmin):
         return obj.working_hours
 
     working_hours_display.short_description = "Время работы"
-
-
-### END: warehouses/admin.py
