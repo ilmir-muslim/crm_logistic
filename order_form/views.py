@@ -16,11 +16,17 @@ from counterparties.models import Counterparty
 
 def get_cities_with_warehouses_data():
     """Функция для получения унифицированных данных о городах и складах"""
-    cities = City.objects.filter(warehouses__isnull=False).distinct().order_by("name")
+    cities = (
+        City.objects.filter(
+            warehouses__isnull=False, warehouses__visible_to_clients=True
+        )
+        .distinct()
+        .order_by("name")
+    )
 
     cities_data = []
     for city in cities:
-        warehouses = city.warehouses.all().prefetch_related(
+        warehouses = city.warehouses.filter(visible_to_clients=True).prefetch_related(
             Prefetch(
                 "schedules",
                 queryset=WarehouseSchedule.objects.filter(is_working=True).order_by(
