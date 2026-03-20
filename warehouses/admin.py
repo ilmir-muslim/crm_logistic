@@ -176,6 +176,20 @@ class WarehouseAdmin(admin.ModelAdmin):
                     closing_time=closing_time,
                 )
 
+    actions = ["make_visible", "make_invisible"]
+
+    def make_visible(self, request, query_set):
+        updated = query_set.update(visible_to_clients=True)
+        self.message_user(
+            request, f"✅ Сделано видимым для клиентов: {updated} склад(ов)."
+        )
+    make_visible.short_description = "Сделать выбранные склады видимыми для клиентов"
+
+    def make_invisible(self, request, queryset):
+        updated = queryset.update(visible_to_clients=False)
+        self.message_user(request, f"❌ Скрыто от клиентов: {updated} склад(ов).")
+    make_invisible.short_description = "Скрыть выбранные склады от клиентов"
+
 
 @admin.register(ContainerType)
 class ContainerTypeAdmin(admin.ModelAdmin):
