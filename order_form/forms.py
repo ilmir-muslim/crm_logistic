@@ -300,7 +300,7 @@ class ClientPickupForm(forms.ModelForm):
         labels = {
             "delivery_city": "Город доставки *",
             "delivery_address": "Адрес доставки (улица, дом) *",
-            "desired_delivery_date": "Желаемая дата поставки *",
+            "desired_delivery_date": "Желаемая дата забора *",
             "pickup_address": "Адрес забора груза *",
             "quantity": "Количество мест *",
             "volume": "Общий объем (м³) *",

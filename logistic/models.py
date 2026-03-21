@@ -74,7 +74,6 @@ class DeliveryOrder(models.Model):
         verbose_name="Склад доставки",
         help_text="Склад, куда доставляется груз",
     )
-    # Добавить поле для города доставки (аналогично PickupOrder.delivery_city)
     delivery_city = models.ForeignKey(
         City,
         on_delete=models.SET_NULL,
