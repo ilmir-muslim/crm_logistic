@@ -987,23 +987,18 @@
                                         Выберите город выше для отображения доступных складов
                                     </div>
                                 </div>
-                                <div class="form-text" id="warehouse-info">
-                                    Склад будет выбран после выбора города
-                                </div>
                             </div>
                             
                             <div class="col-md-6">
                                 <label class="form-label required">
                                     Город доставки
                                 </label>
+                                <!-- Блок для отображения города выбранного склада -->
                                 <div id="city-selection-display">
                                     <div class="alert alert-info">
                                         <i class="bi bi-info-circle"></i>
-                                        Выберите город выше для отображения доступных городов доставки
+                                        После выбора склада здесь будет показан город доставки
                                     </div>
-                                </div>
-                                <div class="form-text">
-                                    Город назначения доставки
                                 </div>
                             </div>
                             
@@ -1557,7 +1552,7 @@
                 });
             });
             
-            loadDeliveryCities(cityId);
+            // Убираем вызов loadDeliveryCities, теперь город доставки определяется при выборе склада
         }
         
         function selectWarehouse(warehouseId, warehouseName) {
@@ -1565,6 +1560,26 @@
             selectedWarehouseName = warehouseName;
             
             receivingWarehouseHidden.value = warehouseId;
+            
+            // Устанавливаем город доставки (из currentCity, который соответствует выбранному складу)
+            if (currentCity) {
+                deliveryCityHidden.value = currentCity.id;
+                // Отображаем город доставки
+                citySelectionDisplay.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i>
+                        Город доставки: <strong>${currentCity.name}</strong>
+                    </div>
+                `;
+            } else {
+                // На всякий случай, если currentCity почему-то нет
+                citySelectionDisplay.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Не удалось определить город доставки
+                    </div>
+                `;
+            }
             
             document.querySelectorAll('.select-warehouse-btn').forEach(btn => {
                 const btnWarehouseId = btn.getAttribute('data-warehouse-id');
@@ -1595,65 +1610,6 @@
             // Проверяем доступность текущей выбранной даты
             if (dateInput && dateInput.value) {
                 checkDateAvailability();
-            }
-        }
-        
-        function loadDeliveryCities(cityId) {
-            let availableCities = [];
-            
-            if (cityId == 1) {
-                availableCities = [
-                    {id: 1, name: 'Москва'},
-                    {id: 3, name: 'Санкт-Петербург'},
-                    {id: 4, name: 'Новосибирск'},
-                    {id: 5, name: 'Екатеринбург'},
-                ];
-            } else if (cityId == 2) {
-                availableCities = [
-                    {id: 2, name: 'Казань'},
-                    {id: 4, name: 'Новосибирск'},
-                    {id: 5, name: 'Екатеринбург'},
-                ];
-            } else {
-                availableCities = citiesData.map(city => ({id: city.id, name: city.name}));
-            }
-            
-            if (availableCities.length > 0) {
-                let html = '<div class="row g-2">';
-                availableCities.forEach(city => {
-                    html += `
-                        <div class="col-md-6">
-                            <div class="form-check">
-                                <input class="form-check-input city-radio" 
-                                       type="radio" 
-                                       name="selected_delivery_city" 
-                                       id="city_${city.id}" 
-                                       value="${city.id}"
-                                       onchange="selectDeliveryCity(${city.id}, '${city.name}')">
-                                <label class="form-check-label" for="city_${city.id}">
-                                    ${city.name}
-                                </label>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                
-                citySelectionDisplay.innerHTML = html;
-                
-                if (availableCities.length > 0) {
-                    const firstCity = availableCities[0];
-                    setTimeout(() => {
-                        selectDeliveryCity(firstCity.id, firstCity.name);
-                    }, 100);
-                }
-            } else {
-                citySelectionDisplay.innerHTML = `
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        Нет доступных городов доставки.
-                    </div>
-                `;
             }
         }
         
@@ -1727,19 +1683,6 @@
                 dateAvailabilityMessage.style.color = '#dc3545';
             }
         }
-        
-        window.selectDeliveryCity = function(cityId, cityName) {
-            deliveryCityHidden.value = cityId;
-            
-            const cityInfoElement = document.querySelector('#city-selection-display .form-text');
-            if (cityInfoElement) {
-                cityInfoElement.innerHTML = `Выбран город доставки: <strong>${cityName}</strong>`;
-            }
-            
-            document.querySelectorAll('.city-radio').forEach(radio => {
-                radio.checked = radio.value == cityId;
-            });
-        };
         
         document.querySelectorAll('.city-btn').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -1853,8 +1796,8 @@
                 }
                 
                 if (!deliveryCityHidden.value) {
-                    showAlertMessage('Пожалуйста, выберите город доставки', 'warning');
-                    const citySection = document.querySelector('#city-selection-display .row');
+                    showAlertMessage('Пожалуйста, выберите склад для определения города доставки', 'warning');
+                    const citySection = document.querySelector('#city-selection-display');
                     if (citySection) {
                         citySection.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
