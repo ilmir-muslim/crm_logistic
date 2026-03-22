@@ -1,7 +1,7 @@
 from django import forms
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pickup.models import PickupOrder
 from logistic.models import DeliveryOrder
 from warehouses.models import City, Warehouse, WarehouseSchedule
