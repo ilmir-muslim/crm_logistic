@@ -779,6 +779,11 @@
 }
 </style>
 
+<!-- Подключение jQuery и Select2 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
 let selectedWarehouseId = null;
 let selectedReceivingWarehouseId = null;
@@ -803,9 +808,13 @@ document.addEventListener('DOMContentLoaded', function() {
         pickupAddressField.setAttribute('placeholder', 'Нажмите для выбора адреса забора');
     }
     
+    // Инициализация Select2 для полей отправителя и получателя
+    initSelect2WithAjax('#id_sender', 'Выберите отправителя');
+    initSelect2WithAjax('#id_recipient', 'Выберите получателя');
+    
     // Простая стилизация для select элементов
     function enhanceSelectElements() {
-        const selectElements = document.querySelectorAll('select.form-select');
+        const selectElements = document.querySelectorAll('select.form-select:not(.select2-hidden-accessible)');
         selectElements.forEach(select => {
             select.style.cssText = `
                 background-color: #fff;
@@ -821,6 +830,41 @@ document.addEventListener('DOMContentLoaded', function() {
     
     enhanceSelectElements();
 });
+
+// Функция инициализации Select2 с AJAX
+function initSelect2WithAjax(selector, placeholder) {
+    $(selector).select2({
+        ajax: {
+            url: '{% url "counterparties_json" %}',
+            dataType: 'json',
+            delay: 300,
+            data: function(params) {
+                return {
+                    search: params.term || '',
+                    type: '' // при необходимости можно фильтровать по типу
+                };
+            },
+            processResults: function(data) {
+                return {
+                    results: data.map(item => ({
+                        id: item.id,
+                        text: item.short_info,
+                        full_info: item.full_info
+                    }))
+                };
+            },
+            cache: true
+        },
+        placeholder: placeholder,
+        minimumInputLength: 1,
+        allowClear: true,
+        language: {
+            inputTooShort: function() { return 'Введите 1 или более символов'; },
+            searching: function() { return 'Поиск...'; },
+            noResults: function() { return 'Контрагенты не найдены'; }
+        }
+    });
+}
 
 function initAddressModal() {
     const modal = document.getElementById('addressModal');
@@ -1227,15 +1271,10 @@ function saveCounterparty() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Добавляем нового контрагента в выпадающий список
-            const selectField = document.getElementById(`id_${forField}`);
-            if (selectField) {
-                const newOption = document.createElement('option');
-                newOption.value = data.id;
-                newOption.textContent = data.short_info;
-                newOption.selected = true;
-                selectField.appendChild(newOption);
-            }
+            // Добавляем нового контрагента в Select2
+            const selectField = $(`#id_${forField}`);
+            const newOption = new Option(data.short_info, data.id, true, true);
+            selectField.append(newOption).trigger('change');
             
             // Закрываем модальное окно
             if (counterpartyModalInstance) {

@@ -561,22 +561,63 @@
 }
 </style>
 
+<!-- Подключение jQuery и Select2 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
 let selectedWarehouseId = null;
 let currentAddressType = '';
+let counterpartyModalInstance = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     initAddressModal();
     initCounterpartyModal();
-    loadCounterparties();
+    
+    // Инициализация Select2 для полей отправителя и получателя
+    initSelect2WithAjax('#id_sender', 'Выберите отправителя');
+    initSelect2WithAjax('#id_recipient', 'Выберите получателя');
 });
 
-// ==================== ИНИЦИАЛИЗАЦИЯ МОДАЛЬНОГО ОКНА АДРЕСА ====================
+// Функция инициализации Select2 с AJAX
+function initSelect2WithAjax(selector, placeholder) {
+    $(selector).select2({
+        ajax: {
+            url: '{% url "counterparties_json" %}',
+            dataType: 'json',
+            delay: 300,
+            data: function(params) {
+                return {
+                    search: params.term || '',
+                    type: '' // при необходимости можно фильтровать по типу
+                };
+            },
+            processResults: function(data) {
+                return {
+                    results: data.map(item => ({
+                        id: item.id,
+                        text: item.short_info,
+                        full_info: item.full_info
+                    }))
+                };
+            },
+            cache: true
+        },
+        placeholder: placeholder,
+        minimumInputLength: 1,
+        allowClear: true,
+        language: {
+            inputTooShort: function() { return 'Введите 1 или более символов'; },
+            searching: function() { return 'Поиск...'; },
+            noResults: function() { return 'Контрагенты не найдены'; }
+        }
+    });
+}
 
 function initAddressModal() {
     const modal = document.getElementById('addressModal');
     
-    // Очистка при закрытии
     modal.addEventListener('hidden.bs.modal', function() {
         document.getElementById('citySelect').value = '';
         document.getElementById('warehouseSelect').value = '';
@@ -589,12 +630,10 @@ function initAddressModal() {
         currentAddressType = '';
     });
     
-    // Загрузка данных при открытии
     modal.addEventListener('show.bs.modal', function() {
         loadCities();
     });
     
-    // Обработчик выбора города
     document.getElementById('citySelect').addEventListener('change', function() {
         const cityId = this.value;
         if (cityId) {
@@ -608,7 +647,6 @@ function initAddressModal() {
         }
     });
     
-    // Обработчик выбора склада
     document.getElementById('warehouseSelect').addEventListener('change', function() {
         const warehouseId = this.value;
         if (warehouseId) {
@@ -620,12 +658,10 @@ function initAddressModal() {
         }
     });
     
-    // Кнопка сохранения адреса
     document.getElementById('saveAddressBtn').addEventListener('click', function() {
         saveAddress();
     });
     
-    // Автоматическое открытие модального окна при фокусе на полях адреса
     document.getElementById('senderAddress').addEventListener('focus', function(e) {
         e.preventDefault();
         openAddressModal('pickup');
@@ -639,23 +675,17 @@ function initAddressModal() {
 
 function openAddressModal(type) {
     currentAddressType = type;
-    
-    // Определяем заголовок модального окна
     const modalTitle = document.getElementById('addressModalLabel');
     if (type === 'pickup') {
         modalTitle.textContent = 'Выбор адреса отправки (склада)';
     } else {
         modalTitle.textContent = 'Выбор адреса доставки (склада)';
     }
-    
-    // Загружаем текущее значение адреса
     const addressFieldId = type === 'pickup' ? 'senderAddress' : 'recipientAddress';
     const currentAddressElement = document.getElementById(addressFieldId);
     if (currentAddressElement) {
         document.getElementById('addressInput').value = currentAddressElement.value || '';
     }
-    
-    // Открываем модальное окно
     const modalElement = document.getElementById('addressModal');
     const modalInstance = new bootstrap.Modal(modalElement);
     modalInstance.show();
@@ -663,7 +693,6 @@ function openAddressModal(type) {
 
 function loadCities() {
     const citySelect = document.getElementById('citySelect');
-    
     fetch('{% url "cities_json" %}')
         .then(response => response.json())
         .then(data => {
@@ -697,7 +726,6 @@ function loadWarehousesByCity(cityId) {
             });
             warehouseSelect.disabled = false;
             
-            // Обновляем список складов
             warehouseItemsContainer.innerHTML = '';
             data.forEach(warehouse => {
                 const warehouseItem = document.createElement('div');
@@ -707,26 +735,16 @@ function loadWarehousesByCity(cityId) {
                     <div class="warehouse-name">${warehouse.name}</div>
                     <div class="warehouse-address">${warehouse.address || 'Адрес не указан'}</div>
                 `;
-                
                 warehouseItem.addEventListener('click', function() {
-                    // Снимаем выделение со всех элементов
                     document.querySelectorAll('.warehouse-item').forEach(item => {
                         item.classList.remove('selected');
                     });
-                    
-                    // Выделяем текущий элемент
                     this.classList.add('selected');
-                    
-                    // Устанавливаем значение в выпадающем списке
                     warehouseSelect.value = warehouse.id;
-                    
-                    // Загружаем детали склада
                     loadWarehouseDetails(warehouse.id);
                 });
-                
                 warehouseItemsContainer.appendChild(warehouseItem);
             });
-            
             document.getElementById('warehouseList').style.display = 'block';
         })
         .catch(error => {
@@ -743,22 +761,16 @@ function loadWarehouseDetails(warehouseId) {
                 console.error('Ошибка загрузки деталей склада:', data.error);
                 return;
             }
-            
             document.getElementById('warehouseName').textContent = data.name;
             document.getElementById('warehouseAddress').textContent = data.address;
             document.getElementById('warehousePhone').textContent = data.phone;
             document.getElementById('warehouseEmail').textContent = data.email || 'Не указан';
             document.getElementById('warehouseHours').textContent = data.working_hours;
             document.getElementById('warehouseArea').textContent = data.available_area;
-            
             document.getElementById('warehouseDetails').style.display = 'block';
-            
-            // Автоматическое заполнение адреса
             if (data.address && data.address !== '-') {
                 document.getElementById('addressInput').value = data.address;
             }
-            
-            // Сохраняем выбранный склад
             selectedWarehouseId = warehouseId;
         })
         .catch(error => {
@@ -768,53 +780,37 @@ function loadWarehouseDetails(warehouseId) {
 
 function saveAddress() {
     if (!currentAddressType) return;
-    
     const addressInput = document.getElementById('addressInput').value.trim();
-    
     if (!addressInput) {
         showNotification('Пожалуйста, выберите склад или введите адрес вручную', 'error');
         return;
     }
-    
-    // Определяем ID поля адреса и скрытого поля
     const addressFieldId = currentAddressType === 'pickup' ? 'senderAddress' : 'recipientAddress';
     const warehouseFieldId = currentAddressType === 'pickup' ? 'id_pickup_warehouse' : 'id_delivery_warehouse';
-    
-    // Заполняем поле адреса
     document.getElementById(addressFieldId).value = addressInput;
-    
-    // Заполняем скрытое поле ID склада
     const warehouseField = document.getElementById(warehouseFieldId);
     if (warehouseField) {
         warehouseField.value = selectedWarehouseId || '';
     }
-    
-    // Закрываем модальное окно
     const modalElement = document.getElementById('addressModal');
     const modalInstance = bootstrap.Modal.getInstance(modalElement);
     if (modalInstance) {
         modalInstance.hide();
     }
-    
     showNotification('Адрес успешно выбран', 'success');
 }
 
-// ==================== ФУНКЦИИ ДЛЯ КОНТРАГЕНТОВ ====================
-
 function initCounterpartyModal() {
     const modal = document.getElementById('counterpartyModal');
-    
     modal.addEventListener('show.bs.modal', function() {
         setTimeout(changeCounterpartyType, 50);
     });
-    
     modal.addEventListener('hidden.bs.modal', function() {
         document.getElementById('counterpartyForm').reset();
         document.getElementById('legalFields').style.display = 'none';
         document.getElementById('individualFields').style.display = 'none';
         document.getElementById('counterpartyFor').value = '';
     });
-    
     document.getElementById('saveCounterpartyBtn').addEventListener('click', function() {
         saveCounterparty();
     });
@@ -851,17 +847,15 @@ function changeCounterpartyType() {
 
 function openCounterpartyModal(forWhom) {
     document.getElementById('counterpartyFor').value = forWhom;
-    
     const modalTitle = document.getElementById('counterpartyModalLabel');
     if (forWhom === 'sender') {
         modalTitle.textContent = 'Создание нового отправителя';
     } else {
         modalTitle.textContent = 'Создание нового получателя';
     }
-    
     const modalElement = document.getElementById('counterpartyModal');
-    const modalInstance = new bootstrap.Modal(modalElement);
-    modalInstance.show();
+    counterpartyModalInstance = new bootstrap.Modal(modalElement);
+    counterpartyModalInstance.show();
 }
 
 function saveCounterparty() {
@@ -874,7 +868,6 @@ function saveCounterparty() {
         showNotification('Пожалуйста, введите наименование/ФИО', 'error');
         return;
     }
-    
     if (type === 'legal') {
         if (!formData.get('address')) {
             showNotification('Пожалуйста, введите юридический адрес', 'error');
@@ -893,7 +886,6 @@ function saveCounterparty() {
     for (let [key, value] of formData.entries()) {
         data[key] = value;
     }
-    
     if (type !== 'legal' && data.physical_address) {
         data.address = data.physical_address;
     }
@@ -909,11 +901,15 @@ function saveCounterparty() {
     .then(response => response.json())
     .then(result => {
         if (result.success) {
-            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('counterpartyModal'));
-            modalInstance.hide();
-            
-            updateCounterpartySelect(forWhom, result.id, result.short_info);
-            
+            const selectField = $(`#id_${forWhom}`);
+            const newOption = new Option(result.short_info, result.id, true, true);
+            selectField.append(newOption).trigger('change');
+            if (counterpartyModalInstance) {
+                counterpartyModalInstance.hide();
+            } else {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('counterpartyModal'));
+                if (modal) modal.hide();
+            }
             showNotification('Контрагент успешно создан и выбран', 'success');
         } else {
             showNotification('Ошибка при создании контрагента: ' + result.error, 'error');
@@ -925,61 +921,12 @@ function saveCounterparty() {
     });
 }
 
-function loadCounterparties() {
-    fetch('{% url "counterparties_json" %}')
-        .then(response => response.json())
-        .then(data => {
-            loadCounterpartiesForSelect('sender', 'id_sender', data);
-            loadCounterpartiesForSelect('recipient', 'id_recipient', data);
-        })
-        .catch(error => {
-            console.error('Ошибка загрузки контрагентов:', error);
-        });
-}
-
-function loadCounterpartiesForSelect(forWhom, selectId, data) {
-    const select = document.getElementById(selectId);
-    if (!select) return;
-    
-    const currentValue = select.value;
-    
-    while (select.options.length > 1) {
-        select.remove(1);
-    }
-    
-    data.forEach(counterparty => {
-        const option = document.createElement('option');
-        option.value = counterparty.id;
-        option.textContent = counterparty.short_info;
-        select.appendChild(option);
-    });
-    
-    if (currentValue) {
-        select.value = currentValue;
-    }
-}
-
-function updateCounterpartySelect(forWhom, id, name) {
-    const selectId = forWhom === 'sender' ? 'id_sender' : 'id_recipient';
-    const select = document.getElementById(selectId);
-    
-    if (!select) return;
-    
-    const option = document.createElement('option');
-    option.value = id;
-    option.textContent = name;
-    
-    select.appendChild(option);
-    select.value = id;
-}
-
 function showNotification(message, type) {
     const oldNotifications = document.querySelectorAll('.notification-alert');
     oldNotifications.forEach(alert => {
         const bsAlert = new bootstrap.Alert(alert);
         bsAlert.close();
     });
-    
     const alert = document.createElement('div');
     alert.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show notification-alert`;
     alert.style.cssText = `
@@ -1001,9 +948,7 @@ function showNotification(message, type) {
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
     document.body.appendChild(alert);
-    
     setTimeout(() => {
         if (alert.parentNode) {
             const bsAlert = new bootstrap.Alert(alert);

@@ -19,19 +19,17 @@ def get_counterparties_json(request):
 
     if search:
         queryset = queryset.filter(
-            models.Q(name__icontains=search)
-            | models.Q(full_name__icontains=search)
-            | models.Q(inn__icontains=search)
-            | models.Q(address__icontains=search)
+            Q(name__icontains=search)
+            | Q(full_name__icontains=search)
+            | Q(inn__icontains=search)
+            | Q(address__icontains=search)
         )
 
     if counterparty_type:
         queryset = queryset.filter(type=counterparty_type)
 
     data = []
-    for counterparty in queryset.order_by("name")[
-        :50
-    ]:  
+    for counterparty in queryset.order_by("name"):
         data.append(
             {
                 "id": counterparty.id,
@@ -225,9 +223,9 @@ def create_counterparty_public(request):
             passport_issued_date=data.get("passport_issued_date", ""),
             bank_name=data.get("bank_name", ""),
             bank_account=data.get("bank_account", ""),
-            is_customer=True,  
+            is_customer=True,
             notes="Создано через веб-форму заявки",
-            created_by=None, 
+            created_by=None,
         )
 
         return JsonResponse(
